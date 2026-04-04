@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Nova Execução — Qorbit</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item active" aria-current="page">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div><h1 class="topbar-title">Nova execução</h1></div>
+        </div>
+
+        <div class="content">
+
+            <!-- Wizard steps -->
+            <div class="wizard-steps">
+                <div class="wiz-step done" id="wiz1"><span class="wiz-num">1</span><span>URL e ambiente</span></div>
+                <div class="wiz-line"></div>
+                <div class="wiz-step active" id="wiz2"><span class="wiz-num">2</span><span>Autenticação</span></div>
+                <div class="wiz-line"></div>
+                <div class="wiz-step" id="wiz3"><span class="wiz-num">3</span><span>Selecionar testes</span></div>
+                <div class="wiz-line"></div>
+                <div class="wiz-step" id="wiz4"><span class="wiz-num">4</span><span>Confirmar e rodar</span></div>
+            </div>
+
+            <div class="two-col">
+
+                <!-- Coluna esquerda: ambiente + auth -->
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Ambiente</span>
+                            <span class="badge badge-success">Configurado</span>
+                        </div>
+                        <div class="form-group">
+                            <label>URL da aplicação alvo *</label>
+                            <input type="url" id="urlAlvo" class="input" placeholder="https://app.suaempresa.com.br"/>
+                        </div>
+                        <div class="form-group">
+                            <label>Browser</label>
+                            <select id="browser" class="input">
+                                <option value="chrome">Chrome (padrão)</option>
+                                <option value="firefox">Firefox</option>
+                                <option value="edge">Edge</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Timeout por step (segundos)</label>
+                            <input type="number" id="timeout" class="input" value="10" min="5" max="60"/>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Autenticação</span>
+                        </div>
+                        <div class="tabs">
+                            <button class="tab active" onclick="trocarAba('cookie', this)">Cookie de sessão</button>
+                            <button class="tab" onclick="trocarAba('senha', this)">Usuário/senha</button>
+                            <button class="tab" onclick="trocarAba('token', this)">Token</button>
+                        </div>
+
+                        <div id="aba-cookie">
+                            <p class="helper-text">
+                                Faça login normalmente na aplicação alvo no seu browser.
+                                Depois clique em "Capturar cookies" para que o Qorbit
+                                injete a sessão autenticada no Selenium.
+                            </p>
+                            <button class="btn btn-primary" onclick="capturarCookies()">
+                                Capturar cookies da sessão ativa
+                            </button>
+                            <div id="cookiesCapturados" class="hidden mt-8">
+                                <span class="badge badge-success" id="cookiesBadge">0 cookies capturados</span>
+                            </div>
+                        </div>
+
+                        <div id="aba-senha" class="hidden">
+                            <div class="form-group">
+                                <label>Usuário</label>
+                                <input type="email" id="authUsuario" class="input" placeholder="usuario@empresa.com"/>
+                            </div>
+                            <div class="form-group">
+                                <label>Senha</label>
+                                <input type="password" id="authSenha" class="input"/>
+                            </div>
+                        </div>
+
+                        <div id="aba-token" class="hidden">
+                            <div class="form-group">
+                                <label>Bearer Token</label>
+                                <input type="text" id="authToken" class="input" placeholder="eyJhbGc..."/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna direita: seleção de testes -->
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Casos de teste</span>
+                            <a href="#" onclick="selecionarTodos()" class="link-info">Selecionar todos</a>
+                        </div>
+                        <input type="text" id="filtroCasos" class="input mb-8"
+                               placeholder="Filtrar por nome ou módulo..."
+                               oninput="filtrarCasos()"/>
+                        <div id="listaCasos" class="tests-list">
+                            <p class="text-center text-muted">Carregando casos de teste...</p>
+                        </div>
+                        <div class="card-footer">
+                            <span id="resumoSelecao" class="text-muted text-sm">0 selecionados</span>
+                            <span id="tempoEstimado" class="text-muted text-sm"></span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Formato do código gerado</div>
+                        <div class="form-group">
+                            <label>Formato</label>
+                            <select id="formatoCodigo" class="input">
+                                <option value="CUCUMBER" selected>Selenium + Cucumber (Java + Gherkin pt-BR)</option>
+                                <option value="SELENIUM">Selenium puro (Java)</option>
+                                <option value="TESTNG">Selenium + TestNG</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="/" class="btn">Cancelar</a>
+                        <button class="btn btn-success" onclick="iniciarExecucao()">
+                            Iniciar execução
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/nova-execucao.js"></script>
+</body>
+</html>

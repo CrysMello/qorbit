@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Gravar Teste — Qorbit</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <style>
+        .record-btn {
+            width: 100%; padding: 14px;
+            font-size: 15px; font-weight: bold;
+            border-radius: 8px; cursor: pointer;
+            border: none; transition: all .2s;
+        }
+        .record-btn.start {
+            background: #DC2626; color: white;
+        }
+        .record-btn.start:hover { background: #b91c1c; }
+        .record-btn.stop {
+            background: #374151; color: white;
+        }
+        .record-btn.stop:hover { background: #1f2937; }
+
+        .pulse {
+            display: inline-block;
+            width: 10px; height: 10px;
+            background: #DC2626; border-radius: 50%;
+            animation: pulse 1s ease-in-out infinite;
+            margin-right: 6px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: .4; transform: scale(.8); }
+        }
+
+        .step-live {
+            display: flex; align-items: flex-start;
+            gap: 10px; padding: 10px 12px;
+            border-radius: 6px; background: #F9FAFB;
+            border: 1px solid #E5E7EB;
+            animation: slideIn .25s ease;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .step-live:nth-child(odd)  { background: #F9FAFB; }
+        .step-live:nth-child(even) { background: white; }
+
+        .step-num-rec {
+            width: 24px; height: 24px; border-radius: 50%;
+            background: #1F4E79; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; flex-shrink: 0;
+        }
+        .step-info { flex: 1; min-width: 0; }
+        .step-acao-badge {
+            display: inline-block; font-size: 9px; font-weight: bold;
+            padding: 2px 6px; border-radius: 3px; margin-right: 4px;
+        }
+        .acao-CLICAR    { background: #EBF3FA; color: #1F4E79; }
+        .acao-PREENCHER { background: #EAF3DE; color: #27500A; }
+        .acao-NAVEGAR   { background: #EEEDFE; color: #3C3489; }
+        .acao-SELECIONAR{ background: #FEF3C7; color: #92400E; }
+        .acao-VALIDAR   { background: #DCFCE7; color: #166534; }
+
+        .gherkin-text {
+            font-size: 11px; color: #6B7280;
+            font-style: italic; margin-top: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .step-delete {
+            background: none; border: none; cursor: pointer;
+            color: #DC2626; font-size: 14px; padding: 0 4px;
+            flex-shrink: 0; line-height: 1;
+        }
+        .step-delete:hover { opacity: .7; }
+
+        .status-bar {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 16px; border-radius: 6px;
+            background: #FEF2F2; border: 1px solid #FECACA;
+            margin-bottom: 12px;
+        }
+        .status-bar.inativo {
+            background: #F9FAFB; border-color: #E5E7EB;
+        }
+        .status-bar.gravando-ativo {
+            background: #FEF2F2; border-color: #FECACA;
+        }
+
+        #listaSteps {
+            display: flex; flex-direction: column;
+            gap: 6px; max-height: 420px; overflow-y: auto;
+        }
+
+        .dica-box {
+            background: #EBF3FA; border: 1px solid #BFDBFE;
+            border-radius: 6px; padding: 12px 16px;
+            font-size: 12px; color: #1F4E79; line-height: 1.7;
+        }
+        .dica-box strong { font-weight: bold; }
+    </style>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item active" aria-current="page">⏺ Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">⏺ Gravar Teste</h1>
+                <span class="topbar-sub">Interaja com a aplicação e o Qorbit captura os steps automaticamente</span>
+            </div>
+            <div class="topbar-actions">
+                <span class="badge" id="badgeStatus" style="font-size:12px">● Inativo</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="two-col" style="align-items:start">
+
+                <!-- Coluna esquerda: controles -->
+                <div>
+                    <!-- Status da gravação -->
+                    <div class="status-bar inativo" id="statusBar">
+                        <span id="statusIcon">○</span>
+                        <span id="statusTexto" style="font-size:12px;color:#6B7280">
+                            Nenhuma gravação em andamento
+                        </span>
+                    </div>
+
+                    <!-- Indicador de carregamento inicial -->
+                    <div id="loadingVerificacao" class="card" style="text-align:center;padding:20px;color:#9CA3AF;font-size:12px">Verificando estado da gravação...</div>
+
+                    <!-- Formulário de início -->
+                    <div class="card hidden" id="formIniciar">
+                        <div class="card-title" style="margin-bottom:14px">
+                            Configurar gravação
+                        </div>
+                        <div class="form-group">
+                            <label>URL da aplicação alvo *</label>
+                            <input type="url" id="urlGravacao" class="input"
+                                   placeholder="https://app.suaempresa.com.br/pagina"/>
+                            <span style="font-size:10px;color:#9CA3AF;margin-top:3px;display:block">
+                                O Chrome abrirá nessa URL automaticamente
+                            </span>
+                        </div>
+                        <button class="record-btn start" onclick="iniciarGravacao()">
+                            ⏺ Iniciar gravação
+                        </button>
+                    </div>
+
+                    <!-- Painel durante a gravação -->
+                    <div class="card hidden" id="painelGravando">
+                        <div class="card-title" style="margin-bottom:14px;color:#DC2626">
+                            <span class="pulse"></span> Gravação em andamento
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nome do caso de teste *</label>
+                            <input type="text" id="nomeCaso" class="input"
+                                   placeholder="Ex: Login com credenciais válidas"/>
+                        </div>
+                        <div class="form-group">
+                            <label>Módulo</label>
+                            <input type="text" id="moduloCaso" class="input"
+                                   placeholder="Ex: Autenticação" list="listaModulos"/>
+                            <datalist id="listaModulos"></datalist>
+                        </div>
+
+                        <div style="display:flex;gap:8px;margin-top:4px">
+                            <button class="record-btn stop" onclick="pararGravacao()" style="flex:2">
+                                ⏹ Parar e salvar
+                            </button>
+                            <button class="btn btn-sm" onclick="descartarGravacao()"
+                                    style="flex:1;color:#DC2626">
+                                Descartar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dicas de uso -->
+                    <div class="dica-box">
+                        <strong>Como usar:</strong><br>
+                        1. Informe a URL e clique em "Iniciar gravação"<br>
+                        2. O Chrome abrirá automaticamente na URL informada<br>
+                        3. Navegue e interaja com a aplicação normalmente<br>
+                        4. Cada clique, preenchimento e navegação é gravado<br>
+                        5. Clique em "Parar e salvar" para criar o caso de teste<br><br>
+                        <strong>O que é gravado:</strong>
+                        Cliques em botões e links, preenchimento de campos,
+                        seleção em dropdowns, navegação entre páginas.<br><br>
+                        <strong>O que não é gravado:</strong>
+                        Senhas (por segurança), movimentos do mouse sem clique.
+                    </div>
+                </div>
+
+                <!-- Coluna direita: steps em tempo real -->
+                <div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Steps gravados em tempo real</span>
+                            <span id="contadorSteps" class="badge badge-info">0 steps</span>
+                        </div>
+
+                        <div id="listaSteps">
+                            <div style="text-align:center;padding:40px;color:#9CA3AF;font-size:12px">
+                                Os steps aparecerão aqui conforme você interage<br>com a aplicação no browser aberto.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Gherkin -->
+                    <div class="card hidden" id="cardGherkin">
+                        <div class="card-header">
+                            <span class="card-title">Preview — arquivo .feature (Gherkin)</span>
+                            <button class="btn btn-sm" onclick="copiarGherkin()">Copiar</button>
+                        </div>
+                        <pre id="previewGherkin" style="font-family:monospace;font-size:11px;
+                             color:#374151;background:#F9FAFB;padding:12px;border-radius:4px;
+                             overflow-x:auto;white-space:pre-wrap;max-height:200px;overflow-y:auto"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/gravar-teste.js"></script>
+</body>
+</html>

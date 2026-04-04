@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Qorbit</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item active" aria-current="page">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">Dashboard</h1>
+                <span class="topbar-sub">Visão geral da última execução</span>
+            </div>
+            <div class="topbar-actions">
+                <span class="badge badge-success" id="seleniumBadge">● Verificando</span>
+                <button class="btn" style="color:#DC2626;border-color:#DC2626"
+                        onclick="limparAguardando()" title="Remove todas as execuções presas em AGUARDANDO">
+                    🗑 Limpar pendentes
+                </button>
+                <a href="/nova-execucao" class="btn btn-primary">+ Nova execução</a>
+            </div>
+        </div>
+
+        <div class="content">
+
+            <!-- Métricas -->
+            <div class="metrics-row">
+                <div class="metric-card">
+                    <span class="metric-label">Elementos capturados</span>
+                    <span class="metric-value" th:text="${totalElementos}">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Casos de teste</span>
+                    <span class="metric-value" th:text="${totalCasos}">0</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Última execução</span>
+                    <span class="metric-value" id="metricUltimaExecucao"
+                          th:text="${ultimaExecucao != null}
+                              ? ${ultimaExecucao.stepsPAssou} + '/' + ${ultimaExecucao.totalSteps}
+                              : '—'">—</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">% Sucesso</span>
+                    <span class="metric-value" id="metricPercentual"
+                          th:text="${ultimaExecucao != null and ultimaExecucao.percentualSucesso != null}
+                              ? ${#numbers.formatDecimal(ultimaExecucao.percentualSucesso, 1, 0)} + '%'
+                              : '—'">—</span>
+                </div>
+            </div>
+
+            <!-- Execução em andamento -->
+            <div class="card" id="execucaoCard" style="display:none">
+                <div class="card-header">
+                    <span class="card-title">Execução em andamento</span>
+                    <span class="badge badge-info" id="execStatus">● Rodando</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                </div>
+                <p class="progress-label" id="progressLabel">Iniciando...</p>
+                <div id="stepsList" class="steps-list"></div>
+            </div>
+
+            <!-- Últimas execuções -->
+            <div class="card" th:if="${!execucoes.isEmpty()}">
+                <div class="card-header">
+                    <span class="card-title">Últimas execuções</span>
+                    <a href="/evidencias" class="btn btn-sm">Ver todas</a>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>URL</th>
+                            <th>Status</th>
+                            <th>Passou</th>
+                            <th>Falhou</th>
+                            <th>Duração</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="exec : ${execucoes}" th:attr="data-execucao-id=${exec.id}">
+                            <td th:text="${exec.id}"></td>
+                            <td th:text="${exec.urlAlvo}" class="url-cell"></td>
+                            <td>
+                                <span class="badge" data-col="status"
+                                      th:classappend="${exec.status == 'CONCLUIDO'} ? 'badge-success'
+                                                    : (${exec.status == 'ERRO'} ? 'badge-danger' : (${exec.status == 'RODANDO'} ? 'badge-info' : 'badge-warning'))"
+                                      th:text="${exec.status}"></span>
+                            </td>
+                            <td data-col="passou" th:text="${exec.stepsPAssou ?: 0}"></td>
+                            <td data-col="falhou" th:text="${exec.stepsFalhou ?: 0}"></td>
+                            <td data-col="duracao" th:text="${exec.tempoExecucaoSegundos != null} ? ${exec.tempoExecucaoSegundos} + 's' : '—'"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Estado vazio -->
+            <div class="empty-state" th:if="${execucoes.isEmpty()}">
+                <p class="empty-title">Nenhuma execução ainda</p>
+                <p class="empty-sub">Clique em "Nova execução" para começar</p>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+async function limparAguardando() {
+    if (!confirm('Isso irá remover TODOS os dados: execuções, elementos capturados e casos de teste. Confirmar?')) return;
+    try {
+        const res = await api('DELETE', '/api/execucoes/limpar/aguardando');
+        toast(res.mensagem || 'Execuções removidas!', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } catch (e) {
+        toast('Erro ao limpar: ' + e.message, 'danger');
+    }
+}
+</script>
+<script>
+    initWebSocket();
+    checkSeleniumStatus();
+
+    const params = new URLSearchParams(window.location.search);
+    const execucaoId = params.get('execucaoId');
+    if (execucaoId) {
+        mostrarExecucaoEmAndamento(execucaoId);
+    }
+
+    refreshExecucoesViews();
+    setInterval(refreshExecucoesViews, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Execuções — Qorbit</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item active" aria-current="page">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
+
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">Histórico de Execuções</h1>
+                <span class="topbar-sub">Todas as execuções realizadas</span>
+            </div>
+            <div class="topbar-actions">
+                <button class="btn" style="color:#DC2626;border-color:#DC2626"
+                        onclick="limparAguardando()">🗑 Limpar pendentes</button>
+                <a href="/nova-execucao" class="btn btn-primary">+ Nova execução</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="card" style="padding:0">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>URL</th>
+                            <th>Browser</th>
+                            <th>Status</th>
+                            <th>Passou</th>
+                            <th>Falhou</th>
+                            <th>% Sucesso</th>
+                            <th>Duração</th>
+                            <th>Iniciado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="exec : ${execucoes}" th:attr="data-execucao-id=${exec.id}">
+                            <td th:text="${exec.id}"></td>
+                            <td class="url-cell" th:text="${exec.urlAlvo}"></td>
+                            <td th:text="${exec.browser ?: 'chrome'}"></td>
+                            <td>
+                                <span class="badge" data-col="status"
+                                      th:classappend="${exec.status == 'CONCLUIDO'} ? 'badge-success'
+                                                    : (${exec.status == 'ERRO'} ? 'badge-danger'
+                                                    : (${exec.status == 'RODANDO'} ? 'badge-info' : 'badge-warning'))"
+                                      th:text="${exec.status}"></span>
+                            </td>
+                            <td data-col="passou" th:text="${exec.stepsPAssou ?: 0}"></td>
+                            <td data-col="falhou" th:text="${exec.stepsFalhou ?: 0}"></td>
+                            <td data-col="percentualSucesso" th:text="${exec.percentualSucesso != null}
+                                ? ${#numbers.formatDecimal(exec.percentualSucesso,1,0)} + '%' : '—'"></td>
+                            <td data-col="duracao" th:text="${exec.tempoExecucaoSegundos != null}
+                                ? ${exec.tempoExecucaoSegundos} + 's' : '—'"></td>
+                            <td th:text="${exec.iniciadoEm != null ? #strings.substring(exec.iniciadoEm, 0, 16) : '—'}"></td>
+                            <td>
+                                <a th:href="@{/evidencias(execucaoId=${exec.id})}"
+                                   class="btn btn-sm">Evidências</a>
+                                <button class="btn btn-sm"
+                                        th:onclick="'gerarCodigo(' + ${exec.id} + ')'"
+                                        style="margin-left:4px">Baixar código</button>
+                                <button class="btn btn-sm"
+                                        th:onclick="'deletarExecucao(' + ${exec.id} + ')'"
+                                        style="margin-left:4px;color:#DC2626"
+                                        title="Remover esta execução">✕</button>
+                            </td>
+                        </tr>
+                        <tr th:if="${execucoes.isEmpty()}">
+                            <td colspan="10" class="text-center text-muted" style="padding:40px">
+                                Nenhuma execução registrada ainda.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="/js/app.js"></script>
+
+<!-- Modal: seleccionar suite para execução -->
+<div id="modalSuiteExec" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center">
+    <div style="background:var(--bg);border-radius:12px;border:1px solid var(--border);padding:1.5rem;width:340px;max-width:95vw">
+        <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:1rem">Adicionar à suite</div>
+        <div id="suitesListModal" style="max-height:260px;overflow-y:auto;margin-bottom:1rem"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:.75rem;border-top:1px solid var(--border)">
+            <button class="btn" onclick="fecharModalSuite()">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmarAdicionarSuite()">Confirmar</button>
+        </div>
+    </div>
+</div>
+<script>
+checkSeleniumStatus();
+
+async function deletarExecucao(id) {
+    if (!confirm('Remover execução #' + id + '?')) return;
+    try {
+        await api('DELETE', '/api/execucoes/' + id);
+        toast('Execução #' + id + ' removida', 'success');
+        setTimeout(() => location.reload(), 800);
+    } catch (e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+async function limparAguardando() {
+    if (!confirm('Isso irá remover TODOS os dados: execuções, elementos capturados e casos de teste. Confirmar?')) return;
+    try {
+        const res = await api('DELETE', '/api/execucoes/limpar/aguardando');
+        toast(res.mensagem, 'success');
+        setTimeout(() => location.reload(), 800);
+    } catch (e) { toast('Erro: ' + e.message, 'danger'); }
+}
+async function gerarCodigo(execucaoId) {
+    try {
+        const res = await fetch('/api/codigo/gerar', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ idsCasos: [] })
+        });
+        if (res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'qorbit-tests-export.zip'; a.click();
+        }
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+refreshExecucoesViews();
+setInterval(refreshExecucoesViews, 3000);
+</script>
+<script>
+let execIdParaSuite = null;
+let suiteIdSelecionada = null;
+
+async function abrirModalSuite(execId) {
+    execIdParaSuite = execId;
+    suiteIdSelecionada = null;
+    const modal = document.getElementById('modalSuiteExec');
+    modal.style.display = 'flex';
+    try {
+        const suites = await api('GET', '/api/suites');
+        const lista = document.getElementById('suitesListModal');
+        if (!suites || suites.length === 0) {
+            lista.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:.5rem">Nenhuma suite criada ainda. <a href="/suites">Criar suite</a></p>';
+            return;
+        }
+        lista.innerHTML = suites.map(s => `
+            <div onclick="selecionarSuiteModal(this,${s.id})"
+                 style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;cursor:pointer">
+                <div style="width:10px;height:10px;border-radius:50%;background:${corDot(s.cor)};flex-shrink:0"></div>
+                <span style="font-size:13px;color:var(--text);flex:1">${s.nome}</span>
+                <span style="font-size:11px;color:var(--text-muted)">${s.totalCasos} casos</span>
+            </div>
+        `).join('') + `
+            <div onclick="window.location='/suites'"
+                 style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px dashed var(--border);border-radius:6px;cursor:pointer;margin-top:4px">
+                <span style="font-size:12px;color:var(--text-muted)">+ criar nova suite</span>
+            </div>`;
+    } catch(e) { toast('Erro ao carregar suites', 'danger'); }
+}
+
+function corDot(cor) {
+    const cores = {green:'#639922',blue:'#378ADD',amber:'#BA7517',purple:'#7F77DD',coral:'#D85A30'};
+    return cores[cor] || '#639922';
+}
+
+function selecionarSuiteModal(el, id) {
+    document.querySelectorAll('#suitesListModal div').forEach(d => d.style.borderColor = 'var(--border)');
+    el.style.borderColor = '#534AB7';
+    el.style.background = '#EEEDFE';
+    suiteIdSelecionada = id;
+}
+
+function fecharModalSuite() {
+    document.getElementById('modalSuiteExec').style.display = 'none';
+}
+
+async function confirmarAdicionarSuite() {
+    if (!suiteIdSelecionada) { toast('Seleccione uma suite.', 'danger'); return; }
+    try {
+        const res = await api('POST', '/api/suites/' + suiteIdSelecionada + '/execucao/' + execIdParaSuite);
+        toast(res.mensagem, 'success');
+        fecharModalSuite();
+    } catch(e) { toast(e.message || 'Erro ao adicionar à suite', 'danger'); }
+}
+</script>
+</body>
+</html>

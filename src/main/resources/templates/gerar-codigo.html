@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Gerar Código — Qorbit</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item active" aria-current="page">Gerar código</a>
+
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">Gerar Código</h1>
+                <span class="topbar-sub">Exportar projeto Selenium + Cucumber pronto para execução</span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="two-col">
+                <div>
+                    <!-- Seleção de casos -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Selecionar casos de teste</span>
+                            <a href="#" onclick="selecionarTodos()" class="link-info">Selecionar todos</a>
+                        </div>
+                        <input type="text" class="input mb-8"
+                               placeholder="Filtrar..." oninput="filtrarCasos(this.value)"/>
+                        <div id="listaCasos" class="tests-list">
+                            <p class="text-muted text-center" style="padding:20px">Carregando...</p>
+                        </div>
+                        <div class="card-footer">
+                            <span id="resumo" class="text-muted text-sm">0 selecionados</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <!-- Opções de exportação -->
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:14px">Configurações de exportação</div>
+
+                        <div class="form-group">
+                            <label>Formato</label>
+                            <select id="formato" class="input">
+                                <option value="CUCUMBER" selected>Selenium + Cucumber (Java + Gherkin pt-BR)</option>
+                                <option value="SELENIUM">Selenium puro (Java)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Versão do Java</label>
+                            <select id="javaVersion" class="input">
+                                <option value="17" selected>Java 17 (recomendado)</option>
+                                <option value="11">Java 11</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Incluir no .zip</label>
+                            <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                    <input type="checkbox" id="inclPageObjects" checked/> Page Objects (POM)
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                    <input type="checkbox" id="inclFeatures" checked/> Arquivos .feature (Gherkin)
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                    <input type="checkbox" id="inclSteps" checked/> Step Definitions
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                    <input type="checkbox" id="inclRunner" checked/> TestRunner + Hooks
+                                </label>
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                    <input type="checkbox" id="inclReadme" checked/> README.md com instruções
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instrução de uso -->
+                    <div class="card" style="background:#EBF3FA;border-color:#BFDBFE">
+                        <div class="card-title" style="color:#1F4E79;margin-bottom:10px">Como usar o código gerado</div>
+                        <div style="font-size:11px;color:#1F4E79;line-height:1.8">
+                            <strong>1.</strong> Baixe o .zip e descompacte em uma pasta<br>
+                            <strong>2.</strong> Abra a pasta no VSCode (com Extension Pack for Java)<br>
+                            <strong>3.</strong> Aguarde o Maven baixar as dependências<br>
+                            <strong>4.</strong> Execute no terminal:<br>
+                            <div style="background:#1F4E79;color:white;padding:8px 12px;border-radius:4px;margin-top:6px;font-family:monospace;font-size:11px">
+                                mvn test
+                            </div>
+                            <div style="margin-top:8px">
+                                As evidências serão salvas em <strong>evidencias/</strong><br>
+                                O relatório HTML abrirá automaticamente ao final.
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px"
+                            onclick="gerarDownload()">
+                        ⬇ Baixar projeto .zip
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/gerar-codigo.js"></script>
+</body>
+</html>

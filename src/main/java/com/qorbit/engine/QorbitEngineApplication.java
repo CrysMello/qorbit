@@ -1,0 +1,48 @@
+package com.qorbit.engine;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+@SpringBootApplication
+public class QorbitEngineApplication {
+
+    public static void main(String[] args) {
+        prepararInfraBanco();
+        SpringApplication.run(QorbitEngineApplication.class, args);
+        System.out.println("====================================");
+        System.out.println("  Qorbit iniciado!");
+        System.out.println("  Acesse: http://localhost:8080");
+        System.out.println("====================================");
+    }
+
+    private static void prepararInfraBanco() {
+        String dbPath = System.getenv("QORBIT_DB_PATH");
+        if (dbPath == null || dbPath.isBlank()) {
+            dbPath = "db/qorbit.db";
+        }
+
+        try {
+            Path dbFile = Paths.get(dbPath).toAbsolutePath().normalize();
+            Path parent = dbFile.getParent();
+
+            if (parent != null && Files.notExists(parent)) {
+                Files.createDirectories(parent);
+                System.out.println("[Qorbit Engine] Pasta do banco criada: " + parent);
+            }
+
+            if (Files.notExists(dbFile)) {
+                Files.createFile(dbFile);
+                System.out.println("[Qorbit Engine] Arquivo do banco criado: " + dbFile);
+            }
+
+            System.setProperty("QORBIT_DB_PATH", dbFile.toString());
+            System.out.println("[Qorbit Engine] Banco configurado em: " + dbFile);
+        } catch (Exception e) {
+            throw new IllegalStateException("Não foi possível preparar a infraestrutura do banco SQLite em '" + dbPath + "': " + e.getMessage(), e);
+        }
+    }
+}

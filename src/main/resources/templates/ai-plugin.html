@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Qorbit — Plugin IA</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <style>
+        .ai-banner{background:#EDE9FE;border:1px solid #C4B5FD;border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+        .ai-banner-icon{font-size:22px}
+        .ai-banner-title{font-size:12px;font-weight:bold;color:#5B21B6}
+        .ai-banner-sub{font-size:11px;color:#7C3AED;margin-top:2px}
+        .step-row{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #F3F4F6}
+        .step-row:last-child{border-bottom:none}
+        .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;flex-shrink:0;margin-top:2px;background:#7C3AED;color:white}
+        .step-num.done{background:#1D9E75}
+        .step-num.pending{background:#F3F4F6;color:#9CA3AF}
+        .step-info{flex:1}
+        .step-title{font-size:12px;font-weight:bold;color:#111827;margin-bottom:3px}
+        .step-desc{font-size:11px;color:#6B7280;line-height:1.5;margin-bottom:8px}
+        .feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+        .feature-card{border:1px solid #E5E7EB;border-radius:6px;padding:14px;background:white}
+        .feature-title{font-size:12px;font-weight:bold;color:#111827;margin-bottom:4px}
+        .feature-desc{font-size:11px;color:#6B7280;margin-bottom:10px;line-height:1.5}
+        .log-box{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:4px;padding:10px;font-size:11px;font-family:monospace;color:#374151;line-height:1.8;min-height:80px;max-height:200px;overflow-y:auto}
+        .log-ok{color:#166534}
+        .log-info{color:#1E40AF}
+        .log-warn{color:#D97706}
+        .log-err{color:#DC2626}
+        .toggle-wrap{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+        .toggle{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0}
+        .toggle input{opacity:0;width:0;height:0;position:absolute}
+        .toggle-track{position:absolute;top:0;left:0;right:0;bottom:0;background:#D1D5DB;border-radius:20px;transition:.2s}
+        .toggle input:checked + .toggle-track{background:#7C3AED}
+        .toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:.2s;pointer-events:none}
+        .toggle input:checked ~ .toggle-thumb{left:18px}
+        .btn-purple{background:#7C3AED;color:white;border-color:transparent}
+        .btn-purple:hover{background:#6D28D9}
+        .metrics-ai{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+        .metric-ai{background:#EDE9FE;border-radius:6px;padding:14px}
+        .metric-ai .metric-label{color:#7C3AED}
+        .metric-ai .metric-value{color:#5B21B6}
+        #screen-config{display:block}
+        #screen-ativo{display:none}
+    </style>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item active" aria-current="page" style="color:#5B21B6;background:#EDE9FE;font-weight:bold">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">Plugin de Inteligência Artificial</h1>
+                <span class="topbar-sub" id="topSub">Configure a IA para começar</span>
+            </div>
+            <div class="topbar-actions">
+                <span class="badge badge-warning" id="topBadge">&#9679; Não configurado</span>
+                <button class="btn btn-sm btn-purple" onclick="testarConexao()" id="btnTestar" style="display:none">Testar ligação</button>
+            </div>
+        </div>
+
+        <div class="content">
+
+            <!-- TELA CONFIGURAÇÃO -->
+            <div id="screen-config">
+
+                <div class="ai-banner">
+                    <span class="ai-banner-icon">&#10024;</span>
+                    <div>
+                        <div class="ai-banner-title">Plugin IA disponível</div>
+                        <div class="ai-banner-sub">Compatível com qualquer IA com API REST — DeepSeek, Mistral, IA interna da empresa, etc.</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Configuração</div>
+
+                    <div class="step-row">
+                        <div class="step-num" id="step1num">1</div>
+                        <div class="step-info">
+                            <div class="step-title">Endpoint da API</div>
+                            <div class="step-desc">URL completa do endpoint de chat completions da sua IA.</div>
+                            <div class="form-group" style="margin-bottom:4px">
+                                <input class="input" id="inputEndpoint" placeholder="https://api.deepseek.com/v1/chat/completions"
+                                       oninput="validarFormulario()"/>
+                            </div>
+                            <span class="helper-text">Exemplos: DeepSeek · Mistral · IA interna · qualquer API compatível com OpenAI Chat</span>
+                        </div>
+                    </div>
+
+                    <div class="step-row">
+                        <div class="step-num" id="step2num">2</div>
+                        <div class="step-info">
+                            <div class="step-title">Nome do modelo</div>
+                            <div class="step-desc">Nome exacto do modelo conforme documentação da API.</div>
+                            <input class="input" id="inputModelo" placeholder="deepseek-chat"
+                                   oninput="validarFormulario()"/>
+                            <span class="helper-text" style="margin-top:4px;display:block">Exemplos: deepseek-chat · mistral-large · gpt-4o · llama-3</span>
+                        </div>
+                    </div>
+
+                    <div class="step-row">
+                        <div class="step-num" id="step3num">3</div>
+                        <div class="step-info">
+                            <div class="step-title">Autenticação</div>
+                            <div class="step-desc">Como a API autentica os pedidos.</div>
+                            <div class="form-grid" style="margin-top:8px">
+                                <div class="form-group">
+                                    <label>Tipo</label>
+                                    <select class="input" id="inputAuthTipo" onchange="trocarAuth()">
+                                        <option value="bearer">API Key (Bearer token)</option>
+                                        <option value="oauth2">OAuth2</option>
+                                        <option value="none">Sem autenticação</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="groupApiKey">
+                                    <label>API Key</label>
+                                    <input class="input" id="inputApiKey" type="password" placeholder="sk-..."/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step-row">
+                        <div class="step-num pending" id="step4num">4</div>
+                        <div class="step-info">
+                            <div class="step-title" style="color:#9CA3AF">Pronto para usar</div>
+                            <div class="step-desc">O plugin melhora a captura automaticamente.</div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button class="btn btn-sm" onclick="testarConexao()" id="btnTestarForm">Testar ligação</button>
+                        <button class="btn btn-sm btn-purple" onclick="ativarPlugin()" id="btnAtivar" disabled>Ativar plugin</button>
+                    </div>
+
+                    <div id="msgTeste" style="display:none;margin-top:10px;font-size:11px;padding:8px 10px;border-radius:4px"></div>
+                </div>
+            </div>
+
+            <!-- TELA ATIVO -->
+            <div id="screen-ativo">
+
+                <div style="background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                    <span style="font-size:18px">&#10003;</span>
+                    <div style="flex:1">
+                        <span style="font-size:12px;font-weight:bold;color:#166534">Plugin IA activo</span>
+                        <span style="display:block;font-size:11px;color:#16a34a;margin-top:2px">
+                            Modelo: <span id="lblModelo"></span> &nbsp;·&nbsp; <span id="lblEndpoint"></span>
+                        </span>
+                    </div>
+                    <button class="btn btn-sm" onclick="reconfigurar()">Reconfigurar</button>
+                </div>
+
+                <div class="metrics-ai">
+                    <div class="metric-ai">
+                        <span class="metric-label">Elementos renomeados</span>
+                        <span class="metric-value" id="mRenomeados">0</span>
+                    </div>
+                    <div class="metric-ai">
+                        <span class="metric-label">Abas detectadas</span>
+                        <span class="metric-value" id="mAbas">0</span>
+                    </div>
+                    <div class="metric-ai">
+                        <span class="metric-label">Falhas diagnosticadas</span>
+                        <span class="metric-value" id="mFalhas">0</span>
+                    </div>
+                </div>
+
+                <div class="feature-grid">
+
+                    <div class="feature-card">
+                        <div class="feature-title">&#128296; Melhorar nomes</div>
+                        <div class="feature-desc">Renomeia elementos genéricos (campo1, botao2) com nomes semânticos baseados no contexto do DOM.</div>
+                        <button class="btn btn-sm btn-purple" onclick="melhorarNomes()">Melhorar agora</button>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-title">&#128193; Detectar abas</div>
+                        <div class="feature-desc">Identifica tabs, accordions e dropdowns para navegar e capturar elementos ocultos.</div>
+                        <div class="form-group" style="margin-bottom:8px">
+                            <input class="input" id="inputUrlAbas" placeholder="https://app.minhaempresa.com.br"/>
+                        </div>
+                        <button class="btn btn-sm btn-purple" onclick="detectarAbas()">Escanear página</button>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-title">&#128203; Diagnosticar falha</div>
+                        <div class="feature-desc">Analisa o seletor e o erro de uma execução e sugere como corrigir.</div>
+                        <div class="form-group" style="margin-bottom:6px">
+                            <input class="input" id="inputSeletor" placeholder="Seletor (ex: #btnEnviar)"/>
+                        </div>
+                        <div class="form-group" style="margin-bottom:8px">
+                            <input class="input" id="inputErro" placeholder="Mensagem de erro"/>
+                        </div>
+                        <button class="btn btn-sm btn-purple" onclick="diagnosticar()">Analisar</button>
+                    </div>
+
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">&#128196; Log de actividade</span>
+                        <button class="btn btn-sm" onclick="limparLog()">Limpar</button>
+                    </div>
+                    <div class="log-box" id="logBox">
+                        <span class="log-ok">[--:--:--] Plugin IA activo e pronto</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Funcionalidades</div>
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" checked id="toggleNaming">
+                            <div class="toggle-track"></div>
+                            <div class="toggle-thumb"></div>
+                        </label>
+                        <div>
+                            <div style="font-size:12px;font-weight:bold;color:#111827">Naming automático na captura</div>
+                            <div style="font-size:11px;color:#6B7280">Renomeia elementos durante a captura de elementos</div>
+                        </div>
+                    </div>
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" checked id="toggleAbas">
+                            <div class="toggle-track"></div>
+                            <div class="toggle-thumb"></div>
+                        </label>
+                        <div>
+                            <div style="font-size:12px;font-weight:bold;color:#111827">Detecção automática de abas</div>
+                            <div style="font-size:11px;color:#6B7280">Clica em cada aba antes de capturar elementos</div>
+                        </div>
+                    </div>
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" id="toggleDiag">
+                            <div class="toggle-track"></div>
+                            <div class="toggle-thumb"></div>
+                        </label>
+                        <div>
+                            <div style="font-size:12px;font-weight:bold;color:#111827">Diagnóstico automático de falhas</div>
+                            <div style="font-size:11px;color:#6B7280">Analisa automaticamente quando um step falha</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+<script th:src="@{/js/ai-plugin.js}"></script>
+</body>
+</html>

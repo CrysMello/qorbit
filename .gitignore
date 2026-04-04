@@ -1,0 +1,28 @@
+# Build
+/target/
+
+# IDE
+/.idea/
+*.iml
+/.vscode/
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Runtime
+/logs/
+/evidencias/
+/codigo-gerado/
+
+# SQLite e backups locais
+/db/
+*.db
+*.db-journal
+*.sqlite
+
+# Segredos locais
+.env
+.env.*
+application-local.properties
+secrets.properties

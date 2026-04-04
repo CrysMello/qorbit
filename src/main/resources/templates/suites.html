@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Suites — Qorbit</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <style>
+        .suite-sidebar { width: 220px; flex-shrink: 0; border-right: 1px solid var(--border); padding: 1rem; }
+        .suite-sidebar-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
+        .suite-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; text-decoration: none; }
+        .suite-item:hover { background: var(--bg-hover); }
+        .suite-item.active { background: #EEEDFE; border-color: #AFA9EC; }
+        .suite-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .suite-dot.green { background: #639922; }
+        .suite-dot.blue { background: #378ADD; }
+        .suite-dot.amber { background: #BA7517; }
+        .suite-dot.purple { background: #7F77DD; }
+        .suite-dot.coral { background: #D85A30; }
+        .suite-item-name { font-size: 13px; color: var(--text); flex: 1; }
+        .suite-item.active .suite-item-name { color: #3C3489; font-weight: 500; }
+        .suite-item-count { font-size: 11px; color: var(--text-muted); background: var(--bg-tag); padding: 1px 6px; border-radius: 20px; }
+        .suite-area { flex: 1; padding: 1.5rem; min-width: 0; }
+        .suite-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .suite-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .suite-header-actions { display: flex; gap: 8px; }
+        .badge-purple { background: #EEEDFE; color: #534AB7; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .badge-green { background: #EAF3DE; color: #3B6D11; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .badge-red { background: #FCEBEB; color: #A32D2D; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .case-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg); }
+        .case-row:hover { border-color: var(--border-hover); }
+        .case-info { flex: 1; min-width: 0; }
+        .case-name { font-size: 13px; color: var(--text); font-weight: 500; }
+        .case-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .tag { font-size: 10px; padding: 1px 6px; border-radius: 20px; font-weight: 500; margin-right: 4px; }
+        .tag-modulo { background: #E6F1FB; color: #185FA5; }
+        .btn-remove-case { font-size: 11px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+        .btn-remove-case:hover { color: #A32D2D; background: #FCEBEB; }
+        .add-cases-row { padding: 10px 12px; border: 1px dashed var(--border-hover); border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px; }
+        .add-cases-row:hover { background: var(--bg-hover); }
+        .empty-suite { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+        .empty-suite-title { font-size: 15px; color: var(--text); margin-bottom: .5rem; }
+        .suite-layout { display: flex; min-height: 500px; }
+        .no-suite { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; flex: 1; }
+        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+        .modal-bg.show { display: flex; }
+        .modal-box { background: var(--bg); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; width: 360px; max-width: 95vw; }
+        .modal-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 1rem; }
+        .modal-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; }
+        .modal-input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-bottom: .75rem; }
+        .modal-select-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
+        .modal-select-row:hover { border-color: var(--border-hover); background: var(--bg-hover); }
+        .modal-select-row.selected { border-color: #534AB7; background: #EEEDFE; }
+        .modal-select-row.selected .modal-row-name { color: #3C3489; font-weight: 500; }
+        .modal-row-name { font-size: 13px; color: var(--text); flex: 1; }
+        .modal-row-count { font-size: 11px; color: var(--text-muted); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+        .cor-selector { display: flex; gap: 8px; margin-bottom: .75rem; }
+        .cor-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+        .cor-btn.selected { border-color: var(--text); }
+        .drag { color: var(--text-muted); cursor: grab; font-size: 14px; }
+    </style>
+<style>
+        .nav-item { border-left: 3px solid transparent !important; }
+        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
+        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
+        </style>
+</head>
+<body>
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
+            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
+          <rect width="256" height="256" rx="52" fill="#253D6B"/>
+          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
+          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
+          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
+          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
+          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
+        </svg>
+            <div>
+                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
+                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
+            </div>
+        </div>
+        <nav>
+            <div class="nav-section">Principal</div>
+            <a href="/" class="nav-item">Dashboard</a>
+            <a href="/nova-execucao" class="nav-item">Nova execução</a>
+            <div class="nav-section">Biblioteca</div>
+            <a href="/elementos" class="nav-item">Elementos (POM)</a>
+            <a href="/casos" class="nav-item">Casos de teste</a>
+            <a href="/suites" class="nav-item active" aria-current="page" style="color:#7C3AED;font-weight:600">&#9632; Suites</a>
+            <div class="nav-section">Gravar</div>
+            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
+            <div class="nav-section">Resultados</div>
+            <a href="/execucoes" class="nav-item">Execuções</a>
+            <a href="/evidencias" class="nav-item">Evidências</a>
+            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
+            <div class="nav-section">Inteligência</div>
+            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
+        </nav>
+        <div class="sidebar-status">
+            <span class="status-dot" id="seleniumStatus"></span>
+            <span id="seleniumLabel">Verificando...</span>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">Suites de teste</h1>
+                <span class="topbar-sub">Repositório permanente de testes validados</span>
+            </div>
+            <div class="topbar-actions">
+                <button class="btn btn-primary" onclick="abrirModalCriar()">+ Nova suite</button>
+            </div>
+        </div>
+
+        <div class="content" style="padding:0">
+            <div class="suite-layout">
+
+                <!-- Sidebar de suites -->
+                <div class="suite-sidebar">
+                    <div class="suite-sidebar-title">Suites salvas</div>
+                    <div id="listaSuites">
+                        <div th:each="s : ${suites}"
+                             th:id="'suite-item-' + ${s.id}"
+                             class="suite-item"
+                             th:onclick="'selecionarSuite(' + ${s.id} + ')'">
+                            <div class="suite-dot" th:classappend="${s.cor}"></div>
+                            <span class="suite-item-name" th:text="${s.nome}">Suite</span>
+                            <span class="suite-item-count" th:text="${s.totalCasos != null ? s.totalCasos : s.casos.size()}">0</span>
+                        </div>
+                        <div th:if="${suites.isEmpty()}" style="font-size:12px;color:var(--text-muted);padding:8px 4px">
+                            Nenhuma suite ainda
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área principal -->
+                <div class="suite-area" id="suiteArea">
+                    <div class="no-suite" id="noSuiteMsg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:4rem 2rem">
+                        <p style="font-size:15px;color:var(--text);margin-bottom:.5rem">Seleccione uma suite</p>
+                        <p style="font-size:13px;color:var(--text-muted)">ou crie uma nova para começar</p>
+                    </div>
+
+                    <div id="suiteConteudo" style="display:none">
+                        <div class="suite-header">
+                            <div class="suite-header-left">
+                                <h2 style="font-size:16px;font-weight:500" id="suiteNome">—</h2>
+                                <span class="badge-purple" id="suiteTotalBadge">0 casos</span>
+                                <span class="badge-green" id="suitePassaramBadge" style="display:none"></span>
+                                <span class="badge-red" id="suiteFalharamBadge" style="display:none"></span>
+                            </div>
+                            <div class="suite-header-actions">
+                                <button class="btn" onclick="renomearSuite()">Renomear</button>
+                                <button class="btn" style="color:#A32D2D;border-color:#A32D2D" onclick="excluirSuite()">Excluir suite</button>
+                                <button class="btn" onclick="gerarZipSuite()">&#11015; Gerar ZIP</button>
+                                <button class="btn btn-primary" onclick="executarSuite()">&#9654; Executar suite</button>
+                            </div>
+                        </div>
+
+                        <!-- Métricas -->
+                        <div class="metrics-row" id="suiteMetricas" style="margin-bottom:1rem">
+                            <div class="metric-card">
+                                <span class="metric-label">Total de casos</span>
+                                <span class="metric-value" id="metTotal">0</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Último resultado</span>
+                                <span class="metric-value" id="metResultado" style="font-size:14px">—</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="metric-label">Última execução</span>
+                                <span class="metric-value" id="metUltimaExec" style="font-size:13px">—</span>
+                            </div>
+                        </div>
+
+                        <!-- Lista de casos -->
+                        <div id="casosLista"></div>
+
+                        <!-- Botão adicionar casos -->
+                        <div class="add-cases-row" onclick="abrirModalAdicionarCasos()">
+                            <span style="font-size:13px;color:var(--text-muted)">+ adicionar casos à suite</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal: Criar suite -->
+<div class="modal-bg" id="modalCriar">
+    <div class="modal-box">
+        <div class="modal-title">Nova suite</div>
+        <label class="modal-label">Nome da suite</label>
+        <input class="modal-input" id="inputNomeSuite" placeholder="ex: Regressão completa, Produto Terra..." />
+        <label class="modal-label">Descrição (opcional)</label>
+        <input class="modal-input" id="inputDescSuite" placeholder="Descrição breve..." />
+        <label class="modal-label">Cor</label>
+        <div class="cor-selector">
+            <div class="cor-btn selected" style="background:#639922" data-cor="green" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#378ADD" data-cor="blue" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#BA7517" data-cor="amber" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#7F77DD" data-cor="purple" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#D85A30" data-cor="coral" onclick="selecionarCor(this)"></div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="fecharModal('modalCriar')">Cancelar</button>
+            <button class="btn btn-primary" onclick="criarSuite()">Criar suite</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Adicionar casos -->
+<div class="modal-bg" id="modalAdicionarCasos">
+    <div class="modal-box">
+        <div class="modal-title">Adicionar casos à suite</div>
+        <div id="listaCasosModal" style="max-height:300px;overflow-y:auto"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="fecharModal('modalAdicionarCasos')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmarAdicionarCasos()">Adicionar seleccionados</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+let suiteActualId = null;
+let corSelecionada = 'green';
+let casosSeleccionados = [];
+
+function selecionarSuite(id) {
+    suiteActualId = id;
+    document.querySelectorAll('.suite-item').forEach(el => el.classList.remove('active'));
+    const item = document.getElementById('suite-item-' + id);
+    if (item) item.classList.add('active');
+    carregarSuite(id);
+}
+
+async function carregarSuite(id) {
+    try {
+        const data = await api('GET', '/api/suites/' + id);
+        document.getElementById('noSuiteMsg').style.display = 'none';
+        document.getElementById('suiteConteudo').style.display = 'block';
+        document.getElementById('suiteNome').textContent = data.nome;
+        document.getElementById('suiteTotalBadge').textContent = data.casos.length + ' casos';
+        document.getElementById('metTotal').textContent = data.casos.length;
+        document.getElementById('metResultado').textContent = data.ultimoResultado || '—';
+        document.getElementById('metUltimaExec').textContent = data.ultimaExecucao
+            ? new Date(data.ultimaExecucao).toLocaleDateString('pt-BR') : '—';
+        renderizarCasos(data.casos);
+    } catch(e) { toast('Erro ao carregar suite: ' + e.message, 'danger'); }
+}
+
+function renderizarCasos(casos) {
+    const lista = document.getElementById('casosLista');
+    if (casos.length === 0) {
+        lista.innerHTML = '<div class="empty-suite"><p class="empty-suite-title">Nenhum caso nesta suite</p><p>Clique em "+ adicionar casos" para começar</p></div>';
+        return;
+    }
+    lista.innerHTML = casos.map(c => `
+        <div class="case-row">
+            <div class="drag">⠿</div>
+            <div class="case-info">
+                <div class="case-name">${c.nome}</div>
+                <div class="case-meta">
+                    ${c.modulo ? '<span class="tag tag-modulo">' + c.modulo + '</span>' : ''}
+                    ${c.totalSteps} steps · ${c.urlAlvo || ''}
+                </div>
+            </div>
+            <button class="btn-remove-case" onclick="removerCaso(${c.id})">remover</button>
+        </div>
+    `).join('');
+}
+
+async function removerCaso(casoId) {
+    if (!suiteActualId) return;
+    if (!confirm('Remover este caso da suite?')) return;
+    try {
+        await api('DELETE', '/api/suites/' + suiteActualId + '/casos/' + casoId);
+        toast('Caso removido da suite.', 'success');
+        carregarSuite(suiteActualId);
+        recarregarSidebar();
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+async function excluirSuite() {
+    if (!suiteActualId) return;
+    if (!confirm('Excluir esta suite? Os casos de teste NÃO serão apagados.')) return;
+    try {
+        await api('DELETE', '/api/suites/' + suiteActualId);
+        toast('Suite excluída. Casos de teste intactos.', 'success');
+        suiteActualId = null;
+        document.getElementById('suiteConteudo').style.display = 'none';
+        document.getElementById('noSuiteMsg').style.display = 'flex';
+        recarregarSidebar();
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+async function renomearSuite() {
+    const novoNome = prompt('Novo nome para a suite:');
+    if (!novoNome || !novoNome.trim()) return;
+    try {
+        await api('PUT', '/api/suites/' + suiteActualId, { nome: novoNome.trim() });
+        toast('Suite renomeada.', 'success');
+        carregarSuite(suiteActualId);
+        recarregarSidebar();
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+function gerarZipSuite() {
+    if (!suiteActualId) return;
+    window.location.href = '/api/suites/' + suiteActualId + '/exportar';
+}
+
+function executarSuite() {
+    if (!suiteActualId) return;
+    toast('Para executar, vá a Nova Execução e seleccione os casos desta suite.', 'info');
+}
+
+function abrirModalCriar() {
+    document.getElementById('inputNomeSuite').value = '';
+    document.getElementById('inputDescSuite').value = '';
+    document.getElementById('modalCriar').classList.add('show');
+    setTimeout(() => document.getElementById('inputNomeSuite').focus(), 100);
+}
+
+function selecionarCor(el) {
+    document.querySelectorAll('.cor-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    corSelecionada = el.dataset.cor;
+}
+
+async function criarSuite() {
+    const nome = document.getElementById('inputNomeSuite').value.trim();
+    const desc = document.getElementById('inputDescSuite').value.trim();
+    if (!nome) { toast('Nome obrigatório.', 'danger'); return; }
+    try {
+        const res = await api('POST', '/api/suites', { nome, descricao: desc, cor: corSelecionada });
+        toast('Suite criada!', 'success');
+        fecharModal('modalCriar');
+        recarregarSidebar();
+        selecionarSuite(res.id);
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+async function abrirModalAdicionarCasos() {
+    const casos = await api('GET', '/api/casos');
+    casosSeleccionados = [];
+    const lista = document.getElementById('listaCasosModal');
+    if (!casos || casos.length === 0) {
+        lista.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:1rem">Nenhum caso disponível. Grave testes primeiro.</p>';
+    } else {
+        lista.innerHTML = casos.map(c => `
+            <div class="modal-select-row" onclick="toggleCasoModal(this, ${c.id})">
+                <div class="suite-dot green"></div>
+                <span class="modal-row-name">${c.nome}</span>
+                <span class="modal-row-count">${c.totalSteps || 0} steps</span>
+            </div>
+        `).join('');
+    }
+    document.getElementById('modalAdicionarCasos').classList.add('show');
+}
+
+function toggleCasoModal(el, id) {
+    el.classList.toggle('selected');
+    if (el.classList.contains('selected')) casosSeleccionados.push(id);
+    else casosSeleccionados = casosSeleccionados.filter(c => c !== id);
+}
+
+async function confirmarAdicionarCasos() {
+    if (casosSeleccionados.length === 0) { toast('Seleccione pelo menos um caso.', 'danger'); return; }
+    try {
+        const res = await api('POST', '/api/suites/' + suiteActualId + '/casos', { casoIds: casosSeleccionados });
+        toast(res.mensagem, 'success');
+        fecharModal('modalAdicionarCasos');
+        carregarSuite(suiteActualId);
+        recarregarSidebar();
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+function fecharModal(id) { document.getElementById(id).classList.remove('show'); }
+
+async function recarregarSidebar() {
+    const suites = await api('GET', '/api/suites');
+    const lista = document.getElementById('listaSuites');
+    if (!suites || suites.length === 0) {
+        lista.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 4px">Nenhuma suite ainda</div>';
+        return;
+    }
+    lista.innerHTML = suites.map(s => `
+        <div id="suite-item-${s.id}"
+             class="suite-item ${s.id === suiteActualId ? 'active' : ''}"
+             onclick="selecionarSuite(${s.id})">
+            <div class="suite-dot ${s.cor}"></div>
+            <span class="suite-item-name">${s.nome}</span>
+            <span class="suite-item-count">${s.totalCasos}</span>
+        </div>
+    `).join('');
+}
+
+checkSeleniumStatus();
+</script>
+</body>
+</html>
