@@ -1,5 +1,6 @@
 package com.qorbit.engine.controller;
 
+import org.springframework.transaction.annotation.Transactional;
 import com.qorbit.engine.model.CasoDeTeste;
 import com.qorbit.engine.model.Execucao;
 import com.qorbit.engine.model.SuiteTeste;
@@ -29,13 +30,44 @@ public class SuiteTesteController {
 
     // ── Página HTML ───────────────────────────────────────────────────────────
 
-    @GetMapping("/suites")
+    /*@GetMapping("/suites")
     public String pagina(Model model) {
+    try {
         List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
-        model.addAttribute("suites", suites);
-        model.addAttribute("totalSuites", suites.size());
-        return "suites";
+        model.addAttribute("suites", suites != null ? suites : List.of());
+        model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
+    } catch (Exception e) {
+        model.addAttribute("suites", List.of());
+        model.addAttribute("totalSuites", 0);
     }
+    return "suites";*/
+    @GetMapping("/suites")
+    @Transactional(readOnly = true)
+public String pagina(Model model) {
+    try {
+        List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
+        model.addAttribute("suites", suites != null ? suites : List.of());
+        model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
+    } catch (Exception e) {
+        model.addAttribute("suites", List.of());
+        model.addAttribute("totalSuites", 0);
+    }
+    return "suites";
+}
+    @GetMapping("/suites")
+public String pagina(Model model) {
+    try {
+        List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
+        model.addAttribute("suites", suites != null ? suites : List.of());
+        model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
+    } catch (Exception e) {
+        System.err.println("ERRO SUITES PAGINA: " + e.getClass().getName() + " — " + e.getMessage());
+        e.printStackTrace();
+        model.addAttribute("suites", List.of());
+        model.addAttribute("totalSuites", 0);
+    }
+    return "suites";
+}
 
     // ── REST API ──────────────────────────────────────────────────────────────
 

@@ -36,7 +36,7 @@
         .tag-modulo { background: #E6F1FB; color: #185FA5; }
         .btn-remove-case { font-size: 11px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
         .btn-remove-case:hover { color: #A32D2D; background: #FCEBEB; }
-        .add-cases-row { padding: 10px 12px; border: 1px dashed var(--border-hover); border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 4px; }
+        .add-cases-row { padding: 10px 14px; background: var(--bg-hover); border: 0.5px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin-top: 4px; }
         .add-cases-row:hover { background: var(--bg-hover); }
         .empty-suite { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
         .empty-suite-title { font-size: 15px; color: var(--text); margin-bottom: .5rem; }
@@ -44,7 +44,9 @@
         .no-suite { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; flex: 1; }
         .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
         .modal-bg.show { display: flex; }
-        .modal-box { background: var(--bg); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; width: 360px; max-width: 95vw; }
+        .modal-box { background: var(--bg); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; width: 360px; max-width: 95vw; box-sizing: border-box; }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+        .modal-actions .btn { flex-shrink: 0; }
         .modal-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 1rem; }
         .modal-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; }
         .modal-input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-bottom: .75rem; }
@@ -66,6 +68,26 @@
         .nav-item:hover { background: rgba(255,255,255,.06) !important; }
         </style>
 </head>
+<!-- Modal: Executar suite -->
+<div class="modal-bg" id="modalExecutar">
+    <div class="modal-box">
+        <div class="modal-title">&#9654; Executar suite</div>
+        <label class="modal-label">Browser</label>
+        <select class="modal-input" id="selectBrowserSuite">
+            <option value="chrome">Chrome</option>
+            <option value="firefox">Firefox</option>
+            <option value="edge">Edge</option>
+        </select>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:.75rem"
+           id="infoExecucaoSuite"></p>
+        <div class="modal-actions">
+            <button class="btn" onclick="fecharModal('modalExecutar')">Cancelar</button>
+            <button class="btn btn-primary" onclick="confirmarExecutarSuite()">
+                Executar agora
+            </button>
+        </div>
+    </div>
+</div>
 <body>
 <div class="app-layout">
     <aside class="sidebar">
@@ -131,7 +153,7 @@
                              th:onclick="'selecionarSuite(' + ${s.id} + ')'">
                             <div class="suite-dot" th:classappend="${s.cor}"></div>
                             <span class="suite-item-name" th:text="${s.nome}">Suite</span>
-                            <span class="suite-item-count" th:text="${s.totalCasos != null ? s.totalCasos : s.casos.size()}">0</span>
+                            <span class="suite-item-count" th:text="${s.casos != null ? s.casos.size() : 0}">0</span>
                         </div>
                         <div th:if="${suites.isEmpty()}" style="font-size:12px;color:var(--text-muted);padding:8px 4px">
                             Nenhuma suite ainda
@@ -141,7 +163,7 @@
 
                 <!-- Área principal -->
                 <div class="suite-area" id="suiteArea">
-                    <div class="no-suite" id="noSuiteMsg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:4rem 2rem">
+                    <div class="no-suite" id="noSuiteMsg" style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;text-align:center;padding:4rem 2rem">
                         <p style="font-size:15px;color:var(--text);margin-bottom:.5rem">Seleccione uma suite</p>
                         <p style="font-size:13px;color:var(--text-muted)">ou crie uma nova para começar</p>
                     </div>
@@ -183,7 +205,9 @@
 
                         <!-- Botão adicionar casos -->
                         <div class="add-cases-row" onclick="abrirModalAdicionarCasos()">
-                            <span style="font-size:13px;color:var(--text-muted)">+ adicionar casos à suite</span>
+                        <span style="font-size:13px;color:var(--text-muted)">+ adicionar casos à suite</span>
+                        <span style="font-size:11px;background:var(--bg);border:1px solid var(--border-hover);
+                                    border-radius:99px;padding:2px 8px;color:var(--text-muted)">ver todos</span>
                         </div>
                     </div>
                 </div>
@@ -254,6 +278,21 @@ async function carregarSuite(id) {
             ? new Date(data.ultimaExecucao).toLocaleDateString('pt-BR') : '—';
         renderizarCasos(data.casos);
     } catch(e) { toast('Erro ao carregar suite: ' + e.message, 'danger'); }
+    // Adicionar após renderizarCasos(data.casos):
+const btnZip = document.querySelector('button[onclick="gerarZipSuite()"]');
+    if (btnZip) {
+    if (data.casos.length === 0) {
+        btnZip.disabled = true;
+        btnZip.style.opacity = '0.4';
+        btnZip.style.cursor = 'not-allowed';
+        btnZip.title = 'Adicione casos antes de gerar o ZIP';
+    } else {
+        btnZip.disabled = false;
+        btnZip.style.opacity = '1';
+        btnZip.style.cursor = '';
+        btnZip.title = '';
+    }
+}
 }
 
 function renderizarCasos(casos) {
@@ -311,15 +350,54 @@ async function renomearSuite() {
         recarregarSidebar();
     } catch(e) { toast('Erro: ' + e.message, 'danger'); }
 }
-
-function gerarZipSuite() {
+async function gerarZipSuite() {
     if (!suiteActualId) return;
-    window.location.href = '/api/suites/' + suiteActualId + '/exportar';
+    try {
+        const response = await fetch('/api/suites/' + suiteActualId + '/exportar');
+        if (!response.ok) {
+            toast('Erro ao gerar ZIP. Verifique se a suite tem casos.', 'danger');
+            return;
+        }
+        const blob = await response.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'qorbit-suite-' + suiteActualId + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast('ZIP gerado com sucesso!', 'success');
+    } catch(e) { toast('Erro ao gerar ZIP: ' + e.message, 'danger'); }
 }
 
-function executarSuite() {
+async function executarSuite() {
     if (!suiteActualId) return;
-    toast('Para executar, vá a Nova Execução e seleccione os casos desta suite.', 'info');
+    try {
+        const suite = await api('GET', '/api/suites/' + suiteActualId);
+        if (!suite.casos || suite.casos.length === 0) {
+            toast('Adicione casos à suite antes de executar.', 'danger');
+            return;
+        }
+        document.getElementById('infoExecucaoSuite').textContent =
+            suite.casos.length + ' caso(s) · ' + suite.nome;
+        document.getElementById('modalExecutar').classList.add('show');
+    } catch(e) { toast('Erro: ' + e.message, 'danger'); }
+}
+
+async function confirmarExecutarSuite() {
+    try {
+        const suite  = await api('GET', '/api/suites/' + suiteActualId);
+        const browser = document.getElementById('selectBrowserSuite').value;
+        const idsCasos = suite.casos.map(c => c.id);
+        const url = suite.casos[0]?.urlAlvo || '';
+        const res = await api('POST', '/api/execucoes/iniciar', {
+            url, browser, metodoAuth: 'NONE', idsCasos
+        });
+        fecharModal('modalExecutar');
+        toast('Execução #' + res.execucaoId + ' iniciada!', 'success');
+        setTimeout(() => { window.location.href = '/execucoes'; }, 1500);
+    } catch(e) { toast('Erro ao iniciar execução: ' + e.message, 'danger'); }
 }
 
 function abrirModalCriar() {
@@ -349,21 +427,32 @@ async function criarSuite() {
 }
 
 async function abrirModalAdicionarCasos() {
-    const casos = await api('GET', '/api/casos');
     casosSeleccionados = [];
     const lista = document.getElementById('listaCasosModal');
-    if (!casos || casos.length === 0) {
-        lista.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:1rem">Nenhum caso disponível. Grave testes primeiro.</p>';
-    } else {
-        lista.innerHTML = casos.map(c => `
-            <div class="modal-select-row" onclick="toggleCasoModal(this, ${c.id})">
-                <div class="suite-dot green"></div>
-                <span class="modal-row-name">${c.nome}</span>
-                <span class="modal-row-count">${c.totalSteps || 0} steps</span>
-            </div>
-        `).join('');
-    }
+    lista.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:1rem">Carregando...</p>';
     document.getElementById('modalAdicionarCasos').classList.add('show');
+    try {
+        const response = await fetch('/api/casos');
+        if (!response.ok) throw new Error('Erro ' + response.status);
+        const casos = await response.json();
+        // Filtra casos já na suite
+        const suiteAtual = await fetch('/api/suites/' + suiteActualId).then(r => r.json());
+        const idsNaSuite = (suiteAtual.casos || []).map(c => c.id);
+        const casosDisponiveis = casos.filter(c => !idsNaSuite.includes(c.id));
+        if (!casosDisponiveis || casosDisponiveis.length === 0) {
+            lista.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:1rem">Todos os casos já estão na suite ou não há casos gravados.</p>';
+        } else {
+            lista.innerHTML = casosDisponiveis.map(c => `
+                <div class="modal-select-row" onclick="toggleCasoModal(this, ${c.id})">
+                    <div class="suite-dot green"></div>
+                    <span class="modal-row-name">${c.nome}</span>
+                    <span class="modal-row-count">${c.steps ? c.steps.length : (c.totalSteps || 0)} steps</span>
+                </div>
+            `).join('');
+        }
+    } catch(e) {
+        lista.innerHTML = '<p style="font-size:13px;color:#A32D2D;padding:1rem">Erro ao carregar casos: ' + e.message + '</p>';
+    }
 }
 
 function toggleCasoModal(el, id) {
