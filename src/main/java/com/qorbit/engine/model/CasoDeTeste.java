@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,11 +38,10 @@ public class CasoDeTeste {
     private String status;
 
     @OneToMany(mappedBy = "casoDeTeste", cascade = CascadeType.ALL,
-               fetch = FetchType.EAGER, orphanRemoval = true)
+            fetch = FetchType.EAGER, orphanRemoval = true)
     @JsonManagedReference
     private List<StepTeste> steps = new ArrayList<>();
 
-    // Salva como String para evitar problema de tipo no SQLite
     @Column(name = "criado_em")
     private String criadoEm;
 

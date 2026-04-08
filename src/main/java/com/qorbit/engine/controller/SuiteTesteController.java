@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -30,44 +29,21 @@ public class SuiteTesteController {
 
     // ── Página HTML ───────────────────────────────────────────────────────────
 
-    /*@GetMapping("/suites")
-    public String pagina(Model model) {
-    try {
-        List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
-        model.addAttribute("suites", suites != null ? suites : List.of());
-        model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
-    } catch (Exception e) {
-        model.addAttribute("suites", List.of());
-        model.addAttribute("totalSuites", 0);
-    }
-    return "suites";*/
     @GetMapping("/suites")
     @Transactional(readOnly = true)
-public String pagina(Model model) {
-    try {
-        List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
-        model.addAttribute("suites", suites != null ? suites : List.of());
-        model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
-    } catch (Exception e) {
-        model.addAttribute("suites", List.of());
-        model.addAttribute("totalSuites", 0);
+    public String pagina(Model model) {
+        try {
+            List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
+            model.addAttribute("suites", suites != null ? suites : List.of());
+            model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
+        } catch (Exception e) {
+            System.err.println("ERRO SUITES PAGINA: " + e.getClass().getName() + " — " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("suites", List.of());
+            model.addAttribute("totalSuites", 0);
+        }
+        return "suites";
     }
-    return "suites";
-}
-    @GetMapping("/suites")
-public String pagina(Model model) {
-    try {
-        List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
-        model.addAttribute("suites", suites != null ? suites : List.of());
-        model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
-    } catch (Exception e) {
-        System.err.println("ERRO SUITES PAGINA: " + e.getClass().getName() + " — " + e.getMessage());
-        e.printStackTrace();
-        model.addAttribute("suites", List.of());
-        model.addAttribute("totalSuites", 0);
-    }
-    return "suites";
-}
 
     // ── REST API ──────────────────────────────────────────────────────────────
 
@@ -139,7 +115,7 @@ public String pagina(Model model) {
         try {
             if (!suiteRepo.existsById(id)) return ResponseEntity.notFound().build();
             SuiteTeste suite = suiteRepo.findById(id).get();
-            suite.getCasos().clear(); // remove relacionamentos antes de excluir
+            suite.getCasos().clear(); 
             suiteRepo.save(suite);
             suiteRepo.deleteById(id);
             return ResponseEntity.ok(Map.of("ok", true, "mensagem", "Suite excluída. Os casos de teste não foram afectados."));
@@ -147,8 +123,6 @@ public String pagina(Model model) {
             return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
         }
     }
-
-    // ── Adicionar casos à suite ───────────────────────────────────────────────
 
     @PostMapping("/api/suites/{id}/casos")
     @ResponseBody
@@ -179,8 +153,6 @@ public String pagina(Model model) {
         }
     }
 
-    // ── Adicionar todos os casos de uma execução bem sucedida ─────────────────
-
     @PostMapping("/api/suites/{id}/execucao/{execId}")
     @ResponseBody
     @Transactional
@@ -192,7 +164,6 @@ public String pagina(Model model) {
             Execucao exec = execucaoRepo.findById(execId).orElse(null);
             if (exec == null) return ResponseEntity.notFound().build();
 
-            // Só permite adicionar se a execução passou 100%
             int passou = exec.getStepsPAssou() != null ? exec.getStepsPAssou() : 0;
             int falhou = exec.getStepsFalhou() != null ? exec.getStepsFalhou() : 0;
             if (falhou > 0) {
@@ -200,7 +171,6 @@ public String pagina(Model model) {
                         "Só é possível adicionar execuções onde todos os casos passaram."));
             }
 
-            // Busca casos associados à execução pelo URL alvo
             List<CasoDeTeste> casos = casoRepo.findByUrlAlvoContainingIgnoreCase(
                     exec.getUrlAlvo() != null ? exec.getUrlAlvo() : "");
 
@@ -223,8 +193,6 @@ public String pagina(Model model) {
         }
     }
 
-    // ── Remover caso da suite ─────────────────────────────────────────────────
-
     @DeleteMapping("/api/suites/{id}/casos/{casoId}")
     @ResponseBody
     @Transactional
@@ -240,8 +208,6 @@ public String pagina(Model model) {
             return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
         }
     }
-
-    // ── Gerar ZIP da suite ────────────────────────────────────────────────────
 
     @GetMapping("/api/suites/{id}/exportar")
     @Transactional(readOnly = true)
@@ -264,8 +230,6 @@ public String pagina(Model model) {
             return ResponseEntity.status(500).build();
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Map<String, Object> toMap(SuiteTeste s) {
         Map<String, Object> m = new LinkedHashMap<>();

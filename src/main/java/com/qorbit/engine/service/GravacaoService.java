@@ -18,7 +18,6 @@ import java.util.regex.Pattern;
 
 @Service
 public class GravacaoService {
-
     @Autowired private CasoDeTesteRepository casoRepo;
     @Autowired private ElementoRepository elementoRepo;
     @Autowired(required = false) private SimpMessagingTemplate mensageria;
@@ -33,21 +32,13 @@ public class GravacaoService {
     private final Map<String, Long> assinaturasRecentes = new ConcurrentHashMap<>();
     private static final long JANELA_DUPLICIDADE_MS = 1800;
 
-    /**
-     * Detecta strings que parecem ser valores de data ou numeros puros.
-     * Esses valores NAO devem ser usados como nome semantico de elemento —
-     * cada execucao com valor diferente geraria um elemento diferente na biblioteca.
-     * Exemplos bloqueados: "20150604", "2015-06-04", "04/06/2015", "123456"
-     */
     private static final Pattern PARECE_VALOR_DATA = Pattern.compile(
             "^\\d{4,8}$"
             + "|^\\d{1,2}[/\\-.\\s]\\d{1,2}[/\\-.\\s]\\d{2,4}$"
             + "|^\\d{4}[/\\-]\\d{2}[/\\-]\\d{2}$"
     );
 
-    // Melhoria 4: Controlo de keystrokes — guarda último valor por campo
     private final Map<String, String> ultimoValorPorCampo = new ConcurrentHashMap<>();
-    // Melhoria 6: Containers/wrappers a ignorar nos cliques
     private static final Set<String> TAGS_CONTAINER = Set.of("div", "section", "form", "article", "main", "aside", "header", "footer", "fieldset", "ul", "ol", "li", "table", "tbody", "tr", "td", "th");
     private static final Set<String> ROLES_CONTAINER = Set.of("main", "region", "group", "list", "grid", "table", "form", "document", "presentation", "none");
 
@@ -142,6 +133,8 @@ public class GravacaoService {
         String framePath = str(evento, "framePath", "root");
         String shadowPath = str(evento, "shadowPath");
 
+        boolean isDatePicker = "DATEPICKER".equalsIgnoreCase(componentType);
+
         if ((seletor == null || seletor.isBlank()) && !"NAVIGATE".equalsIgnoreCase(tipo)) {
             return Map.of("ignorado", true);
         }
@@ -169,14 +162,28 @@ public class GravacaoService {
 
         switch (tipo) {
             case "CLICK" -> {
-                // Melhoria 6: Ignora cliques em containers/wrappers sem interactividade real
+                if (isDatePicker) {
+                    contadorStep.decrementAndGet();
+                    return Map.of("ignorado", true, "motivo", "click_interno_datepicker");
+                }
+
+                String nomeTecnico = defaultIfBlank(descricaoElemento, "").toLowerCase(Locale.ROOT);
+                if (nomeTecnico.contains("muipickers")
+                        || nomeTecnico.contains("muiiconbutton")
+                        || nomeTecnico.contains("pickersyear")
+                        || nomeTecnico.matches("botao\\d+")
+                        || nomeTecnico.contains("buttonmuibuttonbaseroot")
+                        || nomeTecnico.contains("divmuitypographyroot")) {
+                    contadorStep.decrementAndGet();
+                    return Map.of("ignorado", true, "motivo", "click_tecnico_datepicker");
+                }
+
                 String tagLower = tagName != null ? tagName.toLowerCase(Locale.ROOT) : "";
                 String roleLower = role != null ? role.toLowerCase(Locale.ROOT) : "";
                 boolean isContainer = TAGS_CONTAINER.contains(tagLower) && ROLES_CONTAINER.contains(roleLower);
                 boolean temHref = href != null && !href.isBlank() && !href.equals("#");
                 boolean isButton = "button".equals(tagLower) || "a".equals(tagLower) || "input".equals(tagLower)
                         || "BUTTON".equalsIgnoreCase(componentType) || "LINK".equalsIgnoreCase(componentType);
-                // Melhoria 3: verifica onclick, cursor:pointer e eventos JS
                 boolean temOnclick = str(evento, "temOnclick").equalsIgnoreCase("true");
                 boolean temCursorPointer = str(evento, "temCursorPointer").equalsIgnoreCase("true");
                 boolean temEventoJs = str(evento, "temEventoJs").equalsIgnoreCase("true");
@@ -193,12 +200,11 @@ public class GravacaoService {
             }
             case "INPUT", "CHANGE" -> {
                 acao = "PREENCHER";
-                nomeLogico = gerarNomeLogico("input", descricaoElemento, seletor);
-                // Melhoria 4: Consolida keystrokes — actualiza step existente em vez de criar novo
+                nomeLogico = gerarNomeLogico(isDatePicker ? "date" : "input", descricaoElemento, seletor);
+
                 String chaveField = seletor + "|" + pagina;
                 String ultimoValor = ultimoValorPorCampo.get(chaveField);
                 if (ultimoValor != null) {
-                    // Encontra e actualiza o último step deste campo
                     for (int i = stepsGravados.size() - 1; i >= 0; i--) {
                         StepTeste stepExistente = stepsGravados.get(i);
                         if (nomeLogico.equals(stepExistente.getNomeLogicoElemento())
@@ -248,14 +254,10 @@ public class GravacaoService {
             el.setPagina(pagina);
             el.setTipoSeletor(tipoSel);
 
-            // ── Avalia e melhora o selector antes de guardar ─────────────────
-            // Se o selector for de BAIXA qualidade (href completo, nth-child, etc.)
-            // tenta simplificar automaticamente antes de persistir no DB
             String seletorFinal = seletor;
             String qualidade = avaliarQualidadeSelector(seletor);
 
             if ("BAIXO".equals(qualidade)) {
-                // Monta HTML resumido para extrair classes (ex: btn-buy)
                 String htmlResumido = "<" + tagName
                     + (label != null && !label.isBlank() ? " aria-label=\"" + label + "\"" : "")
                     + (href != null && !href.isBlank() ? " href=\"" + href + "\"" : "")
@@ -271,18 +273,16 @@ public class GravacaoService {
                 }
             }
 
-            // Guarda o score de qualidade na descrição para referência futura
             el.setSeletorTecnico(seletorFinal);
             el.setStatus("ATIVO");
-            // Monta descrição base com fingerprint semântico para self-healing
             String descBase = montarDescricaoElemento(label, placeholder, ariaLabel, role, href, framePath, shadowPath, componentType);
-            // Adiciona atributos estáveis do seletor (id, name, data-testid) para healing por atributo
             StringBuilder fp = new StringBuilder(descBase);
             appendAtributoDoSeletor(fp, seletorFinal, "id",          "#");
             appendAtributoDoSeletor(fp, seletorFinal, "name",        null);
             appendAtributoDoSeletor(fp, seletorFinal, "data-testid", null);
             appendAtributoDoSeletor(fp, seletorFinal, "data-qa",     null);
-            // Texto visível — apenas se não for valor de data ou número puro
+            appendAtributoDoSeletor(fp, seletorFinal, "type",        null);
+            appendAtributoDoSeletor(fp, seletorFinal, "value",       null);
             if (textoElem != null && !textoElem.isBlank()) {
                 String textoSemEspacos = textoElem.replaceAll("\\s+", "");
                 if (!PARECE_VALOR_DATA.matcher(textoSemEspacos).matches()) {
@@ -342,31 +342,23 @@ public class GravacaoService {
     private String montarDescricaoElemento(String label, String placeholder, String ariaLabel, String role,
                                            String href, String framePath, String shadowPath, String componentType) {
         List<String> partes = new ArrayList<>();
-        if (!label.isBlank())         partes.add("label="         + label);
-        if (!placeholder.isBlank())   partes.add("placeholder="   + placeholder);
-        if (!ariaLabel.isBlank())     partes.add("ariaLabel="     + ariaLabel);
-        if (!role.isBlank())          partes.add("role="          + role);
-        if (!href.isBlank())          partes.add("href="          + href);
-        if (!framePath.isBlank())     partes.add("frame="         + framePath);
-        if (!shadowPath.isBlank())    partes.add("shadow="        + shadowPath);
+        if (!label.isBlank())         partes.add("label=" + label);
+        if (!placeholder.isBlank())   partes.add("placeholder=" + placeholder);
+        if (!ariaLabel.isBlank())     partes.add("ariaLabel=" + ariaLabel);
+        if (!role.isBlank())          partes.add("role=" + role);
+        if (!href.isBlank())          partes.add("href=" + href);
+        if (!framePath.isBlank())     partes.add("frame=" + framePath);
+        if (!shadowPath.isBlank())    partes.add("shadow=" + shadowPath);
         if (!componentType.isBlank()) partes.add("componentType=" + componentType);
         return String.join("|", partes);
     }
 
-    /**
-     * Extrai o valor de um atributo do seletor CSS e anexa ao StringBuilder como "|chave=valor".
-     * Reconhece: #id  →  id=xxx
-     *            [name='val']  →  name=val
-     *            [data-testid="val"]  →  data-testid=val
-     * Sem regex — usa apenas indexOf/charAt/substring para evitar problemas de escaping.
-     */
     private void appendAtributoDoSeletor(StringBuilder sb, String seletor,
                                          String atributo, String prefixo) {
         if (seletor == null || seletor.isBlank()) return;
         try {
             String val = null;
             if (prefixo != null && seletor.trim().startsWith(prefixo)) {
-                // Ex: "#meu-id" → val = "meu-id"
                 String resto = seletor.trim().substring(prefixo.length());
                 int fim = 0;
                 while (fim < resto.length()) {
@@ -376,7 +368,6 @@ public class GravacaoService {
                 }
                 val = resto.substring(0, fim);
             } else {
-                // Ex: "[name='startDate']" ou "[data-testid=\"input\"]"
                 String busca = "[" + atributo + "=";
                 int idx = seletor.indexOf(busca);
                 if (idx < 0) return;
@@ -412,7 +403,6 @@ public class GravacaoService {
 
     private String melhorDescricaoElemento(String label, String placeholder, String ariaLabel, String textoElem,
                                            String href, String seletor) {
-        // textoElem e seletor ficam por ultimo — sao fallbacks tecnicos, nao semanticos
         List<String> candidatos = List.of(label, ariaLabel, placeholder, textoElem, href, seletor);
         for (String candidato : candidatos) {
             if (candidato == null) continue;
@@ -421,9 +411,6 @@ public class GravacaoService {
                     .replaceAll("\\s+", " ")
                     .trim();
             if (limpo.isBlank() || limpo.length() < 2) continue;
-            // Ignora valores que parecem datas ou numeros puros — sao valores de campo,
-            // nao descricoes semanticas. Usar esses valores como nome geraria um elemento
-            // diferente na biblioteca a cada execucao com data diferente.
             String semEspacos = limpo.replaceAll("\\s+", "");
             if (PARECE_VALOR_DATA.matcher(semEspacos).matches()) continue;
             return limpo;
@@ -449,6 +436,7 @@ public class GravacaoService {
         String prefixo = switch (tipo) {
             case "button", "link", "menu", "aba", "card" -> "botao";
             case "select" -> "select";
+            case "date" -> "data";
             default -> "campo";
         };
 
@@ -459,52 +447,26 @@ public class GravacaoService {
         return (valor == null || valor.isBlank()) ? fallback : valor;
     }
 
-    /**
-     * Avalia a qualidade de um selector CSS.
-     *
-     * ALTO  — id, data-testid, data-qa, name → estáveis, semânticos
-     * MEDIO — classes estáveis, aria-label, href parcial → razoáveis
-     * BAIXO — href completo, nth-child excessivo, cadeia longa de divs → frágeis
-     *
-     * Selectores BAIXO são simplificados automaticamente antes de guardar.
-     */
     public String avaliarQualidadeSelector(String selector) {
         if (selector == null || selector.isBlank()) return "BAIXO";
 
-        // ALTO — atributos semânticos e estáveis
         if (selector.matches(".*#[a-zA-Z][\\w-]+.*")) return "ALTO";
         if (selector.contains("[data-testid=") || selector.contains("[data-qa=")
                 || selector.contains("[data-cy=") || selector.contains("[name=")
                 || selector.contains("[aria-label=")) return "ALTO";
 
-        // BAIXO — URL completa, nth-child excessivo, cadeia longa de divs
         if (selector.contains("http://") || selector.contains("https://")) return "BAIXO";
         if (selector.split("nth-child").length > 3) return "BAIXO";
         if (selector.split(" > div").length > 5) return "BAIXO";
         if (selector.length() > 120) return "BAIXO";
 
-        // MEDIO — classes, href parcial, tag com atributo
         return "MEDIO";
     }
 
-    /**
-     * Simplifica um selector com href completo para href parcial.
-     *
-     * Hierarquia de 4 estratégias (por ordem de qualidade):
-     *
-     *   1. Prefixo + classe + slug + ação  → a.btn-buy[href*="edox"][href*="buy_now"]
-     *   2. Prefixo + slug (sem classe)     → a[href*="edox-produto"]
-     *   3. Prefixo + classe + ação         → a.btn-buy[href*="buy_now"]
-     *   4. Fallback genérico               → a[href*="buy_now"]  (marcado como frágil)
-     *
-     * CORRECÇÃO CHAVE: usa indexOf("[href=") para extrair o prefixo,
-     * preservando atributos anteriores ao href (ex: [type="text"], [data-testid="..."]).
-     */
     public String simplificarHref(String selector, String elementoHtml) {
         if (selector == null || (!selector.contains("href=\"http") && !selector.contains("href='http")))
             return selector;
         try {
-            // ── Extrai URL completa ───────────────────────────────────────────
             int hStart = selector.indexOf("href=\"") >= 0
                     ? selector.indexOf("href=\"") + 6
                     : selector.indexOf("href='") + 6;
@@ -513,13 +475,10 @@ public class GravacaoService {
             if (hStart < 6 || hEnd < 0) return selector;
             String url = selector.substring(hStart, hEnd);
 
-            // ── Extrai prefixo preservando atributos anteriores ao href ──────
-            // CORRECÇÃO: não usar split("\\[")[0] — perderia atributos como [type="text"]
             int idxHref = selector.indexOf("[href=");
             if (idxHref < 0) idxHref = selector.indexOf("[href*=");
             String prefixo = idxHref >= 0 ? selector.substring(0, idxHref) : "";
 
-            // ── Extrai slug do path da URL ────────────────────────────────────
             String slug = null;
             try {
                 java.net.URI uri = new java.net.URI(url);
@@ -539,7 +498,6 @@ public class GravacaoService {
                 }
             } catch (Exception ignored) { }
 
-            // ── Extrai ação da query string ───────────────────────────────────
             String acao = null;
             try {
                 java.net.URI uri = new java.net.URI(url);
@@ -559,7 +517,6 @@ public class GravacaoService {
                 }
             } catch (Exception ignored) { }
 
-            // ── Extrai classe estável do HTML do elemento ─────────────────────
             String classeEstavel = null;
             if (elementoHtml != null && !elementoHtml.isBlank()) {
                 java.util.regex.Matcher m = java.util.regex.Pattern
@@ -567,7 +524,6 @@ public class GravacaoService {
                         .matcher(elementoHtml);
                 if (m.find()) {
                     for (String cls : m.group(1).split(" ")) {
-                        // Rejeita classes com hash ou números aleatórios (geradas dinamicamente)
                         if (cls.length() > 2
                                 && !cls.matches(".*[0-9a-f]{8,}.*")
                                 && !cls.matches(".*_[0-9]+.*")) {
@@ -580,7 +536,6 @@ public class GravacaoService {
 
             String resultado;
 
-            // ── Estratégia 1: prefixo + classe + slug + ação ─────────────────
             if (classeEstavel != null && slug != null && acao != null) {
                 resultado = prefixo + "." + classeEstavel
                         + "[href*=\"" + slug + "\"][href*=\"" + acao + "\"]";
@@ -588,7 +543,6 @@ public class GravacaoService {
                 return resultado;
             }
 
-            // ── Estratégia 2: prefixo + slug (sem classe) ────────────────────
             if (slug != null && slug.length() > 5) {
                 if (classeEstavel != null) {
                     resultado = prefixo + "." + classeEstavel + "[href*=\"" + slug + "\"]";
@@ -599,14 +553,12 @@ public class GravacaoService {
                 return resultado;
             }
 
-            // ── Estratégia 3: prefixo + classe + ação ────────────────────────
             if (classeEstavel != null && acao != null) {
                 resultado = prefixo + "." + classeEstavel + "[href*=\"" + acao + "\"]";
                 log("[Qorbit] Href simplificado (estratégia 3): " + resultado);
                 return resultado;
             }
 
-            // ── Estratégia 4: fallback genérico (marcado como frágil) ─────────
             if (acao != null && acao.length() > 3) {
                 resultado = prefixo + "[href*=\"" + acao + "\"]";
                 System.err.println("[Qorbit] AVISO — selector frágil gerado (href genérico): "
@@ -614,7 +566,6 @@ public class GravacaoService {
                 return resultado;
             }
 
-            // Nenhuma estratégia funcionou — mantém original
             System.err.println("[Qorbit] Não foi possível simplificar href: "
                     + selector.substring(0, Math.min(80, selector.length())));
             return selector;
@@ -624,7 +575,6 @@ public class GravacaoService {
         }
     }
 
-    /** Sobrecarga sem HTML do elemento — usa só o selector */
     public String simplificarHref(String selector) {
         return simplificarHref(selector, null);
     }

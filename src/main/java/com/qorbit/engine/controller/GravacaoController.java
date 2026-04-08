@@ -174,47 +174,232 @@ public class GravacaoController {
               };
 
               function safe(v) { return (v || '').toString().trim(); }
-              function norm(v) { return safe(v).replace(/\s+/g, ' ').trim(); }
+              function norm(v) { return safe(v).replace(/\\s+/g, ' ').trim(); }
+
               function cssEscape(v) {
                 try {
                   if (!v) return '';
                   if (typeof CSS !== 'undefined' && CSS && CSS.escape) return CSS.escape(v);
-                  return String(v);
+                  return String(v).replace(/([ #;?%&,.+*~\\':"!^$\\[\\]()=>|\\/])/g, '\\\\$1');
                 } catch (e) { return v; }
               }
+
+              function looksDynamic(v) {
+                if (!v) return false;
+                v = String(v).toLowerCase();
+                return /^mui-\\d+$/.test(v)
+                    || /^jss\\d+$/.test(v)
+                    || /^css-[a-z0-9]+$/i.test(v)
+                    || /(^|[-_])mui-\\d+($|[-_])/.test(v);
+              }
+
               function textOf(el) {
                 if (!el) return '';
                 return norm(el.innerText || el.value || el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.name || el.id || '');
               }
+
+              function visibleDatePickerRoot() {
+                var roots = Array.from(win.document.querySelectorAll(
+                  '.MuiPickersPopper-root, .MuiDateCalendar-root, .MuiPickersLayout-root, ' +
+                  '.mat-datepicker-content, .react-datepicker, .ui-datepicker, .flatpickr-calendar, ' +
+                  '[class*="datepicker"], [class*="calendar"], [class*="pickers"]'
+                ));
+                return roots.find(function(r) {
+                  try { return r && r.offsetParent !== null; } catch (e) { return false; }
+                }) || null;
+              }
+
+              function isInsideOpenDatePicker(el) {
+                if (!el || !el.closest) return false;
+                return !!el.closest(
+                  '.MuiPickersPopper-root, .MuiDateCalendar-root, .MuiPickersLayout-root, ' +
+                  '.mat-datepicker-content, .react-datepicker, .ui-datepicker, .flatpickr-calendar, ' +
+                  '[class*="datepicker"], [class*="calendar"], [class*="pickers"]'
+                );
+              }
+
+              function isDatePickerElement(el) {
+                if (!el || !el.tagName) return false;
+
+                var tag = safe(el.tagName).toLowerCase();
+                var type = safe(el.getAttribute('type')).toLowerCase();
+                var role = safe(el.getAttribute('role')).toLowerCase();
+                var cls = safe(el.className).toLowerCase();
+                var aria = safe(el.getAttribute('aria-label')).toLowerCase();
+                var txt = norm(el.innerText || el.textContent || '').toLowerCase();
+
+                if (tag === 'input' && (type === 'date' || type === 'datetime-local')) return true;
+
+                if (cls.indexOf('datepicker') >= 0 ||
+                    cls.indexOf('calendar') >= 0 ||
+                    cls.indexOf('pickers') >= 0 ||
+                    cls.indexOf('muipickers') >= 0 ||
+                    cls.indexOf('mat-calendar') >= 0) return true;
+
+                if (role === 'gridcell' || role === 'dialog') {
+                  if (cls.indexOf('calendar') >= 0 || cls.indexOf('pickers') >= 0) return true;
+                }
+
+                if (aria.indexOf('choose date') >= 0 ||
+                    aria.indexOf('selected date') >= 0 ||
+                    aria.indexOf('calendar') >= 0 ||
+                    aria.indexOf('date') >= 0) return true;
+
+                if (txt.match(/^(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)$/)) return true;
+
+                return !!(el.closest && el.closest(
+                  '.MuiPickersPopper-root, .MuiDateCalendar-root, .MuiPickersLayout-root, ' +
+                  '.mat-datepicker-content, .react-datepicker, .ui-datepicker, .flatpickr-calendar, ' +
+                  '[class*="datepicker"], [class*="calendar"], [class*="pickers"]'
+                ));
+              }
+
+              function activeDateInput() {
+                try {
+                  var ae = win.document.activeElement;
+                  if (ae && ae.tagName && ae.tagName.toLowerCase() === 'input') return ae;
+                } catch (e) {}
+
+                var focused = win.document.querySelector('input:focus, textarea:focus');
+                if (focused) return focused;
+
+                var inputs = Array.from(win.document.querySelectorAll('input'));
+                return inputs.length ? inputs[inputs.length - 1] : null;
+              }
+
+              function dateFieldOf(el) {
+                if (!el) return null;
+                var campo = null;
+
+                try {
+                  campo = el.closest('label,[data-field],[class*="field"],[class*="form-group"]');
+                } catch (e) {}
+
+                try {
+                  if (!campo && el.closest) {
+                    var dialog = el.closest(
+                      '.MuiPickersPopper-root, .MuiDateCalendar-root, .MuiPickersLayout-root, ' +
+                      '.mat-datepicker-content, .react-datepicker, .ui-datepicker, .flatpickr-calendar, ' +
+                      '[class*="datepicker"], [class*="calendar"], [class*="pickers"]'
+                    );
+                    if (dialog) {
+                      var active = activeDateInput();
+                      if (active) campo = active;
+                    }
+                  }
+                } catch (e) {}
+
+                if (campo && campo.tagName) {
+                  var tag = campo.tagName.toLowerCase();
+                  if (tag === 'input' || tag === 'textarea' || tag === 'select') return campo;
+                  try {
+                    var innerInput = campo.querySelector('input, textarea, select');
+                    if (innerInput) return innerInput;
+                  } catch (e) {}
+                }
+
+                return campo;
+              }
+
               function componentType(el) {
                 if (!el) return 'INTERACTIVE';
                 var role = safe(el.getAttribute('role')).toLowerCase();
                 var tag = safe(el.tagName).toLowerCase();
                 var cls = safe(el.className).toLowerCase();
+                var type = safe(el.getAttribute('type')).toLowerCase();
+
+                if (isDatePickerElement(el)) return 'DATEPICKER';
                 if (tag === 'select') return 'SELECT';
-                if (el.matches && el.matches('input[type="date"],input[type="datetime-local"]')) return 'DATEPICKER';
                 if (role === 'tab') return 'TAB';
                 if (role.indexOf('menu') >= 0) return 'MENU';
                 if (role === 'combobox' || cls.indexOf('autocomplete') >= 0) return 'AUTOCOMPLETE';
-                if (cls.indexOf('datepicker') >= 0 || cls.indexOf('calendar') >= 0) return 'DATEPICKER';
                 if (cls.indexOf('select') >= 0 && tag !== 'select') return 'CUSTOM_SELECT';
                 if (cls.indexOf('card') >= 0) return 'CARD';
+                if (type === 'radio') return 'RADIO';
+                if (type === 'checkbox') return 'CHECKBOX';
                 return 'INTERACTIVE';
               }
+
               function betterSelector(el) {
                 if (!el || !el.tagName) return { seletor:'', tipoSeletor:'CSS' };
-                if (el.id) return { seletor:'#' + cssEscape(el.id), tipoSeletor:'CSS' };
+
+                var tag = el.tagName.toLowerCase();
+                var type = safe(el.getAttribute('type')).toLowerCase();
+
                 var dt = el.getAttribute('data-testid') || el.getAttribute('data-test') || el.getAttribute('data-qa');
-                if (dt) return { seletor:'[' + (el.getAttribute('data-testid') ? 'data-testid' : (el.getAttribute('data-test') ? 'data-test' : 'data-qa')) + '="' + cssEscape(dt) + '"]', tipoSeletor:'CSS' };
-                if (el.name) return { seletor: el.tagName.toLowerCase() + '[name="' + cssEscape(el.name) + '"]', tipoSeletor:'CSS' };
-                if (el.getAttribute('aria-label')) return { seletor: el.tagName.toLowerCase() + '[aria-label="' + cssEscape(el.getAttribute('aria-label')) + '"]', tipoSeletor:'CSS' };
-                if (el.getAttribute('placeholder')) return { seletor: el.tagName.toLowerCase() + '[placeholder="' + cssEscape(el.getAttribute('placeholder')) + '"]', tipoSeletor:'CSS' };
+                if (dt) {
+                  return {
+                    seletor: '[' + (el.getAttribute('data-testid') ? 'data-testid' : (el.getAttribute('data-test') ? 'data-test' : 'data-qa')) + '="' + cssEscape(dt) + '"]',
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                if (el.id && !looksDynamic(el.id)) {
+                  return {
+                    seletor:'#' + cssEscape(el.id),
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                var value = el.getAttribute('value');
+                if ((type === 'radio' || type === 'checkbox') && safe(value)) {
+                  return {
+                    seletor: tag + '[type="' + cssEscape(type) + '"][value="' + cssEscape(value) + '"]',
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                if (el.name && !looksDynamic(el.name)) {
+                  return {
+                    seletor: tag + '[name="' + cssEscape(el.name) + '"]',
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                if (el.getAttribute('aria-label')) {
+                  return {
+                    seletor: tag + '[aria-label="' + cssEscape(el.getAttribute('aria-label')) + '"]',
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                if (el.getAttribute('placeholder')) {
+                  return {
+                    seletor: tag + '[placeholder="' + cssEscape(el.getAttribute('placeholder')) + '"]',
+                    tipoSeletor:'CSS'
+                  };
+                }
+
                 var href = el.getAttribute('href');
-                if (el.tagName.toLowerCase() === 'a' && href) return { seletor:'a[href="' + cssEscape(href) + '"]', tipoSeletor:'CSS' };
-                var cls = safe(el.className).split(/\s+/).filter(function(c){ return c && !/^ng-/.test(c) && !/^css-/.test(c) && !/^jsx-/.test(c); }).slice(0,2);
-                if (cls.length) return { seletor: el.tagName.toLowerCase() + '.' + cls.map(cssEscape).join('.'), tipoSeletor:'CSS' };
-                return { seletor: el.tagName.toLowerCase(), tipoSeletor:'CSS' };
+                if (tag === 'a' && href) {
+                  return {
+                    seletor:'a[href="' + cssEscape(href) + '"]',
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                var cls = safe(el.className)
+                  .split(/\\s+/)
+                  .filter(function(c){
+                    return c
+                      && !/^ng-/.test(c)
+                      && !/^css-/.test(c)
+                      && !/^jsx-/.test(c)
+                      && !/^jss\\d+$/.test(c)
+                      && !/^mui-\\d+$/.test(c);
+                  })
+                  .slice(0,2);
+
+                if (cls.length) {
+                  return {
+                    seletor: tag + '.' + cls.map(cssEscape).join('.'),
+                    tipoSeletor:'CSS'
+                  };
+                }
+
+                return { seletor: tag, tipoSeletor:'CSS' };
               }
+
               function labelOf(el) {
                 if (!el) return '';
                 var id = el.id;
@@ -231,6 +416,7 @@ public class GravacaoController {
                 }
                 return '';
               }
+
               function shadowPathOf(target) {
                 try {
                   var root = target.getRootNode && target.getRootNode();
@@ -240,12 +426,38 @@ public class GravacaoController {
                   return 'shadow-host(' + hostSel + ') > ' + betterSelector(target).seletor;
                 } catch (e) { return ''; }
               }
+
               function push(ev) {
                 if (!ev || !ev.tipo) return;
                 ev.url = win.location.href;
                 ev.framePath = framePath || 'root';
                 window.__scannerEventos.push(ev);
               }
+
+              function emitDatePickerValue() {
+                try {
+                  var campo = activeDateInput();
+                  if (!campo) return;
+
+                  var val = safe(campo.value);
+                  if (!val) return;
+
+                  var sel = betterSelector(campo);
+                  push(Object.assign({}, sel, {
+                    tipo: 'INPUT',
+                    tagName: safe(campo.tagName).toLowerCase(),
+                    valor: val,
+                    textoElemento: textOf(campo),
+                    label: labelOf(campo),
+                    placeholder: safe(campo.getAttribute('placeholder')),
+                    ariaLabel: safe(campo.getAttribute('aria-label')),
+                    role: safe(campo.getAttribute('role')),
+                    componentType: 'DATEPICKER',
+                    shadowPath: shadowPathOf(campo)
+                  }));
+                } catch (e) {}
+              }
+
               function realClickable(start) {
                 if (!start) return null;
                 var path = start.composedPath ? start.composedPath() : null;
@@ -253,14 +465,14 @@ public class GravacaoController {
                   for (var i = 0; i < path.length; i++) {
                     var p = path[i];
                     if (!p || !p.tagName) continue;
-                    if (p.matches && p.matches('a,button,[role="button"],[role="tab"],[role="menuitem"],input[type="submit"],input[type="button"],summary')) return p;
+                    if (p.matches && p.matches('a,button,[role="button"],[role="tab"],[role="menuitem"],input[type="submit"],input[type="button"],input[type="radio"],input[type="checkbox"],summary')) return p;
                     if (p.onclick || safe(p.style && p.style.cursor) === 'pointer') return p;
                     var cls = safe(p.className).toLowerCase();
                     if (cls.indexOf('btn') >= 0 || cls.indexOf('button') >= 0 || cls.indexOf('tab') >= 0 || cls.indexOf('menu') >= 0 || cls.indexOf('card') >= 0) return p;
                   }
                 }
                 if (start.closest) {
-                  return start.closest('a,button,[role="button"],[role="tab"],[role="menuitem"],input[type="submit"],input[type="button"],summary,[class*="btn"],[class*="button"],[class*="tab"],[class*="menu"],[class*="card"],div[onclick],span[onclick]');
+                  return start.closest('a,button,[role="button"],[role="tab"],[role="menuitem"],input[type="submit"],input[type="button"],input[type="radio"],input[type="checkbox"],summary,[class*="btn"],[class*="button"],[class*="tab"],[class*="menu"],[class*="card"],div[onclick],span[onclick]');
                 }
                 return start;
               }
@@ -268,6 +480,23 @@ public class GravacaoController {
               win.document.addEventListener('click', function(e) {
                 var alvo = realClickable(e.target);
                 if (!alvo) return;
+
+                var calendarioAberto = visibleDatePickerRoot();
+
+                if (calendarioAberto && isInsideOpenDatePicker(alvo)) {
+                  setTimeout(function() {
+                    emitDatePickerValue();
+                  }, 250);
+                  return;
+                }
+
+                if (isDatePickerElement(alvo)) {
+                  setTimeout(function() {
+                    emitDatePickerValue();
+                  }, 250);
+                  return;
+                }
+
                 var sel = betterSelector(alvo);
                 push(Object.assign({}, sel, {
                   tipo: 'CLICK',
@@ -314,7 +543,49 @@ public class GravacaoController {
                 var el = e.target;
                 if (!el || !el.tagName) return;
                 var tag = el.tagName.toUpperCase();
-                if (tag === 'SELECT' || componentType(el) === 'CUSTOM_SELECT' || componentType(el) === 'AUTOCOMPLETE' || componentType(el) === 'DATEPICKER') {
+                var type = safe(el.getAttribute('type')).toLowerCase();
+
+                if (type === 'radio' || type === 'checkbox') {
+                  var selCheck = betterSelector(el);
+                  push(Object.assign({}, selCheck, {
+                    tipo: 'CLICK',
+                    tagName: tag.toLowerCase(),
+                    valor: el.value,
+                    checked: !!el.checked,
+                    textoElemento: textOf(el),
+                    label: labelOf(el),
+                    placeholder: safe(el.getAttribute('placeholder')),
+                    ariaLabel: safe(el.getAttribute('aria-label')),
+                    role: safe(el.getAttribute('role')),
+                    componentType: componentType(el),
+                    shadowPath: shadowPathOf(el)
+                  }));
+                  return;
+                }
+
+                if (componentType(el) === 'DATEPICKER' || isDatePickerElement(el)) {
+                  var campoData = dateFieldOf(el) || el;
+                  var selData = betterSelector(campoData);
+                  var valData = campoData.value || el.value || textOf(campoData) || textOf(el);
+
+                  if (safe(valData)) {
+                    push(Object.assign({}, selData, {
+                      tipo: 'INPUT',
+                      tagName: safe(campoData.tagName).toLowerCase(),
+                      valor: valData,
+                      textoElemento: textOf(campoData),
+                      label: labelOf(campoData),
+                      placeholder: safe(campoData.getAttribute && campoData.getAttribute('placeholder')),
+                      ariaLabel: safe(campoData.getAttribute && campoData.getAttribute('aria-label')),
+                      role: safe(campoData.getAttribute && campoData.getAttribute('role')),
+                      componentType: 'DATEPICKER',
+                      shadowPath: shadowPathOf(campoData)
+                    }));
+                  }
+                  return;
+                }
+
+                if (tag === 'SELECT' || componentType(el) === 'CUSTOM_SELECT' || componentType(el) === 'AUTOCOMPLETE') {
                   var val = el.value;
                   if (tag === 'SELECT' && el.options && el.selectedIndex >= 0) {
                     val = el.options[el.selectedIndex].text || el.value;

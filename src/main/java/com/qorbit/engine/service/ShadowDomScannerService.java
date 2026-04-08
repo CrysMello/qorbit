@@ -25,11 +25,11 @@ public class ShadowDomScannerService {
             function cssEscape(value) {
                 if (!value) return value;
                 if (window.CSS && CSS.escape) return CSS.escape(value);
-                return String(value).replace(/([ #;?%&,.+*~\\':\"!^$\\[\\]()=>|\\/])/g,'\\\\$1');
+                return String(value).replace(/([ #;?%&,.+*~\\\\':\\"!^$\\\\[\\\\]()=>|\\\\/])/g, '\\\\$1');
             }
 
             function cleanText(value) {
-                return String(value || '').replace(/\s+/g, ' ').trim();
+                return String(value || '').replace(/\\s+/g, ' ').trim();
             }
 
             function visible(el) {
@@ -56,17 +56,21 @@ public class ShadowDomScannerService {
             function nearestLabel(el) {
                 if (!el) return '';
                 if (el.labels && el.labels.length) return cleanText(el.labels[0].innerText || el.labels[0].textContent);
+
                 const ariaLabelledBy = el.getAttribute('aria-labelledby');
                 if (ariaLabelledBy) {
                     const ref = document.getElementById(ariaLabelledBy.split(' ')[0]);
                     if (ref) return cleanText(ref.innerText || ref.textContent);
                 }
+
                 if (el.id) {
                     const label = safeQuery(document, 'label[for="' + cssEscape(el.id) + '"]');
                     if (label) return cleanText(label.innerText || label.textContent);
                 }
+
                 const parentLabel = el.closest ? el.closest('label') : null;
                 if (parentLabel) return cleanText(parentLabel.innerText || parentLabel.textContent);
+
                 let previous = el.previousElementSibling;
                 while (previous) {
                     const text = cleanText(previous.innerText || previous.textContent);
@@ -78,32 +82,40 @@ public class ShadowDomScannerService {
 
             function containerContext(el) {
                 const modal = el.closest ? el.closest('[role="dialog"], [role="alertdialog"], [aria-modal="true"], .modal, .MuiDialog-root, .ant-modal, .ReactModalPortal') : null;
-                if (modal) return firstNonEmpty([
-                    modal.getAttribute && modal.getAttribute('aria-label'),
-                    modal.getAttribute && modal.getAttribute('data-testid'),
-                    cleanText(((modal.querySelector && modal.querySelector('h1,h2,h3,[data-testid*="title"],.modal-title')) || {}).innerText)
-                ]) || 'modal';
+                if (modal) {
+                    return firstNonEmpty([
+                        modal.getAttribute && modal.getAttribute('aria-label'),
+                        modal.getAttribute && modal.getAttribute('data-testid'),
+                        cleanText(((modal.querySelector && modal.querySelector('h1,h2,h3,[data-testid*="title"],.modal-title')) || {}).innerText)
+                    ]) || 'modal';
+                }
 
                 const form = el.closest ? el.closest('form') : null;
-                if (form) return firstNonEmpty([
-                    form.getAttribute && form.getAttribute('aria-label'),
-                    form.getAttribute && form.getAttribute('name'),
-                    form.getAttribute && form.getAttribute('id')
-                ]) || 'form';
+                if (form) {
+                    return firstNonEmpty([
+                        form.getAttribute && form.getAttribute('aria-label'),
+                        form.getAttribute && form.getAttribute('name'),
+                        form.getAttribute && form.getAttribute('id')
+                    ]) || 'form';
+                }
 
                 const section = el.closest ? el.closest('section, article, aside, table, [role="region"], [role="tabpanel"], [data-testid], .card, .panel') : null;
-                if (section) return firstNonEmpty([
-                    section.getAttribute && section.getAttribute('aria-label'),
-                    section.getAttribute && section.getAttribute('data-testid'),
-                    section.getAttribute && section.getAttribute('id'),
-                    cleanText(((section.querySelector && section.querySelector('h1,h2,h3,h4,legend,caption')) || {}).innerText)
-                ]);
+                if (section) {
+                    return firstNonEmpty([
+                        section.getAttribute && section.getAttribute('aria-label'),
+                        section.getAttribute && section.getAttribute('data-testid'),
+                        section.getAttribute && section.getAttribute('id'),
+                        cleanText(((section.querySelector && section.querySelector('h1,h2,h3,h4,legend,caption')) || {}).innerText)
+                    ]);
+                }
+
                 return '';
             }
 
             function getShadowPath(el) {
                 const parts = [];
                 let current = el;
+
                 while (current) {
                     if (current.id) {
                         parts.unshift('#' + current.id);
@@ -114,6 +126,7 @@ public class ShadowDomScannerService {
                     } else if (current.tagName) {
                         parts.unshift(current.tagName.toLowerCase());
                     }
+
                     const root = current.getRootNode ? current.getRootNode() : null;
                     if (root && root.host) {
                         parts.unshift('shadow-host(' + (root.host.id ? '#' + root.host.id : root.host.tagName.toLowerCase()) + ')');
@@ -122,30 +135,91 @@ public class ShadowDomScannerService {
                         current = current.parentElement;
                     }
                 }
+
                 return parts.join(' > ');
             }
 
+            function looksDynamic(value) {
+                if (!value) return false;
+                const v = String(value).toLowerCase();
+                return /^mui-\\d+$/.test(v)
+                    || /^jss\\d+$/.test(v)
+                    || /^css-[a-z0-9]+$/i.test(v)
+                    || /(^|[-_])mui-\\d+($|[-_])/.test(v);
+            }
+
+            function stableId(el) {
+                const id = el.getAttribute('id');
+                if (!id || looksDynamic(id)) return '';
+                return id;
+            }
+
+            function stableName(el) {
+                const name = el.getAttribute('name');
+                if (!name || looksDynamic(name)) return '';
+                return name;
+            }
+
             function selectorInfo(el) {
+                const tag = el.tagName.toLowerCase();
+                const type = (el.getAttribute('type') || '').toLowerCase();
                 const testId = el.getAttribute('data-testid') || el.getAttribute('data-test') || el.getAttribute('data-qa');
-                if (testId) return { tipo: 'CSS', valor: "[data-testid='" + testId + "']", backup: getShadowPath(el) };
-                if (el.id) return { tipo: 'CSS', valor: '#' + cssEscape(el.id), backup: getShadowPath(el) };
-                if (el.getAttribute('name')) return { tipo: 'CSS', valor: el.tagName.toLowerCase() + "[name='" + cssEscape(el.getAttribute('name')) + "']", backup: getShadowPath(el) };
+
+                if (testId) {
+                    const attr = el.getAttribute('data-testid')
+                        ? 'data-testid'
+                        : (el.getAttribute('data-test') ? 'data-test' : 'data-qa');
+
+                    return {
+                        tipo: 'CSS',
+                        valor: "[" + attr + "='" + cssEscape(testId) + "']",
+                        backup: getShadowPath(el)
+                    };
+                }
+
+                const id = stableId(el);
+                if (id) {
+                    return {
+                        tipo: 'CSS',
+                        valor: '#' + cssEscape(id),
+                        backup: getShadowPath(el)
+                    };
+                }
+
+                const value = el.getAttribute('value');
+                if ((type === 'radio' || type === 'checkbox') && value) {
+                    return {
+                        tipo: 'CSS',
+                        valor: tag + "[type='" + cssEscape(type) + "'][value='" + cssEscape(value) + "']",
+                        backup: getShadowPath(el)
+                    };
+                }
+
+                const name = stableName(el);
+                if (name) {
+                    return {
+                        tipo: 'CSS',
+                        valor: tag + "[name='" + cssEscape(name) + "']",
+                        backup: getShadowPath(el)
+                    };
+                }
+
                 const ariaLabel = el.getAttribute('aria-label');
                 if (ariaLabel) {
-                    // Verifica se o elemento está dentro de um container identificável
-                    // para gerar um selector mais específico e evitar ambiguidade
+                    const escapedAria = String(ariaLabel).replace(/"/g, '\\\\"');
+
                     const parent = el.closest('[id],[data-testid],[data-slick-index],[aria-roledescription]');
                     if (parent && parent !== el) {
                         const parentId = parent.id || parent.getAttribute('data-testid');
                         if (parentId) {
                             return {
                                 tipo: 'XPATH',
-                                valor: '//*[@id="' + parentId + '"]//' + el.tagName.toLowerCase() + '[@aria-label="' + String(ariaLabel).replace(/"/g, '\\"') + '"]',
+                                valor: '//*[@id="' + parentId + '"]//' + tag + '[@aria-label="' + escapedAria + '"]',
                                 backup: getShadowPath(el)
                             };
                         }
                     }
-                    // Sem container identificável — usa posição relativa ao slick-slider pai
+
                     const slider = el.closest('.slick-slider,.owl-carousel,.swiper-container,[class*="carousel"],[class*="slider"]');
                     if (slider) {
                         const sliders = Array.from(document.querySelectorAll('.slick-slider,.owl-carousel,.swiper-container,[class*="carousel"],[class*="slider"]'));
@@ -153,25 +227,40 @@ public class ShadowDomScannerService {
                         if (sliderIndex >= 0) {
                             return {
                                 tipo: 'XPATH',
-                                valor: '(//' + el.tagName.toLowerCase() + '[@aria-label="' + String(ariaLabel).replace(/"/g, '\\"') + '"])[' + (sliderIndex + 1) + ']',
+                                valor: '(//' + tag + '[@aria-label="' + escapedAria + '"])[' + (sliderIndex + 1) + ']',
                                 backup: getShadowPath(el)
                             };
                         }
                     }
-                    return { tipo: 'XPATH', valor: '//' + el.tagName.toLowerCase() + '[@aria-label="' + String(ariaLabel).replace(/"/g, '\\"') + '"]', backup: getShadowPath(el) };
+
+                    return {
+                        tipo: 'XPATH',
+                        valor: '//' + tag + '[@aria-label="' + escapedAria + '"]',
+                        backup: getShadowPath(el)
+                    };
                 }
-                // Para links <a> com href unico (ex: buy_now, product pages), usa o href como selector
+
                 const href = el.getAttribute('href');
-                if (el.tagName.toLowerCase() === 'a' && href && href.length > 1 && !href.startsWith('#')) {
-                    // Extrai slug do produto para selector mais legivel
+                if (tag === 'a' && href && href.length > 1 && !href.startsWith('#')) {
                     const hrefParts = href.split('/').filter(Boolean);
                     const slug = hrefParts[hrefParts.length - 1] || '';
                     const cleanSlug = slug.split('?')[0].substring(0, 60);
+
                     if (cleanSlug) {
-                        return { tipo: 'CSS', valor: "a[href*='" + cleanSlug + "']", backup: getShadowPath(el) };
+                        return {
+                            tipo: 'CSS',
+                            valor: "a[href*='" + cleanSlug.replace(/'/g, "\\\\'") + "']",
+                            backup: getShadowPath(el)
+                        };
                     }
-                    return { tipo: 'CSS', valor: "a[href='" + href.replace(/'/g, "\\'" ) + "']", backup: getShadowPath(el) };
+
+                    return {
+                        tipo: 'CSS',
+                        valor: "a[href='" + href.replace(/'/g, "\\\\'") + "']",
+                        backup: getShadowPath(el)
+                    };
                 }
+
                 return { tipo: 'SHADOW_CSS', valor: getShadowPath(el), backup: '' };
             }
 
@@ -188,6 +277,7 @@ public class ShadowDomScannerService {
                     if (tag === 'input' || role === 'textbox' || role === 'combobox') return 'MODAL_FIELD';
                     return 'MODAL_CONTAINER';
                 }
+
                 if (tag === 'select') return 'SELECT';
                 if (role === 'combobox' || classes.includes('select') || classes.includes('dropdown') || hasPopup === 'listbox') return 'CUSTOM_SELECT';
                 if (ariaAutocomplete || classes.includes('autocomplete') || role === 'searchbox') return 'AUTOCOMPLETE';
@@ -197,6 +287,7 @@ public class ShadowDomScannerService {
                 if (tag === 'a') return 'LINK';
                 if (tag === 'input' && ['email','password','checkbox','radio','number','tel','search'].includes(type)) return type.toUpperCase();
                 if (tag === 'input' || role === 'textbox') return 'TEXT_INPUT';
+
                 return 'INTERACTIVE';
             }
 
@@ -212,26 +303,28 @@ public class ShadowDomScannerService {
                     el.id,
                     cleanText(el.innerText || el.textContent)
                 ]);
+
                 let normalized = cleanText(raw).replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();
                 if (!normalized) normalized = componentType || (el.tagName || 'elemento');
-                // Para links com href de produto, adiciona o nome do produto ao nome logico
+
                 const href = el.getAttribute('href');
                 if (el.tagName.toLowerCase() === 'a' && href && href.includes('/')) {
                     const parts = href.split('/').filter(Boolean);
                     const slug = parts[parts.length - 1] || '';
                     const productSlug = slug.split('?')[0];
+
                     if (productSlug && productSlug.length > 3) {
-                        // Converte slug para nome legivel (ex: royal-london-41003 -> Royal London 41003)
                         const productName = productSlug
                             .replace(/-/g, ' ')
                             .replace(/[^a-zA-Z0-9 ]/g, '')
                             .substring(0, 40)
                             .trim();
-                        // Limita a 3 palavras para evitar nomes gigantes
-                        const words = productName.trim().split(/\s+/).slice(0, 3).join(' ');
+
+                        const words = productName.trim().split(/\\s+/).slice(0, 3).join(' ');
                         if (words) return normalized + ' ' + words;
                     }
                 }
+
                 return normalized;
             }
 
@@ -239,6 +332,7 @@ public class ShadowDomScannerService {
                 if (!el || !el.tagName || !visible(el)) return false;
                 const tag = el.tagName.toLowerCase();
                 const role = (el.getAttribute('role') || '').toLowerCase();
+
                 if (['input','button','a','select','textarea','option'].includes(tag)) return true;
                 return ['button','textbox','combobox','listbox','option','dialog','searchbox','switch','checkbox','radio'].includes(role);
             }
@@ -246,11 +340,13 @@ public class ShadowDomScannerService {
             function collectFromRoot(root, result, seen, source) {
                 const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
                 let current = walker.currentNode;
+
                 while (current) {
                     if (interactive(current)) {
                         const selector = selectorInfo(current);
                         const componentType = detectComponentType(current);
                         const uniqueKey = [selector.tipo, selector.valor, componentType, source].join('|');
+
                         if (!seen.has(uniqueKey)) {
                             seen.add(uniqueKey);
                             result.push({
@@ -276,9 +372,11 @@ public class ShadowDomScannerService {
                             });
                         }
                     }
+
                     if (current.shadowRoot) {
                         collectFromRoot(current.shadowRoot, result, seen, source + '>shadow(' + (current.id || current.tagName.toLowerCase()) + ')');
                     }
+
                     current = walker.nextNode();
                 }
             }
