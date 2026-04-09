@@ -1,4 +1,4 @@
-# Qorbit Engine
+ Qorbit Engine
 
 Qorbit Engine é uma engine de automação web com foco em execução orientada por estratégia, auto-healing controlado e aprendizado persistente. Nesta versão, a arquitetura deixa de ser centrada em um executor linear e passa a seguir um pipeline: resolver elemento, classificar componente, gerar assinatura, consultar aprendizado, escolher estratégia, executar, aplicar fallback compatível, validar resultado e atualizar o diagnóstico.
 
@@ -12,6 +12,96 @@ Qorbit Engine é uma engine de automação web com foco em execução orientada 
 - estatísticas por tipo de componente e estratégia
 - relatório CLI em texto ou JSON
 - reforço de segurança para configuração da API key via variável de ambiente
+
+## Suporte opcional de CI/CD no projeto exportado
+
+A exportação de projetos agora pode incluir uma configuração pronta de CI/CD. Quando a opção **Incluir configuração de CI/CD** estiver ativa, o pacote exportado passa a gerar automaticamente:
+
+- arquivo `.github/workflows/testes.yml`
+- `DriverFactory.java` preparado para execução headless por padrão em CI/CD
+- configuração de headless sobrescrevível por propriedade
+- README do projeto exportado com instruções de uso em ambiente local e pipeline
+
+Quando a opção não estiver ativa, o comportamento atual de exportação é preservado, sem arquivos ou configurações adicionais de pipeline.
+
+### O que é gerado com CI/CD ativado
+
+#### 1. Workflow GitHub Actions
+
+Arquivo incluído no projeto exportado:
+
+```text
+.github/workflows/testes.yml
+```
+
+Conteúdo esperado do workflow:
+
+- execução em `push` e `pull_request`
+- Java 17
+- cache Maven habilitado
+- execução de `mvn clean test`
+- publicação de artefatos mesmo em caso de falha com `if: always()`
+
+#### 2. DriverFactory preparado para CI/CD
+
+Quando CI/CD estiver habilitado, o `DriverFactory.java` exportado deve:
+
+- usar modo headless por padrão
+- incluir `--no-sandbox`
+- incluir `--disable-dev-shm-usage`
+- incluir `--window-size=1920,1080`
+
+Exemplo de comportamento configurável:
+
+```java
+boolean headless = !"false".equalsIgnoreCase(System.getProperty("headless", "true"));
+```
+
+Isso permite sobrescrever a execução localmente com:
+
+```bash
+mvn test -Dheadless=false
+```
+
+#### 3. Compatibilidade com execução local
+
+Mesmo com a configuração de pipeline incluída, o projeto exportado continua executável localmente.
+
+Execução local com navegador visível:
+
+```bash
+mvn test -Dheadless=false
+```
+
+Execução headless:
+
+```bash
+mvn clean test
+```
+
+#### 4. README do export atualizado
+
+Quando a opção de CI/CD estiver ativa, o README do projeto exportado deve explicar:
+
+- como rodar localmente
+- como rodar em headless
+- como funciona a execução via GitHub Actions
+
+#### 5. Estrutura esperada no ZIP
+
+Quando CI/CD estiver ativado, o `.zip` exportado deve conter:
+
+- `.github/workflows/testes.yml`
+- código exportado com `DriverFactory` compatível com CI/CD
+- documentação atualizada
+
+#### 6. Regras de negócio
+
+- a inclusão de pipeline é opcional
+- o workflow inicial suportado é GitHub Actions
+- o navegador padrão do pipeline é Chrome
+- o modo headless é padrão para contexto de CI/CD, mas com possibilidade de override
+- a funcionalidade prioriza zero configuração manual após a exportação
 
 ## Arquitetura resumida
 
@@ -89,18 +179,18 @@ A `DateInputExecutionStrategy` foi completamente reescrita para atender às exig
 
 ### Fluxo de decisão
 
-```
+```text
 Campo readonly?
-  Sim → Abre calendário diretamente
-  Não → Tenta sendKeys + validação
-           Falhou? → Abre calendário
+  Sim -> Abre calendário diretamente
+  Não -> Tenta sendKeys + validação
+           Falhou? -> Abre calendário
 
 Calendário aberto:
-  Range? → Resolve qual calendário usar (aria-controls ou posição)
+  Range? -> Resolve qual calendário usar (aria-controls ou posição)
   Navega ano (select / input numérico / year-view)
   Navega mês (next/prev até mês alvo)
   Seleciona dia (enabled only)
-  Valida campo → JS fallback se necessário
+  Valida campo -> JS fallback se necessário
 ```
 
 ### Exceções específicas
@@ -123,7 +213,7 @@ jQuery UI Datepicker, Flatpickr, React Datepicker, Angular Material Datepicker, 
 
 Cada passo emite log com `execId`, estratégia usada, navegação realizada e resultado:
 
-```
+```text
 [datepicker][execId=42] Iniciando preenchimento — valor alvo: '15/08/2026'
 [datepicker][execId=42] Campo readonly=false | Data parseada=2026-08-15
 [datepicker][execId=42] estrategia=digitacao resultado=FALHA — acionando fallback visual
@@ -154,7 +244,6 @@ Cada passo emite log com `execId`, estratégia usada, navegação realizada e re
 ## Observação importante
 
 Esta entrega foi preparada para evoluir a base arquitetural e o comportamento central da engine. Mesmo com a implementação do aprendizado e da estratégia, componentes altamente customizados ainda podem exigir refinamento adicional das heurísticas de classificação e fallback.
-
 
 ## Hardening de runtime (Entrega 2.1)
 
