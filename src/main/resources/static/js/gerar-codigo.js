@@ -2,7 +2,11 @@
 let todosCasos = [];
 let selecionados = new Set();
 
-async function carregarCasos() {
+function onCiCdToggle() {
+    const ativo = document.getElementById('inclCiCd').checked;
+    document.getElementById('ciCdDetails').style.display = ativo ? 'block' : 'none';
+    document.getElementById('instrucaoCiCd').style.display = ativo ? 'flex' : 'none';
+}async function carregarCasos() {
     try {
         todosCasos = await api('GET', '/api/casos');
         renderizarCasos(todosCasos);
@@ -65,12 +69,17 @@ function atualizarResumo() {
 async function gerarDownload() {
     if (!selecionados.size) { toast('Selecione ao menos um caso de teste', 'danger'); return; }
 
+    const includeCiCd = document.getElementById('inclCiCd')?.checked ?? false;
+
     toast('Gerando projeto... aguarde', 'info');
     try {
         const res = await fetch('/api/codigo/gerar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idsCasos: Array.from(selecionados) })
+            body: JSON.stringify({
+                idsCasos: Array.from(selecionados),
+                includeCiCd: includeCiCd
+            })
         });
 
         if (!res.ok) {

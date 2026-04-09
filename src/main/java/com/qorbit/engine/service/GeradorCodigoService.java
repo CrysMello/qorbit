@@ -23,6 +23,10 @@ public class GeradorCodigoService {
     @Autowired private NormalizadorNomes normalizador;
 
     public byte[] gerarZip(List<CasoDeTeste> casos) throws IOException {
+        return gerarZip(casos, false);
+    }
+
+    public byte[] gerarZip(List<CasoDeTeste> casos, boolean includeCiCd) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         List<Elemento> todosElementos = elementoRepo.findAll();
 
@@ -40,7 +44,7 @@ public class GeradorCodigoService {
             adicionarArquivo(zip, "qorbit-tests-export/pom.xml", gerarPomXml());
             adicionarArquivo(zip, "qorbit-tests-export/src/test/java/runner/TestRunner.java", gerarTestRunner());
             adicionarArquivo(zip, "qorbit-tests-export/src/test/java/config/Hooks.java", gerarHooks());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/config/DriverFactory.java", gerarDriverFactory());
+            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/config/DriverFactory.java",includeCiCd ? gerarDriverFactoryCiCd() : gerarDriverFactory());
             adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/StepEvidence.java", gerarStepEvidence());
             adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/ExecutionContext.java", gerarExecutionContext());
             adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/FeatureStepCatalog.java", gerarFeatureStepCatalog());
@@ -63,15 +67,130 @@ public class GeradorCodigoService {
                         gerarStepDefinitions(caso, pages, elementosPorNome));
             }
 
-            adicionarArquivo(zip, "qorbit-tests-export/README.md", gerarReadme());
+            adicionarArquivo(zip, "qorbit-tests-export/README.md",includeCiCd ? gerarReadmeCiCd() : gerarReadme());
             adicionarArquivo(zip, "qorbit-tests-export/executar-testes.bat", gerarExecutarTestesBat());
             adicionarArquivo(zip, "qorbit-tests-export/executar-testes.sh", gerarExecutarTestesSh());
-            // Melhoria 8: Self-Healing no export
+            if (includeCiCd) {
+                adicionarArquivo(zip, "qorbit-tests-export/.github/workflows/testes.yml", gerarGithubActionsWorkflow());
+            }
             adicionarArquivo(zip, "qorbit-tests-export/src/test/java/healing/HealingService.java", gerarHealingService());
             adicionarArquivo(zip, "qorbit-tests-export/src/test/resources/healing.properties", gerarHealingProperties());
         }
 
         return baos.toByteArray();
+    }
+
+    private String gerarDriverFactoryCiCd() {
+        return "package config;\n\n"
+                + "import io.github.bonigarcia.wdm.WebDriverManager;\n"
+                + "import org.openqa.selenium.WebDriver;\n"
+                + "import org.openqa.selenium.chrome.ChromeDriver;\n"
+                + "import org.openqa.selenium.chrome.ChromeOptions;\n\n"
+                + "public class DriverFactory {\n\n"
+                + "    private static WebDriver driver;\n\n"
+                + "    public static WebDriver getDriver() {\n"
+                + "        if (driver == null) {\n"
+                + "            WebDriverManager.chromedriver().setup();\n"
+                + "            ChromeOptions options = new ChromeOptions();\n"
+                + "            boolean headless = !\"false\".equalsIgnoreCase(System.getProperty(\"headless\", \"true\"));\n"
+                + "            if (headless) {\n"
+                + "                options.addArguments(\"--headless=new\");\n"
+                + "                options.addArguments(\"--no-sandbox\");\n"
+                + "                options.addArguments(\"--disable-dev-shm-usage\");\n"
+                + "                options.addArguments(\"--window-size=1920,1080\");\n"
+                + "            }\n"
+                + "            driver = new ChromeDriver(options);\n"
+                + "            if (!headless) driver.manage().window().maximize();\n"
+                + "        }\n"
+                + "        return driver;\n"
+                + "    }\n\n"
+                + "    public static void encerrar() {\n"
+                + "        if (driver != null) {\n"
+                + "            driver.quit();\n"
+                + "            driver = null;\n"
+                + "        }\n"
+                + "    }\n"
+                + "}\n";
+    }
+
+    private String gerarGithubActionsWorkflow() {
+        return "name: Testes Automatizados Qorbit\n\n"
+                + "on:\n"
+                + "  push:\n"
+                + "    branches: [ \"**\" ]\n"
+                + "  pull_request:\n"
+                + "    branches: [ \"**\" ]\n\n"
+                + "jobs:\n"
+                + "  testes:\n"
+                + "    runs-on: ubuntu-latest\n\n"
+                + "    steps:\n"
+                + "      - name: Checkout do repositório\n"
+                + "        uses: actions/checkout@v4\n\n"
+                + "      - name: Configurar Java 17\n"
+                + "        uses: actions/setup-java@v4\n"
+                + "        with:\n"
+                + "          java-version: '17'\n"
+                + "          distribution: 'temurin'\n"
+                + "          cache: maven\n\n"
+                + "      - name: Instalar Google Chrome\n"
+                + "        run: |\n"
+                + "          sudo apt-get update\n"
+                + "          sudo apt-get install -y google-chrome-stable\n\n"
+                + "      - name: Executar testes\n"
+                + "        run: mvn clean test\n\n"
+                + "      - name: Publicar artefatos de teste\n"
+                + "        if: always()\n"
+                + "        uses: actions/upload-artifact@v4\n"
+                + "        with:\n"
+                + "          name: relatorio-testes\n"
+                + "          path: |\n"
+                + "            target/relatorio.html\n"
+                + "            target/evidencias/\n"
+                + "            target/relatorio-cucumber.html\n"
+                + "          retention-days: 30\n";
+    }
+
+    private String gerarReadmeCiCd() {
+        return "# Qorbit - Projeto Exportado\n\n"
+                + "## Como executar localmente\n\n"
+                + "Execute dentro da pasta `qorbit-tests-export`:\n\n"
+                + "```bash\n"
+                + "mvn test -Dheadless=false\n"
+                + "```\n\n"
+                + "No Windows:\n\n"
+                + "```bash\n"
+                + "executar-testes.bat\n"
+                + "```\n\n"
+                + "No Linux/Mac:\n\n"
+                + "```bash\n"
+                + "chmod +x executar-testes.sh\n"
+                + "./executar-testes.sh\n"
+                + "```\n\n"
+                + "## Como executar em modo headless\n\n"
+                + "```bash\n"
+                + "mvn clean test\n"
+                + "```\n\n"
+                + "> O modo headless é o **padrão**. Para ver o navegador, passe `-Dheadless=false`.\n\n"
+                + "## Execução via GitHub Actions\n\n"
+                + "Este projeto já contém o arquivo `.github/workflows/testes.yml`.\n\n"
+                + "Para usar o pipeline:\n\n"
+                + "1. Suba este projeto para um repositório GitHub\n"
+                + "2. O pipeline executa automaticamente a cada `push` ou `pull_request`\n"
+                + "3. Os artefatos (relatório HTML e evidências) ficam disponíveis na aba **Actions** do repositório\n\n"
+                + "## Importante\n\n"
+                + "Nao use `mvn spring-boot:run` neste projeto exportado — ele nao possui aplicacao Spring Boot.\n\n"
+                + "## Melhorias incluidas nesta versao\n"
+                + "- Pipeline GitHub Actions pronto para uso\n"
+                + "- DriverFactory com headless configuravel via `-Dheadless=false`\n"
+                + "- `--no-sandbox` e `--disable-dev-shm-usage` incluidos para compatibilidade com CI\n"
+                + "- Resolucao padrao de 1920x1080 no headless\n"
+                + "- Publicacao automatica de artefatos mesmo em caso de falha\n"
+                + "- Page Objects (POM) gerados automaticamente\n"
+                + "- Arquivos .feature (Gherkin) em pt-BR\n"
+                + "- Step Definitions, TestRunner e Hooks incluidos\n"
+                + "- Self-Healing local ativado\n"
+                + "- Capturas de evidencia por step em target/evidencias\n"
+                + "- Relatorio HTML em target/relatorio.html\n";
     }
 
     private Map<String, PageObjectSpec> construirPages(List<Elemento> elementos) {

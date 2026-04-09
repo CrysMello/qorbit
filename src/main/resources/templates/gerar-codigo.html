@@ -9,6 +9,15 @@
         .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
         .nav-item:hover { background: rgba(255,255,255,.06) !important; }
         </style>
+<style>
+    /* ... estilos existentes ... */
+    .toggle-switch { position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0 }
+    .toggle-switch input { opacity:0;width:0;height:0 }
+    .toggle-slider { position:absolute;cursor:pointer;inset:0;background:#CBD5E1;border-radius:24px;transition:.3s }
+    .toggle-slider:before { content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s }
+    .toggle-switch input:checked + .toggle-slider { background:#2563EB }
+    .toggle-switch input:checked + .toggle-slider:before { transform:translateX(18px) }
+</style>
 </head>
 <body>
 <div class="app-layout">
@@ -81,24 +90,70 @@
                 </div>
 
                 <div>
-                    <!-- Opções de exportação -->
-                    <div class="card">
-                        <div class="card-title" style="margin-bottom:14px">Configurações de exportação</div>
+                    <!-- CI/CD Toggle -->
+                        <div style="border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-top:16px;background:#F0F7FF">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                                <div>
+                                    <div style="font-size:13px;font-weight:600;color:#1F4E79">Incluir configuração de CI/CD</div>
+                                    <div style="font-size:11px;color:#3B82F6;margin-top:2px">
+                                        Gera pipeline pronto para GitHub Actions e configura o projeto para rodar em ambientes de CI/CD.
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="inclCiCd" onchange="onCiCdToggle()"/>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
 
-                        <div class="form-group">
-                            <label>Formato</label>
-                            <select id="formato" class="input">
-                                <option value="CUCUMBER" selected>Selenium + Cucumber (Java + Gherkin pt-BR)</option>
-                                <option value="SELENIUM">Selenium puro (Java)</option>
-                            </select>
-                        </div>
+                            <div id="ciCdDetails" style="display:none;margin-top:14px">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                                    <div style="background:white;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:1px"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.577 9.577 0 0112 6.836c.85.004 1.705.114 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.934.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="#24292F"/></svg>
+                                        <div>
+                                            <div style="font-size:11px;font-weight:600;color:#374151">GitHub Actions</div>
+                                            <div style="font-size:10px;color:#6B7280;margin-top:1px">.github/workflows/testes.yml</div>
+                                            <div style="font-size:10px;color:#6B7280">Pipeline pronto para executar os testes</div>
+                                        </div>
+                                    </div>
+                                    <div style="background:white;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:1px"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#374151" stroke-width="1.5" fill="none"/><path d="M8 21h8M12 17v4" stroke="#374151" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="10" r="3" stroke="#374151" stroke-width="1.5" fill="none"/></svg>
+                                        <div>
+                                            <div style="font-size:11px;font-weight:600;color:#374151">Driver Headless</div>
+                                            <div style="font-size:10px;color:#6B7280;margin-top:1px">Configuração otimizada para CI/CD</div>
+                                            <div style="font-size:10px;color:#6B7280">Headless por padrão, configurável</div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                        <div class="form-group">
-                            <label>Versão do Java</label>
-                            <select id="javaVersion" class="input">
-                                <option value="17" selected>Java 17 (recomendado)</option>
-                                <option value="11">Java 11</option>
-                            </select>
+                                <details style="font-size:11px;color:#374151">
+                                    <summary style="cursor:pointer;font-weight:600;color:#1F4E79;margin-bottom:8px;user-select:none">
+                                        Opções avançadas
+                                    </summary>
+                                    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+                                        <label style="display:flex;align-items:flex-start;gap:6px">
+                                            <input type="checkbox" id="optHeadless" checked style="margin-top:2px" disabled/>
+                                            <div>
+                                                <div style="font-weight:500">Configurar headless por padrão</div>
+                                                <div style="color:#6B7280;font-size:10px">Recomendado para CI/CD</div>
+                                            </div>
+                                        </label>
+                                        <label style="display:flex;align-items:flex-start;gap:6px">
+                                            <input type="checkbox" id="optMultiBrowser" style="margin-top:2px"/>
+                                            <div>
+                                                <div style="font-weight:500">Incluir suporte a múltiplos navegadores</div>
+                                                <div style="color:#6B7280;font-size:10px">Chrome e Firefox</div>
+                                            </div>
+                                        </label>
+                                        <label style="display:flex;align-items:flex-start;gap:6px">
+                                            <input type="checkbox" id="optScripts" checked style="margin-top:2px"/>
+                                            <div>
+                                                <div style="font-weight:500">Incluir scripts de execução</div>
+                                                <div style="color:#6B7280;font-size:10px">run-tests.sh e run-tests.bat</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </details>
+                            </div>
                         </div>
 
                         <div class="form-group">
