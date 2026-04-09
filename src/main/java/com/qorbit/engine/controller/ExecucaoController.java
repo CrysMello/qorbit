@@ -134,24 +134,26 @@ class CodigoController {
     @Autowired private CasoDeTesteRepository casoRepo;
 
     @PostMapping("/gerar")
-    public ResponseEntity<?> gerar(@RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        List<Integer> idsCasos = (List<Integer>) body.get("idsCasos");
-        if (idsCasos == null || idsCasos.isEmpty())
-            return ResponseEntity.badRequest().body(Map.of("erro", "Selecione os casos de teste"));
+public ResponseEntity<?> gerar(@RequestBody Map<String, Object> body) {
+    @SuppressWarnings("unchecked")
+    List<Integer> idsCasos = (List<Integer>) body.get("idsCasos");
+    if (idsCasos == null || idsCasos.isEmpty())
+        return ResponseEntity.badRequest().body(Map.of("erro", "Selecione os casos de teste"));
 
-        List<Long> ids = idsCasos.stream().map(Integer::longValue).toList();
-        List<CasoDeTeste> casos = casoRepo.findAllById(ids);
-        try {
-            byte[] zip = geradorService.gerarZip(casos);
-            return ResponseEntity.ok()
-                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"scanner-tests-export.zip\"")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
-                    .body(zip);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("erro", "Falha ao gerar código: " + e.getMessage()));
-        }
+    boolean includeCiCd = Boolean.TRUE.equals(body.get("includeCiCd"));
+
+    List<Long> ids = idsCasos.stream().map(Integer::longValue).toList();
+    List<CasoDeTeste> casos = casoRepo.findAllById(ids);
+    try {
+        byte[] zip = geradorService.gerarZip(casos, includeCiCd);
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"scanner-tests-export.zip\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_OCTET_STREAM)
+                .body(zip);
+    } catch (Exception e) {
+        return ResponseEntity.internalServerError()
+                .body(Map.of("erro", "Falha ao gerar código: " + e.getMessage()));
     }
+}
 }
