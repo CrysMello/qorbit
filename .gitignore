@@ -26,3 +26,6 @@ Thumbs.db
 .env.*
 application-local.properties
 secrets.properties
+reports/
+evidencias/
+target/
