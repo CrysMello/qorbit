@@ -116,18 +116,7 @@ function iniciarPolling() {
         try {
             const status = await api('GET', '/api/gravacao/status');
             const serverSteps = status.steps || [];
-
-            // Sincroniza com o que o backend tem
-            if (serverSteps.length > stepsLocais.length) {
-                const novos = serverSteps.slice(stepsLocais.length);
-                novos.forEach(s => adicionarStepNaTela({
-                    numeroStep: s.numero,
-                    acao:       s.acao,
-                    nomeLogico: s.elemento,
-                    valor:      s.valor,
-                    gherkin:    s.gherkin
-                }));
-            }
+            sincronizarStepsComBackend(serverSteps);
 
             // Atualiza contador mesmo sem novos steps
             atualizarContador();
@@ -176,10 +165,22 @@ function conectarWsGravacao() {
 // ── Renderização ─────────────────────────────────────────────────────────────
 
 function adicionarStepNaTela(step) {
-    if (stepsLocais.find(s => s.numeroStep === step.numeroStep || (s.gherkin && step.gherkin && s.gherkin === step.gherkin))) return;
+    if (stepsLocais.find(s => s.numeroStep === step.numeroStep)) return;
     stepsLocais.push(step);
     renderizarSteps();
     atualizarContador();
+    atualizarGherkin();
+}
+
+function sincronizarStepsComBackend(serverSteps) {
+    stepsLocais = serverSteps.map(s => ({
+        numeroStep: s.numero,
+        acao:       s.acao,
+        nomeLogico: s.elemento,
+        valor:      s.valor,
+        gherkin:    s.gherkin
+    }));
+    renderizarSteps();
     atualizarGherkin();
 }
 

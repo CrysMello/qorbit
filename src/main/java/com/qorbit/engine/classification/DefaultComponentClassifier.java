@@ -110,21 +110,55 @@ public class DefaultComponentClassifier implements ComponentClassifier {
                                String classes,
                                String ariaHasPopup,
                                String ariaExpanded) {
-        if (role.contains("combobox") || ariaHasPopup.contains("listbox")) return true;
-        if (classes.contains("select2") || classes.contains("dropdown") || classes.contains("combo")) return true;
+        // ===== CRITÉRIO 1: NUNCA retorna true para <select> nativo =====
+        // <select> é SEMPRE classificado como NATIVE_SELECT, nunca como COMBOBOX
+        if ("select".equals(tag)) return false;
+        
+        // ===== CRITÉRIO 2: CUSTOM COMBOBOX - Padrões explícitos =====
+        // Critério 2.1: ARIA attributes indicam combobox customizado
+        if (role.contains("combobox")) return true;  // role="combobox" é definitivo
+        if (ariaHasPopup.contains("listbox")) return true;  // aria-haspopup="listbox" é definitivo
+        
+        // Critério 2.2: Classes CSS indicam bibliotecas de select customizado
+        if (classes.contains("select2") || 
+            classes.contains("dropdown") || 
+            classes.contains("combo") ||
+            classes.contains("multiselect") ||
+            classes.contains("choices") ||
+            classes.contains("selectpicker")) return true;
+        
+        // Critério 2.3: <input> com ambos aria-haspopup e aria-expanded (combobox customizado)
         if ("input".equals(tag) && !ariaExpanded.isBlank() && !ariaHasPopup.isBlank()) return true;
+        
+        // ===== CRITÉRIO 3: JavaScript - Verificação dinâmica de estrutura DOM =====
         if (driver instanceof JavascriptExecutor js) {
             try {
                 Object result = js.executeScript("""
                         const el = arguments[0];
                         const cls = (el.className || '').toString().toLowerCase();
-                        const parent = el.closest('[role=combobox], .select2, .dropdown, .combo, .choices, .multiselect');
-                        return !!parent || cls.includes('select2') || cls.includes('dropdown') || cls.includes('combo');
+                        
+                        // Verifica se está dentro de um container de combobox customizado
+                        const parent = el.closest('[role=combobox], .select2, .dropdown, .combo, .choices, .multiselect, .selectpicker');
+                        const hasComboboxParent = !!parent;
+                        
+                        // Verifica se tem lista/popup associada
+                        const hasListbox = !!(el.getAttribute('aria-controls') && 
+                                              document.getElementById(el.getAttribute('aria-controls')));
+                        
+                        // Verifica padrões de combobox customizado
+                        const hasComboboxClass = cls.includes('select2') || 
+                                                 cls.includes('dropdown') || 
+                                                 cls.includes('combo') ||
+                                                 cls.includes('multiselect');
+                        
+                        return hasComboboxParent || hasListbox || hasComboboxClass;
                         """, element);
                 return Boolean.TRUE.equals(result);
             } catch (Exception ignored) {
             }
         }
+        
+        // ===== FALLBACK: Se não se encaixa em nenhum critério, NÃO é combobox =====
         return false;
     }
 
