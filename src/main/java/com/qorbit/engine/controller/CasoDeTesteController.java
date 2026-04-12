@@ -37,9 +37,9 @@ public class CasoDeTesteController {
             }
             return ResponseEntity.ok(resultado);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Erro ao listar casos: " + e.getMessage());
             return ResponseEntity.internalServerError()
-                .body(Map.of("erro", e.getMessage() != null ? e.getMessage() : "Erro interno"));
+                .body(Map.of("erro", "Erro interno ao listar casos de teste"));
         }
     }
 
@@ -51,8 +51,9 @@ public class CasoDeTesteController {
                 .map(c -> ResponseEntity.ok(toMap(c)))
                 .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
+            System.err.println("Erro ao buscar caso " + id + ": " + e.getMessage());
             return ResponseEntity.internalServerError()
-                .body(Map.of("erro", e.getMessage()));
+                .body(Map.of("erro", "Erro interno ao buscar caso de teste"));
         }
     }
 
@@ -79,9 +80,9 @@ public class CasoDeTesteController {
             CasoDeTeste salvo = casoRepo.save(caso);
             return ResponseEntity.ok(toMap(salvo));
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Erro ao criar caso: " + e.getMessage());
             return ResponseEntity.internalServerError()
-                .body(Map.of("erro", e.getMessage() != null ? e.getMessage() : "Erro ao criar"));
+                .body(Map.of("erro", "Erro interno ao criar caso de teste"));
         }
     }
 
@@ -109,9 +110,9 @@ public class CasoDeTesteController {
                 return ResponseEntity.ok(toMap(casoRepo.save(caso)));
             }).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Erro ao atualizar caso " + id + ": " + e.getMessage());
             return ResponseEntity.internalServerError()
-                .body(Map.of("erro", e.getMessage() != null ? e.getMessage() : "Erro ao atualizar"));
+                .body(Map.of("erro", "Erro interno ao atualizar caso de teste"));
         }
     }
 

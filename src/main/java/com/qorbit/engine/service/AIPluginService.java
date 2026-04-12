@@ -10,6 +10,8 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,8 @@ import java.util.*;
  */
 @Service
 public class AIPluginService {
+
+    private static final Logger log = LoggerFactory.getLogger(AIPluginService.class);
 
     @Value("${scanner.ai.habilitado:false}")
     private boolean habilitado;
@@ -254,16 +258,16 @@ public class AIPluginService {
             if (novoSeletor == null || novoSeletor.isBlank()) return null;
 
             novoSeletor = novoSeletor.replaceAll("```", "").trim();
-            System.out.println("[Qorbit AI] Auto-healing: '" + seletorOriginal + "' → '" + novoSeletor + "'");
+            log.debug("[Qorbit AI] Auto-healing: '{}' → '{}'", seletorOriginal, novoSeletor);
 
             WebElement el = new WebDriverWait(driver, Duration.ofSeconds(timeoutSegundos))
                     .until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(novoSeletor)));
 
-            System.out.println("[Qorbit AI] Auto-healing SUCESSO com selector: " + novoSeletor);
+            log.debug("[Qorbit AI] Auto-healing SUCESSO com selector: {}", novoSeletor);
             return el;
 
         } catch (Exception e) {
-            System.out.println("[Qorbit AI] Auto-healing falhou: " + e.getMessage());
+            log.warn("[Qorbit AI] Auto-healing falhou: {}", e.getMessage());
             return null;
         }
     }
@@ -293,7 +297,7 @@ public class AIPluginService {
             HttpResponse<String> response = http.send(req.build(), HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
-                System.err.println("[Qorbit AI] Erro HTTP " + response.statusCode() + ": " + response.body());
+                log.warn("[Qorbit AI] Erro HTTP {}", response.statusCode());
                 return null;
             }
 
@@ -301,7 +305,7 @@ public class AIPluginService {
             return json.path("choices").path(0).path("message").path("content").asText();
 
         } catch (Exception e) {
-            System.err.println("[Qorbit AI] Erro ao chamar IA: " + e.getMessage());
+            log.warn("[Qorbit AI] Erro ao chamar IA: {}", e.getMessage());
             return null;
         }
     }

@@ -110,6 +110,12 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
+        <!-- Spring Security - infraestrutura de segurança (sem autenticação obrigatória) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
         <!-- ============================================================ -->
         <!-- TESTES                                                        -->
         <!-- ============================================================ -->

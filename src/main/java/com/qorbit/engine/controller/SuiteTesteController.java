@@ -57,7 +57,8 @@ public class SuiteTesteController {
             for (SuiteTeste s : suites) resultado.add(toMap(s));
             return ResponseEntity.ok(resultado);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao listar suites: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao listar suites"));
         }
     }
 
@@ -86,7 +87,8 @@ public class SuiteTesteController {
             suiteRepo.save(suite);
             return ResponseEntity.ok(Map.of("ok", true, "id", suite.getId(), "mensagem", "Suite criada com sucesso."));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao criar suite: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao criar suite"));
         }
     }
 
@@ -104,7 +106,8 @@ public class SuiteTesteController {
             suiteRepo.save(suite);
             return ResponseEntity.ok(Map.of("ok", true, "mensagem", "Suite actualizada."));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao atualizar suite " + id + ": " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao atualizar suite"));
         }
     }
 
@@ -120,7 +123,8 @@ public class SuiteTesteController {
             suiteRepo.deleteById(id);
             return ResponseEntity.ok(Map.of("ok", true, "mensagem", "Suite excluída. Os casos de teste não foram afectados."));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao excluir suite " + id + ": " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao excluir suite"));
         }
     }
 
@@ -149,7 +153,8 @@ public class SuiteTesteController {
             return ResponseEntity.ok(Map.of("ok", true, "adicionados", adicionados,
                     "mensagem", adicionados + " caso(s) adicionado(s) à suite."));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao adicionar casos à suite " + id + ": " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao adicionar casos"));
         }
     }
 
@@ -189,7 +194,8 @@ public class SuiteTesteController {
             return ResponseEntity.ok(Map.of("ok", true, "adicionados", adicionados,
                     "mensagem", adicionados + " caso(s) adicionado(s) à suite '" + suite.getNome() + "'."));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao adicionar da execução à suite " + id + ": " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao adicionar da execução"));
         }
     }
 
@@ -205,7 +211,8 @@ public class SuiteTesteController {
             suiteRepo.save(suite);
             return ResponseEntity.ok(Map.of("ok", true, "mensagem", "Caso removido da suite."));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("erro", e.getMessage()));
+            System.err.println("Erro ao remover caso " + casoId + " da suite " + id + ": " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao remover caso"));
         }
     }
 

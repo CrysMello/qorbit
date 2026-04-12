@@ -3,6 +3,16 @@
 let elementos = [];
 let editandoId = null;
 
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
 async function carregarElementos() {
     try {
         elementos = await api('GET', '/api/elementos');
@@ -24,15 +34,15 @@ function renderizarTabela(lista) {
     tbody.innerHTML = lista.map(el => `
         <tr>
             <td>
-                <span id="nomeLogico-${el.id}" style="font-weight:bold;color:#1F4E79">${el.nomeLogico}</span>
+                <span id="nomeLogico-${el.id}" style="font-weight:bold;color:#1F4E79">${escapeHtml(el.nomeLogico)}</span>
                 <span class="badge ${el.status === 'ATIVO' ? 'badge-success' : 'badge-warning'}" style="margin-left:6px">
                     ${el.status === 'ATIVO' ? 'Ativo' : 'Pendente'}
                 </span>
             </td>
-            <td>${el.pagina}</td>
-            <td>${el.tipoSeletor || 'CSS'}</td>
-            <td style="font-family:monospace;font-size:11px;color:#9CA3AF;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${el.seletorTecnico}">
-                ${el.seletorTecnico}
+            <td>${escapeHtml(el.pagina)}</td>
+            <td>${escapeHtml(el.tipoSeletor || 'CSS')}</td>
+            <td style="font-family:monospace;font-size:11px;color:#9CA3AF;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(el.seletorTecnico)}">
+                ${escapeHtml(el.seletorTecnico)}
             </td>
             <td>
                 <span class="badge ${el.status === 'ATIVO' ? 'badge-success' : 'badge-warning'}">

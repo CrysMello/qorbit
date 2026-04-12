@@ -15,6 +15,7 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import java.util.zip.*;
+import org.springframework.web.util.HtmlUtils;
 
 @RestController
 @RequestMapping("/api/evidencias")
@@ -135,6 +136,7 @@ public class EvidenciaController {
             Path pastaExec = Paths.get(basePath, "execucao-" + execucaoId);
             if (Files.exists(pastaExec)) {
                 Files.walk(pastaExec)
+                        .filter(p -> !Files.isSymbolicLink(p))
                         .filter(p -> p.toString().endsWith(".png") || p.toString().endsWith(".jpg"))
                         .forEach(p -> {
                             try {
@@ -278,10 +280,10 @@ public class EvidenciaController {
             boolean ok = "PASSOU".equalsIgnoreCase(log.status);
             sb.append("<tr>")
               .append("<td><b>").append(log.numero).append("</b></td>")
-              .append("<td>").append(log.nome != null ? log.nome : "—").append("</td>")
+              .append("<td>").append(log.nome != null ? HtmlUtils.htmlEscape(log.nome) : "—").append("</td>")
               .append("<td><span class='badge ").append(ok ? "passou" : "falhou").append("'>")
               .append(ok ? "&#10003; PASSOU" : "&#10007; FALHOU").append("</span></td>")
-              .append("<td style='color:#DC2626;font-size:12px'>").append(log.detalhe != null ? log.detalhe : "—").append("</td>")
+              .append("<td style='color:#DC2626;font-size:12px'>").append(log.detalhe != null ? HtmlUtils.htmlEscape(log.detalhe) : "—").append("</td>")
               .append("</tr>");
         }
         sb.append("</tbody></table></div>");
@@ -295,12 +297,12 @@ public class EvidenciaController {
                 sb.append("<div class='step-box'>")
                   .append("<div class='step-head'>")
                   .append("<div class='step-num'>").append(log.numero).append("</div>")
-                  .append("<div style='flex:1;font-size:13px;font-weight:500'>").append(log.nome != null ? log.nome : "Step " + log.numero).append("</div>")
+                  .append("<div style='flex:1;font-size:13px;font-weight:500'>").append(log.nome != null ? HtmlUtils.htmlEscape(log.nome) : "Step " + log.numero).append("</div>")
                   .append("<span class='badge ").append(ok ? "passou" : "falhou").append("'>")
                   .append(ok ? "&#10003; PASSOU" : "&#10007; FALHOU").append("</span>")
                   .append("</div><div class='step-body'>");
                 if (log.detalhe != null) {
-                    sb.append("<div class='erro'>").append(log.detalhe).append("</div>");
+                    sb.append("<div class='erro'>").append(HtmlUtils.htmlEscape(log.detalhe)).append("</div>");
                 }
                 if (log.screenshot != null) {
                     // screenshot path no zip: "evidencias/nome.png" → src relativo ao HTML na raiz do zip
