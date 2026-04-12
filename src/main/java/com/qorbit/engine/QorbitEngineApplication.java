@@ -2,12 +2,17 @@ package com.qorbit.engine;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@SpringBootApplication
+// Exclui a auto-configuração de UserDetailsService do Spring Security.
+// O Qorbit não usa autenticação obrigatória — acesso local sem login.
+// Sem essa exclusão, o Spring tenta criar um usuário/senha automático
+// que conflita com o SecurityConfig e quebra o contexto de testes.
+@SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class})
 public class QorbitEngineApplication {
 
     public static void main(String[] args) {

@@ -82,17 +82,74 @@ public class DefaultComponentClassifier implements ComponentClassifier {
                                  String ariaHasPopup,
                                  String readonly,
                                  String inputMode) {
-        if ("input".equals(tag) && "date".equals(type)) return true;
-        if (placeholder.contains("dd/mm") || placeholder.contains("mm/yyyy") || placeholder.contains("aaaa")) return true;
-        if (classes.contains("date") || classes.contains("calendar") || classes.contains("datepicker")) return true;
+
+        // ── Tipo HTML nativo de data ──────────────────────────────────────────
+        if ("input".equals(tag) && ("date".equals(type) || "datetime-local".equals(type))) return true;
+
+        // ── Placeholder com padrão de data (português e inglês) ──────────────
+        if (placeholder.contains("dd/mm") || placeholder.contains("mm/dd")
+                || placeholder.contains("mm/yyyy") || placeholder.contains("dd/yyyy")
+                || placeholder.contains("yyyy") || placeholder.contains("aaaa")
+                || placeholder.contains("date") || placeholder.contains("data")) return true;
+
+        // ── Classes CSS explícitas de datepicker ──────────────────────────────
+        // "hasdatepicker" = classe adicionada pelo jQuery UI ao inicializar
+        if (classes.contains("date") || classes.contains("calendar")
+                || classes.contains("datepicker") || classes.contains("hasdatepicker")
+                || classes.contains("date-input") || classes.contains("date-field")) return true;
+
+        // ── ARIA attributes ───────────────────────────────────────────────────
         if (ariaHasPopup.contains("dialog") || ariaHasPopup.contains("grid")) return true;
+
+        // ── Data attributes comuns de datepicker (Bootstrap, jQuery plugins) ──
+        try {
+            String dataDatepicker = safe(element.getAttribute("data-datepicker"));
+            String dataProvide    = safe(element.getAttribute("data-provide"));
+            String dataDate       = safe(element.getAttribute("data-date"));
+            String dataTarget     = safe(element.getAttribute("data-target"));
+            if (!dataDatepicker.isBlank() || dataProvide.contains("datepicker")
+                    || !dataDate.isBlank() || dataTarget.contains("datepick")) return true;
+        } catch (Exception ignored) {}
+
+        // ── Readonly + indicador numérico ─────────────────────────────────────
         if ("readonly".equals(readonly) && (classes.contains("date") || inputMode.contains("numeric"))) return true;
+
+        // ── Heurística JavaScript (estrutura DOM e inicialização jQuery UI) ───
         if (driver instanceof JavascriptExecutor js) {
             try {
                 Object result = js.executeScript("""
                         const el = arguments[0];
-                        const hasCalendarIcon = !!(el.closest('.datepicker, .date-picker, .calendar')
-                            || el.parentElement?.querySelector('[class*=calendar], [class*=date], .fa-calendar, .bi-calendar'));
+                        const cls = (el.className || '').toString().toLowerCase();
+
+                        // jQuery UI: adiciona 'hasDatepicker' ao input ao inicializar
+                        if (cls.includes('hasdatepicker') || cls.includes('datepicker')) return true;
+
+                        // jQuery UI: verifica se o datepicker está vinculado via $.data
+                        if (window.$ && window.$.data) {
+                            try { if (window.$.data(el, 'datepicker')) return true; } catch(e) {}
+                        }
+
+                        // jQuery UI: o div #ui-datepicker-div existe E o input tem id referenciado
+                        if (document.querySelector('#ui-datepicker-div') && el.id) return true;
+
+                        // Bootstrap datepicker: data-provide ou data-datepicker
+                        const dp = (el.getAttribute('data-provide') || '').toLowerCase();
+                        if (dp.includes('datepicker')) return true;
+
+                        // Placeholder com padrão de data
+                        const ph = (el.getAttribute('placeholder') || '').toLowerCase();
+                        if (ph.includes('dd/') || ph.includes('/yyyy') || ph.includes('/aaaa')
+                                || ph.includes('date') || ph.includes('data')) return true;
+
+                        // Ícone de calendário no parent imediato ou container próximo
+                        const hasCalendarIcon = !!(
+                            el.closest('.datepicker, .date-picker, .calendar, [data-datepicker], [data-provide=datepicker]')
+                            || el.parentElement?.querySelector(
+                                '[class*=calendar], [class*=date-icon], .fa-calendar, '
+                                + '.bi-calendar, .glyphicon-calendar, [data-toggle=datepicker]'
+                            )
+                        );
+
                         const aria = (el.getAttribute('aria-haspopup') || '').toLowerCase();
                         return hasCalendarIcon || aria === 'dialog' || aria === 'grid';
                         """, element);

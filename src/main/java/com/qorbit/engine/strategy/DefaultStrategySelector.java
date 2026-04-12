@@ -56,10 +56,23 @@ public class DefaultStrategySelector implements StrategySelector {
                 if (type == ComponentType.COMBOBOX) {
                     yield new ExecutionPlan(StrategyType.CUSTOM_COMBOBOX, "combobox aceita selecao orientada", List.of(StrategyType.TEXT_INPUT));
                 }
+                String valor = step != null && step.getValor() != null ? step.getValor().trim() : "";
+                if (pareceFormatoData(valor)) {
+                    logger.info("[StrategySelector] Valor '{}' tem formato de data — usando DATE_INPUT (fallback: TEXT_INPUT)", valor);
+                    yield new ExecutionPlan(StrategyType.DATE_INPUT, "valor com formato de data detectado", List.of(StrategyType.TEXT_INPUT));
+                }
                 yield new ExecutionPlan(StrategyType.TEXT_INPUT, "entrada textual padrao", List.of());
             }
             case "CLICK", "CLICAR" -> new ExecutionPlan(StrategyType.CLICK, "acao de clique", List.of());
             default -> new ExecutionPlan(StrategyType.CLICK, "fallback para clique", List.of());
         };
+    }
+
+    private boolean pareceFormatoData(String valor) {
+        if (valor == null || valor.isBlank()) return false;
+        return valor.matches("\\d{1,2}/\\d{1,2}/\\d{4}")
+            || valor.matches("\\d{4}-\\d{2}-\\d{2}")
+            || valor.matches("\\d{1,2}-\\d{1,2}-\\d{4}")
+            || valor.matches("\\d{1,2}\\.\\d{1,2}\\.\\d{4}");
     }
 }

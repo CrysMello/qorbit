@@ -22,19 +22,91 @@ import org.springframework.stereotype.Component;
 
 import java.text.Normalizer;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // ========== CALENDÁRIO: DateInputExecutionStrategy ==========
 @Component
 public class DateInputExecutionStrategy implements ExecutionStrategy {
 
     private static final String CALENDAR_SELECTOR =
-            ".ui-datepicker, .flatpickr-calendar.open, .react-datepicker, .react-datepicker-popper, " +
-            ".mat-datepicker-content, .MuiPickersPopper-root, .MuiPickersLayout-root, " +
-            ".ant-picker-dropdown:not(.ant-picker-dropdown-hidden), .pika-single, " +
-            ".daterangepicker.show-calendar, [role='dialog'] [role='grid']";
+            // jQuery UI
+            ".ui-datepicker, " +
+            // Flatpickr
+            ".flatpickr-calendar.open, " +
+            // React Datepicker
+            ".react-datepicker, .react-datepicker-popper, " +
+            // Angular Material
+            ".mat-datepicker-content, .mat-calendar, " +
+            // MUI v5 (emotion/styled)
+            ".MuiPickersPopper-root, .MuiPickersLayout-root, .MuiDateCalendar-root, " +
+            // MUI v4 (legacy)
+            ".MuiPickersModal-root, .MuiPickersBasePicker-container, .MuiPickersCalendar-root, " +
+            // Ant Design
+            ".ant-picker-dropdown:not(.ant-picker-dropdown-hidden), " +
+            // Pikaday
+            ".pika-single, " +
+            // Bootstrap Datepicker
+            ".datepicker.datepicker-dropdown, .bootstrap-datepicker, " +
+            // Date Range Picker
+            ".daterangepicker.show-calendar, " +
+            // Generic ARIA grid dialog (fallback for custom calendars)
+            "[role='dialog'] [role='grid'], [role='dialog'][aria-modal='true']";
+
+    /**
+     * Mapa bilíngue (inglês + português) de nomes de meses → número (1-12).
+     * Chaves em minúsculas e sem acentos para comparação normalizada.
+     * Suporta nomes completos e abreviações.
+     */
+    private static final Map<String, Integer> MONTH_MAP = new LinkedHashMap<>();
+    static {
+        // Inglês — nomes completos
+        MONTH_MAP.put("january",   1); MONTH_MAP.put("february",  2); MONTH_MAP.put("march",     3);
+        MONTH_MAP.put("april",     4); MONTH_MAP.put("may",       5); MONTH_MAP.put("june",      6);
+        MONTH_MAP.put("july",      7); MONTH_MAP.put("august",    8); MONTH_MAP.put("september", 9);
+        MONTH_MAP.put("october",  10); MONTH_MAP.put("november", 11); MONTH_MAP.put("december", 12);
+        // Inglês — abreviações (3 letras)
+        MONTH_MAP.put("jan",  1); MONTH_MAP.put("feb",  2); MONTH_MAP.put("mar",  3);
+        MONTH_MAP.put("apr",  4); MONTH_MAP.put("jun",  6); MONTH_MAP.put("jul",  7);
+        MONTH_MAP.put("aug",  8); MONTH_MAP.put("sep",  9); MONTH_MAP.put("oct", 10);
+        MONTH_MAP.put("nov", 11); MONTH_MAP.put("dec", 12);
+        // Português — nomes completos (sem acento, pré-normalizados)
+        MONTH_MAP.put("janeiro",   1); MONTH_MAP.put("fevereiro",  2); MONTH_MAP.put("marco",     3);
+        MONTH_MAP.put("abril",     4); MONTH_MAP.put("maio",       5); MONTH_MAP.put("junho",     6);
+        MONTH_MAP.put("julho",     7); MONTH_MAP.put("agosto",     8); MONTH_MAP.put("setembro",  9);
+        MONTH_MAP.put("outubro",  10); MONTH_MAP.put("novembro",  11); MONTH_MAP.put("dezembro", 12);
+        // Português — abreviações
+        MONTH_MAP.put("fev",  2); MONTH_MAP.put("abr",  4); MONTH_MAP.put("mai",  5);
+        MONTH_MAP.put("ago",  8); MONTH_MAP.put("set",  9); MONTH_MAP.put("out", 10);
+        MONTH_MAP.put("dez", 12);
+    }
+
+    /** Formatos de data aceitos como entrada (ordem: mais específico → mais genérico). */
+    private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
+        DateTimeFormatter.ofPattern("dd/MM/yyyy"),  // 13/07/1950  (BR padrão)
+        DateTimeFormatter.ofPattern("d/M/yyyy"),    // 3/7/1950
+        DateTimeFormatter.ofPattern("MM/dd/yyyy"),  // 07/13/1950  (US padrão)
+        DateTimeFormatter.ofPattern("M/d/yyyy"),    // 7/3/1950
+        DateTimeFormatter.ofPattern("yyyy-MM-dd"),  // 1950-07-13  (ISO)
+        DateTimeFormatter.ofPattern("dd-MM-yyyy"),  // 13-07-1950
+        DateTimeFormatter.ofPattern("d-M-yyyy"),
+        DateTimeFormatter.ofPattern("MM-dd-yyyy"),  // 07-13-1950  (US com traço)
+        DateTimeFormatter.ofPattern("M-d-yyyy"),
+        DateTimeFormatter.ofPattern("dd.MM.yyyy"),  // 13.07.1950
+        DateTimeFormatter.ofPattern("MM.dd.yyyy")   // 07.13.1950
+    );
+
+    /** Extrai um ano de 4 dígitos do texto do header do calendário. */
+    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b(\\d{4})\\b");
 
     @Override
     public StrategyType type() {
@@ -47,457 +119,845 @@ public class DateInputExecutionStrategy implements ExecutionStrategy {
             throw new IllegalArgumentException("Elemento não encontrado para preenchimento de data");
         }
 
-        String value = step.getValor() != null ? step.getValor().trim() : "";
-        if (value.isBlank()) {
+        String rawValue = step.getValor() != null ? step.getValor().trim() : "";
+        if (rawValue.isBlank()) {
             throw new IllegalArgumentException("Valor da data não informado no step");
+        }
+
+        LocalDate targetDate = parseTargetDate(rawValue);
+
+        // Tentativa rápida via API nativa do datepicker (sem abrir o calendário).
+        // Evita navegação mês a mês para datas muito distantes (ex.: 70 anos no passado).
+        if (targetDate != null && tentarSetarViaApiNativa(driver, element, targetDate)) {
+            validarValor(element, rawValue);
+            return;
         }
 
         abrirCalendarioSePossivel(driver, element);
 
+        boolean calendarioUsado = false;
         if (calendarioVisivel(driver)) {
-            trySelecionarDiaNoCalendario(driver, value);
+            if (targetDate != null) {
+                selecionarDataNoCalendario(driver, targetDate, rawValue);
+                calendarioUsado = true;
+            }
         }
 
-        aplicarValorNoCampo(driver, element, value);
-        validarValor(element, value);
+        // Quando o calendário foi usado, ele já preencheu o campo no formato correto.
+        // Chamar aplicarValorNoCampo depois sobrescreve esse valor com o rawValue (formato
+        // diferente), o que pode fazer o jQuery UI resetar para a data de hoje.
+        if (!calendarioUsado) {
+            aplicarValorNoCampo(driver, element, rawValue);
+        }
+        validarValor(element, rawValue);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PARSING DA DATA ALVO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Converte a string de entrada para {@link LocalDate} tentando múltiplos formatos.
+     * Retorna {@code null} se nenhum formato reconhecer o valor — neste caso
+     * o fluxo pula a navegação no calendário e aplica o valor diretamente no campo.
+     */
+    private LocalDate parseTargetDate(String rawValue) {
+        for (DateTimeFormatter fmt : DATE_FORMATTERS) {
+            try {
+                return LocalDate.parse(rawValue.trim(), fmt);
+            } catch (DateTimeParseException ignored) {}
+        }
+        return null;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ABERTURA E DETECÇÃO DO CALENDÁRIO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Tenta setar a data diretamente via API interna do datepicker, sem abrir o calendário.
+     * Suporta: jQuery UI ($.fn.datepicker), Flatpickr (_flatpickr.setDate) e input[type=date].
+     * Retorna true se a data foi aplicada com sucesso — nesse caso o fluxo de calendário é pulado.
+     * Essencial para datas muito distantes (ex.: 70 anos no passado) onde navegar mês a mês
+     * seria impraticável (912 cliques para julho de 1950).
+     */
+    private boolean tentarSetarViaApiNativa(WebDriver driver, WebElement element, LocalDate date) {
+        if (!(driver instanceof JavascriptExecutor js)) return false;
+        try {
+            Boolean ok = (Boolean) js.executeScript("""
+                    const el = arguments[0];
+                    const year = arguments[1], month0 = arguments[2], day = arguments[3];
+                    const d = new Date(year, month0, day);
+
+                    // jQuery UI — $.fn.datepicker('setDate')
+                    if (window.$ && typeof $(el).datepicker === 'function') {
+                        try {
+                            $(el).datepicker('setDate', d);
+                            return true;
+                        } catch(e) {}
+                    }
+
+                    // Flatpickr — _flatpickr.setDate()
+                    if (el._flatpickr) {
+                        try {
+                            el._flatpickr.setDate(d, true);
+                            return true;
+                        } catch(e) {}
+                    }
+
+                    // HTML5 input[type=date] — valor ISO direto
+                    if (el.type === 'date' || el.type === 'datetime-local') {
+                        const iso = year + '-'
+                            + String(month0 + 1).padStart(2, '0') + '-'
+                            + String(day).padStart(2, '0');
+                        el.value = iso;
+                        ['input','change','blur'].forEach(ev =>
+                            el.dispatchEvent(new Event(ev, {bubbles:true})));
+                        return true;
+                    }
+
+                    return false;
+                    """,
+                    element,
+                    date.getYear(),
+                    date.getMonthValue() - 1, // 0-indexed para JS Date
+                    date.getDayOfMonth());
+            if (Boolean.TRUE.equals(ok)) {
+                pausar(400);
+                return true;
+            }
+        } catch (Exception ignored) {}
+        return false;
     }
 
     private void abrirCalendarioSePossivel(WebDriver driver, WebElement element) {
         scrollCentralizado(driver, element);
         try {
             element.click();
-        } catch (Exception clickError) {
+        } catch (Exception e) {
             try {
                 ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
-            } catch (Exception jsError) {
-                // o campo ainda pode aceitar digitação direta; segue o fluxo
+            } catch (Exception ignored) {
+                // Campo ainda pode aceitar digitação direta; o fluxo continua
             }
         }
     }
 
     private boolean calendarioVisivel(WebDriver driver) {
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-            wait.until(d -> !d.findElements(By.cssSelector(CALENDAR_SELECTOR)).isEmpty());
+            new WebDriverWait(driver, Duration.ofSeconds(2))
+                .until(d -> !d.findElements(By.cssSelector(CALENDAR_SELECTOR)).isEmpty());
             return true;
         } catch (Exception ignored) {
             return false;
         }
     }
 
-    // ========== ⭐ NOVO: SELEÇÃO COM NAVEGAÇÃO ANO/MÊS/DIA ==========
-    private void trySelecionarDiaNoCalendario(WebDriver driver, String value) {
-        DateParts parts = extrairPartesDaData(value);
-        if (parts == null) {
-            return;
-        }
+    // ─────────────────────────────────────────────────────────────────────────
+    // ORQUESTRADOR PRINCIPAL: ANO → MÊS → DIA
+    // ─────────────────────────────────────────────────────────────────────────
 
+    private void selecionarDataNoCalendario(WebDriver driver, LocalDate targetDate, String rawValue) {
+        YearMonth targetYearMonth = YearMonth.from(targetDate);
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(3));
-            wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
-                By.cssSelector(CALENDAR_SELECTOR)
-            ));
+            new WebDriverWait(driver, Duration.ofSeconds(3))
+                .until(ExpectedConditions.visibilityOfAllElementsLocatedBy(
+                    By.cssSelector(CALENDAR_SELECTOR)));
 
-            navegarAteMesAno(driver, parts.month, parts.year);
-            clicarNoDia(driver, parts.day);
+            // 1. Navega até o ano e mês corretos
+            navegarAteMesAno(driver, targetYearMonth, rawValue);
+
+            // 2. Clica no dia — somente após o contexto correto ser confirmado
+            clicarNoDia(driver, targetDate.getDayOfMonth(), targetYearMonth);
+
             aguardarFechamentoCalendario(driver);
 
+        } catch (DatePickerDateNotFoundException | DatePickerCalendarNotOpenedException e) {
+            throw e;
         } catch (Exception e) {
             if (!driver.findElements(By.cssSelector(CALENDAR_SELECTOR)).isEmpty()) {
                 throw new DatePickerDateNotFoundException(
-                    "Erro ao selecionar data no calendário: " + value + " | " + e.getMessage()
-                );
+                    "Erro ao selecionar data no calendário: " + rawValue + " | " + e.getMessage());
             }
-            throw new DatePickerCalendarNotOpenedException(
-                "O calendário não abriu: " + value
-            );
+            throw new DatePickerCalendarNotOpenedException("O calendário não abriu: " + rawValue);
         }
     }
 
-    // ========== ⭐ EXTRAIR PARTES DA DATA (DD/MM/YYYY e YYYY-MM-DD) ==========
-    private DateParts extrairPartesDaData(String value) {
-        String[] parts = value.split("[/.-]");
-        if (parts.length < 3) {
-            return null;
-        }
+    // ─────────────────────────────────────────────────────────────────────────
+    // NAVEGAÇÃO: ANO → MÊS
+    // ─────────────────────────────────────────────────────────────────────────
 
-        try {
-            String first = parts[0].trim();
-            String second = parts[1].trim();
-            String third = parts[2].trim();
+    /**
+     * Navega clicando próximo/anterior até o calendário exibir o {@link YearMonth} alvo.
+     * A direção é determinada por {@link YearMonth#compareTo} — sem contagem fixa de cliques.
+     * Após cada clique de navegação, aguarda o título do calendário mudar de fato antes
+     * de ler o estado novamente — evita leitura prematura com valor desatualizado do DOM.
+     */
+    private void navegarAteMesAno(WebDriver driver, YearMonth targetYearMonth, String rawValue) {
+        // Tentativa rápida: navegar via <select> de mês/ano (jQuery UI changeYear/changeMonth
+        // ou React Datepicker com showMonthDropdown/showYearDropdown).
+        // Salta diretamente para o mês/ano alvo sem clicar prev/next repetidamente.
+        if (navegarViaSelectsCalendario(driver, targetYearMonth)) return;
 
-            int day, month, year;
+        final int SAFETY_LIMIT = 120;
 
-            if (third.length() == 4) {
-                day = Integer.parseInt(first);
-                month = Integer.parseInt(second);
-                year = Integer.parseInt(third);
+        for (int attempt = 0; attempt < SAFETY_LIMIT; attempt++) {
+            // Re-busca o estado a cada iteração para evitar StaleElementReferenceException
+            YearMonth currentYearMonth = obterMesAnoAtualDoCalendario(driver);
+
+            if (currentYearMonth == null) {
+                throw new DatePickerCalendarNotOpenedException(
+                    "Não foi possível ler mês/ano do calendário ao navegar para: " + rawValue);
+            }
+
+            int comparison = currentYearMonth.compareTo(targetYearMonth);
+            if (comparison == 0) {
+                return; // Ano e mês corretos — pronto para selecionar o dia
+            }
+
+            // Captura o título atual ANTES do clique para detectar mudança real no DOM
+            String tituloAntes = lerTextoTituloCalendario(driver);
+
+            // compareTo < 0 → atual está antes do alvo → avança
+            // compareTo > 0 → atual está depois do alvo → retrocede
+            if (comparison < 0) {
+                clicarProximo(driver);
             } else {
-                year = Integer.parseInt(first);
-                month = Integer.parseInt(second);
-                day = Integer.parseInt(third);
+                clicarAnterior(driver);
             }
 
-            return new DateParts(day, month, year);
-        } catch (NumberFormatException ignored) {
-            return null;
+            // Aguarda o título mudar — confirma que o DOM atualizou antes da próxima leitura
+            aguardarMudancaTituloCalendario(driver, tituloAntes);
         }
+
+        throw new DatePickerDateNotFoundException(
+            "Não foi possível navegar até " + targetYearMonth + " dentro do limite de segurança");
     }
 
-    // ========== ⭐ NAVEGAR ATÉ MÊS/ANO CORRETO ==========
-    private void navegarAteMesAno(WebDriver driver, int targetMonth, int targetYear) {
-        int maxAttempts = 24;
-        int attempts = 0;
-
-        while (attempts < maxAttempts) {
-            try {
-                MesAnoAtual atual = obterMesAnoAtual(driver);
-
-                if (atual == null) {
-                    break;
-                }
-
-                if (atual.month == targetMonth && atual.year == targetYear) {
-                    return;
-                }
-
-                if (atual.year < targetYear || 
-                    (atual.year == targetYear && atual.month < targetMonth)) {
-                    clicarProximo(driver);
-                } else {
-                    clicarAnterior(driver);
-                }
-
-                attempts++;
-                Thread.sleep(300);
-
-            } catch (InterruptedException ignored) {
-            }
+    /**
+     * Navega diretamente via elementos <select> de mês e ano — disponíveis quando o datepicker
+     * expõe dropdowns (jQuery UI changeYear/changeMonth=true, React Datepicker showMonthDropdown
+     * showYearDropdown). Evita navegar mês a mês via prev/next.
+     *
+     * Pares de seletores suportados:
+     *   jQuery UI:       .ui-datepicker-year  /  .ui-datepicker-month
+     *   React Datepicker: .react-datepicker__year-select / .react-datepicker__month-select
+     */
+    private boolean navegarViaSelectsCalendario(WebDriver driver, YearMonth target) {
+        String[][] pares = {
+            { ".ui-datepicker-year",               ".ui-datepicker-month"              },
+            { ".react-datepicker__year-select",    ".react-datepicker__month-select"   }
+        };
+        for (String[] par : pares) {
+            if (tentarSelecionarAnoMes(driver, target, par[0], par[1])) return true;
         }
+        return false;
     }
 
-    // ========== ⭐ OBTER MÊS/ANO ATUAL DO CALENDÁRIO (LÊ HEADER) ==========
-    private MesAnoAtual obterMesAnoAtual(WebDriver driver) {
+    private boolean tentarSelecionarAnoMes(WebDriver driver, YearMonth target,
+                                            String yearCss, String monthCss) {
         try {
-            By headerLocator = By.xpath(
-                "//*[contains(@class,'datepicker-header') or " +
-                "contains(@class,'pika-title') or " +
-                "contains(@class,'flatpickr-monthDropdown-months') or " +
-                "contains(@class,'react-datepicker__current-month') or " +
-                "contains(@class,'mat-calendar-body-label')]"
-            );
+            WebElement yearEl  = driver.findElement(By.cssSelector(yearCss));
+            WebElement monthEl = driver.findElement(By.cssSelector(monthCss));
+            if (!"select".equalsIgnoreCase(yearEl.getTagName())
+                    || !"select".equalsIgnoreCase(monthEl.getTagName())) return false;
 
-            List<WebElement> headers = driver.findElements(headerLocator);
-            for (WebElement header : headers) {
-                String text = header.getText();
-                if (!text.isEmpty()) {
-                    return parseHeaderText(text);
-                }
-            }
+            // Seleciona o ano — tenta por value numérico, depois por texto visível
+            Select yearSel = new Select(yearEl);
+            try { yearSel.selectByValue(String.valueOf(target.getYear())); }
+            catch (Exception e) { yearSel.selectByVisibleText(String.valueOf(target.getYear())); }
+            pausar(300);
 
-            List<WebElement> dataElements = driver.findElements(
-                By.xpath("//*[@data-month or @data-year]")
-            );
-            for (WebElement el : dataElements) {
-                String month = el.getAttribute("data-month");
-                String year = el.getAttribute("data-year");
-                if (month != null && year != null) {
-                    try {
-                        return new MesAnoAtual(Integer.parseInt(month), Integer.parseInt(year));
-                    } catch (NumberFormatException ignored) {
+            // Re-busca o select de mês (o DOM pode ter sido atualizado após mudança de ano)
+            monthEl = driver.findElement(By.cssSelector(monthCss));
+            Select monthSel = new Select(monthEl);
+
+            // Tenta selecionar o mês por value 0-indexed (padrão jQuery UI e React Datepicker)
+            boolean mesOk = false;
+            try { monthSel.selectByValue(String.valueOf(target.getMonthValue() - 1)); mesOk = true; }
+            catch (Exception ignored) {}
+
+            // Fallback: percorre as options e compara texto com MONTH_MAP
+            if (!mesOk) {
+                for (WebElement opt : monthSel.getOptions()) {
+                    if (resolverNomeMes(opt.getText()) == target.getMonthValue()) {
+                        opt.click();
+                        mesOk = true;
+                        break;
                     }
                 }
             }
 
+            if (!mesOk) return false;
+            pausar(300);
+
+            // Confirma que chegamos ao mês/ano correto
+            YearMonth atual = obterMesAnoAtualDoCalendario(driver);
+            return atual != null && atual.equals(target);
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    /**
+     * Lê o texto do título/caption do calendário para detectar mudança após clique de navegação.
+     * Tenta seletores específicos por biblioteca em ordem de especificidade.
+     */
+    private String lerTextoTituloCalendario(WebDriver driver) {
+        // jQuery UI — "December 2025" num único span
+        try {
+            return driver.findElement(By.cssSelector(".ui-datepicker-title")).getText().trim();
+        } catch (Exception ignored) {}
+        // jQuery UI — spans separados de mês e ano
+        try {
+            String mes = driver.findElement(By.cssSelector(".ui-datepicker-month")).getText().trim();
+            String ano = driver.findElement(By.cssSelector(".ui-datepicker-year")).getText().trim();
+            if (!mes.isBlank() && !ano.isBlank()) return mes + " " + ano;
+        } catch (Exception ignored) {}
+        // React Datepicker
+        try {
+            return driver.findElement(By.cssSelector(".react-datepicker__current-month")).getText().trim();
+        } catch (Exception ignored) {}
+        // Flatpickr
+        try {
+            return driver.findElement(By.cssSelector(".flatpickr-current-month")).getText().trim();
+        } catch (Exception ignored) {}
+        // Angular Material
+        try {
+            return driver.findElement(By.cssSelector(".mat-calendar-period-button")).getText().trim();
+        } catch (Exception ignored) {}
+        // MUI v5
+        try {
+            return driver.findElement(By.cssSelector(".MuiPickersCalendarHeader-label")).getText().trim();
+        } catch (Exception ignored) {}
+        // MUI v4
+        try {
+            return driver.findElement(By.cssSelector(".MuiPickersCalendarHeader-transitionContainer")).getText().trim();
+        } catch (Exception ignored) {}
+        // Ant Design
+        try {
+            return driver.findElement(By.cssSelector(".ant-picker-header-view")).getText().trim();
+        } catch (Exception ignored) {}
+        // Bootstrap Datepicker
+        try {
+            return driver.findElement(By.cssSelector(".datepicker-days .datepicker-switch")).getText().trim();
+        } catch (Exception ignored) {}
+        // Pikaday
+        try {
+            return driver.findElement(By.cssSelector(".pika-title")).getText().trim();
+        } catch (Exception ignored) {}
+        return "";
+    }
+
+    /**
+     * Aguarda o título do calendário mudar em relação ao valor capturado antes do clique.
+     * Isso garante que o DOM foi atualizado antes de tentar ler o novo mês/ano.
+     * Fallback: pausa mínima caso o wait expire sem detectar mudança.
+     */
+    private void aguardarMudancaTituloCalendario(WebDriver driver, String tituloAntes) {
+        try {
+            new WebDriverWait(driver, Duration.ofSeconds(3))
+                .until(d -> {
+                    String tituloAgora = lerTextoTituloCalendario(d);
+                    return !tituloAgora.isEmpty() && !tituloAgora.equals(tituloAntes);
+                });
         } catch (Exception ignored) {
+            pausar(500); // fallback se o seletor não existir (outros frameworks)
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LEITURA DO MÊS/ANO EXIBIDO NO CALENDÁRIO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Tenta ler o mês e ano atuais usando três estratégias em ordem de especificidade:
+     * 1. jQuery UI — spans separados (.ui-datepicker-month / .ui-datepicker-year)
+     * 2. Atributos data-month/data-year (corrige offset 0-indexed do jQuery UI)
+     * 3. Header textual combinado ("December 2025", "Dezembro de 2025")
+     */
+    private YearMonth obterMesAnoAtualDoCalendario(WebDriver driver) {
+        YearMonth result = lerMesAnoJQueryUI(driver);
+        if (result != null) return result;
+
+        result = lerMesAnoViaDataAttributes(driver);
+        if (result != null) return result;
+
+        return lerMesAnoViaHeaderTextual(driver);
+    }
+
+    /**
+     * jQuery UI expõe mês e ano via .ui-datepicker-month e .ui-datepicker-year.
+     * Esses elementos podem ser <span> (modo padrão) ou <select> (quando
+     * changeMonth/changeYear estão ativos). Ambos os casos são tratados.
+     */
+    private YearMonth lerMesAnoJQueryUI(WebDriver driver) {
+        // jQuery UI — .ui-datepicker-month / .ui-datepicker-year (span ou select)
+        try {
+            WebElement monthEl = driver.findElement(By.cssSelector(".ui-datepicker-month"));
+            WebElement yearEl  = driver.findElement(By.cssSelector(".ui-datepicker-year"));
+            String monthText = resolverTextoElemento(monthEl);
+            String yearText  = resolverTextoElemento(yearEl);
+            int month = resolverNomeMes(monthText);
+            int year  = Integer.parseInt(yearText.trim());
+            if (month > 0 && year > 1900) return YearMonth.of(year, month);
+        } catch (Exception ignored) {}
+
+        // React Datepicker com showMonthDropdown + showYearDropdown
+        try {
+            WebElement monthEl = driver.findElement(By.cssSelector(".react-datepicker__month-select"));
+            WebElement yearEl  = driver.findElement(By.cssSelector(".react-datepicker__year-select"));
+            String monthText = resolverTextoElemento(monthEl);
+            String yearText  = resolverTextoElemento(yearEl);
+            int month = resolverNomeMes(monthText);
+            int year  = Integer.parseInt(yearText.trim());
+            if (month > 0 && year > 1900) return YearMonth.of(year, month);
+        } catch (Exception ignored) {}
 
         return null;
     }
 
-    // ========== ⭐ PARSEAR HEADER DO CALENDÁRIO (CONVERTER "December 2025") ==========
-    private MesAnoAtual parseHeaderText(String text) {
-        String[] parts = text.split(" ");
-        if (parts.length >= 2) {
-            try {
-                String monthStr = parts[0].toLowerCase();
-                int year = Integer.parseInt(parts[parts.length - 1]);
-                int month = monthFromName(monthStr);
-                if (month > 0) {
-                    return new MesAnoAtual(month, year);
+    /**
+     * Lê o texto relevante de um elemento: se for <select>, devolve o texto da
+     * opção selecionada; caso contrário, devolve getText() normalmente.
+     */
+    private String resolverTextoElemento(WebElement el) {
+        try {
+            if ("select".equalsIgnoreCase(el.getTagName())) {
+                return new Select(el).getFirstSelectedOption().getText().trim();
+            }
+        } catch (Exception ignored) {}
+        return safe(el.getText()).trim();
+    }
+
+    /**
+     * jQuery UI anota TDs com data-month (0-indexed: 0=Janeiro) e data-year.
+     * Incrementa data-month em 1 para converter para convenção 1-indexed.
+     * Exclui células de meses adjacentes (ui-datepicker-other-month) para não
+     * ler o mês errado quando o calendário exibe dias do mês anterior/posterior.
+     */
+    private YearMonth lerMesAnoViaDataAttributes(WebDriver driver) {
+        try {
+            // Restringe a TDs do mês atual, excluindo os dias de outros meses visíveis
+            List<WebElement> cells = driver.findElements(By.xpath(
+                "//td[@data-month and @data-year" +
+                " and not(contains(@class,'ui-datepicker-other-month'))]"
+            ));
+            for (WebElement el : cells) {
+                String dataMonth = el.getAttribute("data-month");
+                String dataYear  = el.getAttribute("data-year");
+                if (dataMonth == null || dataYear == null) continue;
+
+                int year  = Integer.parseInt(dataYear.trim());
+                int month = Integer.parseInt(dataMonth.trim()) + 1; // jQuery UI é 0-indexed
+                if (month >= 1 && month <= 12 && year > 1900) {
+                    return YearMonth.of(year, month);
                 }
-            } catch (NumberFormatException ignored) {
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /** Lê o header textual de datepickers que exibem mês e ano num único elemento. */
+    private YearMonth lerMesAnoViaHeaderTextual(WebDriver driver) {
+        List<By> headerLocators = List.of(
+            By.cssSelector(".ui-datepicker-title"),                          // jQuery UI
+            By.cssSelector(".pika-title"),                                   // Pikaday
+            By.cssSelector(".react-datepicker__current-month"),              // React Datepicker
+            By.cssSelector(".flatpickr-current-month"),                      // Flatpickr
+            By.cssSelector(".mat-calendar-period-button"),                   // Angular Material
+            By.cssSelector(".MuiPickersCalendarHeader-label"),               // MUI v5
+            By.cssSelector(".MuiPickersCalendarHeader-transitionContainer"), // MUI v4
+            By.cssSelector(".ant-picker-header-view"),                       // Ant Design
+            By.cssSelector(".datepicker-days .datepicker-switch"),           // Bootstrap Datepicker
+            By.xpath("//*[contains(@class,'datepicker-header')]"),
+            By.xpath("//*[contains(@class,'calendar-header') or contains(@class,'month-year')]")
+        );
+
+        for (By locator : headerLocators) {
+            try {
+                for (WebElement el : driver.findElements(locator)) {
+                    String text = el.getText().trim();
+                    if (!text.isBlank()) {
+                        YearMonth ym = parseHeaderText(text);
+                        if (ym != null) return ym;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    /**
+     * Parseia textos como "December 2025", "Dezembro de 2025" ou "Dec/2025".
+     * Extrai o ano via regex de 4 dígitos e o mês via MONTH_MAP com word boundaries,
+     * garantindo que abreviações como "jan" não casem dentro de "january" ou "janeiro".
+     */
+    private YearMonth parseHeaderText(String headerText) {
+        String cleaned = headerText
+            .replaceAll("(?i)\\bde\\b", " ") // remove conector "de" em português
+            .replaceAll("[/,]", " ")
+            .replaceAll("\\s+", " ")
+            .trim();
+
+        Matcher yearMatcher = YEAR_PATTERN.matcher(cleaned);
+        if (!yearMatcher.find()) return null;
+
+        int year = Integer.parseInt(yearMatcher.group(1));
+        String normalizedHeader = stripAccents(cleaned.toLowerCase());
+
+        for (Map.Entry<String, Integer> entry : MONTH_MAP.entrySet()) {
+            if (normalizedHeader.matches(".*\\b" + entry.getKey() + "\\b.*")) {
+                return YearMonth.of(year, entry.getValue());
             }
         }
         return null;
     }
 
-    // ========== ⭐ CONVERTER NOME DO MÊS PARA NÚMERO ==========
-    private int monthFromName(String name) {
-        String[] months = {
-            "january", "february", "march", "april", "may", "june",
-            "july", "august", "september", "october", "november", "december"
-        };
-        for (int i = 0; i < months.length; i++) {
-            if (months[i].startsWith(name)) {
-                return i + 1;
-            }
-        }
-        return -1;
+    // ─────────────────────────────────────────────────────────────────────────
+    // RESOLUÇÃO DE NOME DE MÊS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Converte nome de mês (en/pt, com ou sem acento, qualquer capitalização)
+     * para número 1-12. Remove acentos antes de consultar o MONTH_MAP.
+     */
+    private int resolverNomeMes(String monthName) {
+        if (monthName == null || monthName.isBlank()) return -1;
+        return MONTH_MAP.getOrDefault(stripAccents(monthName.trim().toLowerCase()), -1);
     }
 
-    // ========== ⭐ CLICAR PRÓXIMO MÊS ==========
+    // ─────────────────────────────────────────────────────────────────────────
+    // BOTÕES DE NAVEGAÇÃO
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void clicarProximo(WebDriver driver) {
-        List<By> nextLocators = List.of(
-            By.xpath("//button[contains(@class,'next') or contains(@aria-label,'next') or contains(@aria-label,'Next')]"),
-            By.cssSelector(".pika-next, .flatpickr-next-month, .react-datepicker__navigation--next"),
+        clicarBotaoNavegacao(driver, List.of(
+            // jQuery UI
+            By.cssSelector("a.ui-datepicker-next"),
+            // Flatpickr
+            By.cssSelector(".flatpickr-next-month"),
+            // Pikaday
+            By.cssSelector(".pika-next"),
+            // React Datepicker
+            By.cssSelector(".react-datepicker__navigation--next"),
+            // Bootstrap Datepicker
+            By.cssSelector(".datepicker-days .next"),
+            // MUI v5 — botão "go to next month"
+            By.cssSelector("[data-testid='ArrowRightIcon']"),
+            By.cssSelector("button.MuiPickersCalendarHeader-switchViewButton ~ button"),
+            // MUI v4 — ícone de seta direita
+            By.xpath("//button[.//*[local-name()='svg' and contains(@data-testid,'ArrowRight')]]"),
+            // Angular Material
+            By.cssSelector(".mat-calendar-next-button"),
+            // Ant Design
+            By.cssSelector(".ant-picker-header-next-btn, .ant-picker-header-super-next-btn"),
+            // Genérico ARIA / texto
+            By.xpath("//button[contains(@aria-label,'Next') or contains(@aria-label,'next') or contains(@aria-label,'Próximo') or contains(@aria-label,'próximo')]"),
             By.xpath("//a[contains(@class,'ui-datepicker-next')]"),
-            By.xpath("//button[contains(text(),'>') or contains(text(),'→')]")
-        );
-
-        for (By locator : nextLocators) {
-            try {
-                WebElement btn = driver.findElement(locator);
-                if (btn.isDisplayed()) {
-                    btn.click();
-                    return;
-                }
-            } catch (NoSuchElementException ignored) {
-            }
-        }
-
-        throw new DatePickerCalendarNotOpenedException("Não encontrou botão 'Próximo' no calendário");
+            By.xpath("//button[normalize-space(text())='>' or normalize-space(text())='›' or normalize-space(text())='→']")
+        ), "Próximo");
     }
 
-    // ========== ⭐ CLICAR MÊS ANTERIOR ==========
     private void clicarAnterior(WebDriver driver) {
-        List<By> prevLocators = List.of(
-            By.xpath("//button[contains(@class,'prev') or contains(@aria-label,'prev') or contains(@aria-label,'Previous')]"),
-            By.cssSelector(".pika-prev, .flatpickr-prev-month, .react-datepicker__navigation--previous"),
+        clicarBotaoNavegacao(driver, List.of(
+            // jQuery UI
+            By.cssSelector("a.ui-datepicker-prev"),
+            // Flatpickr
+            By.cssSelector(".flatpickr-prev-month"),
+            // Pikaday
+            By.cssSelector(".pika-prev"),
+            // React Datepicker
+            By.cssSelector(".react-datepicker__navigation--previous"),
+            // Bootstrap Datepicker
+            By.cssSelector(".datepicker-days .prev"),
+            // MUI v5 — botão "go to previous month"
+            By.cssSelector("[data-testid='ArrowLeftIcon']"),
+            // MUI v4
+            By.xpath("//button[.//*[local-name()='svg' and contains(@data-testid,'ArrowLeft')]]"),
+            // Angular Material
+            By.cssSelector(".mat-calendar-previous-button"),
+            // Ant Design
+            By.cssSelector(".ant-picker-header-prev-btn, .ant-picker-header-super-prev-btn"),
+            // Genérico ARIA / texto
+            By.xpath("//button[contains(@aria-label,'Previous') or contains(@aria-label,'previous') or contains(@aria-label,'Anterior') or contains(@aria-label,'anterior')]"),
             By.xpath("//a[contains(@class,'ui-datepicker-prev')]"),
-            By.xpath("//button[contains(text(),'<') or contains(text(),'←')]")
-        );
+            By.xpath("//button[normalize-space(text())='<' or normalize-space(text())='‹' or normalize-space(text())='←']")
+        ), "Anterior");
+    }
 
-        for (By locator : prevLocators) {
+    /** Re-busca o botão a cada chamada para evitar StaleElementReferenceException. */
+    private void clicarBotaoNavegacao(WebDriver driver, List<By> locators, String label) {
+        for (By locator : locators) {
             try {
                 WebElement btn = driver.findElement(locator);
-                if (btn.isDisplayed()) {
+                if (btn.isDisplayed() && btn.isEnabled()) {
                     btn.click();
                     return;
                 }
-            } catch (NoSuchElementException ignored) {
-            }
+            } catch (NoSuchElementException ignored) {}
         }
-
-        throw new DatePickerCalendarNotOpenedException("Não encontrou botão 'Anterior' no calendário");
+        throw new DatePickerCalendarNotOpenedException(
+            "Botão de navegação '" + label + "' não encontrado no calendário");
     }
 
-    // ========== ⭐ CLICAR NO DIA ==========
-    private void clicarNoDia(WebDriver driver, int day) {
+    // ─────────────────────────────────────────────────────────────────────────
+    // CLIQUE NO DIA
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Clica no dia desejado garantindo que o calendário está no contexto correto.
+     *
+     * Estratégia 1 — jQuery UI: By.linkText() é o seletor mais simples e direto, pois
+     * cada dia é renderizado como {@code <a>} com o número exato. Não há risco de clicar
+     * em dias de outros meses porque a navegação já posicionou o calendário no mês certo.
+     *
+     * Estratégia 2 — XPath específico para jQuery UI com exclusão de outros meses/disabled.
+     *
+     * Estratégia 3 — Locators genéricos para Flatpickr, React Datepicker e outros.
+     */
+    private void clicarNoDia(WebDriver driver, int day, YearMonth expectedYearMonth) {
         String dayStr = String.valueOf(day);
-        
+
+        // ── Estratégia 1: jQuery UI — By.linkText() (mais simples e confiável) ──
+        try {
+            WebElement dayLink = driver.findElement(By.linkText(dayStr));
+            if (isElementInteractable(driver, dayLink)) {
+                clicarComFallbackJs(driver, dayLink);
+                pausar(500);
+                return;
+            }
+        } catch (NoSuchElementException ignored) {}
+
+        // ── Estratégia 2: XPath jQuery UI com exclusão de outros meses ──
+        try {
+            WebElement dayCell = driver.findElement(By.xpath(
+                "//td[@data-handler='selectDay']" +
+                "[not(contains(@class,'ui-datepicker-other-month'))]" +
+                "[not(contains(@class,'ui-state-disabled'))]" +
+                "/a[normalize-space(text())='" + dayStr + "']"
+            ));
+            if (isElementInteractable(driver, dayCell)) {
+                clicarComFallbackJs(driver, dayCell);
+                pausar(500);
+                return;
+            }
+        } catch (NoSuchElementException ignored) {}
+
+        // ── Estratégia 3: Locators específicos por biblioteca ──
         List<By> dayLocators = List.of(
+            // Flatpickr — dias do mês atual, não desabilitados
+            By.cssSelector(".flatpickr-day:not(.disabled):not(.prevMonthDay):not(.nextMonthDay)"),
+            // React Datepicker
+            By.cssSelector(
+                ".react-datepicker__day:not(.react-datepicker__day--disabled)" +
+                ":not(.react-datepicker__day--outside-month)"
+            ),
+            // MUI v5 (MUI Date Pickers v6+)
+            By.cssSelector("button.MuiPickersDay-root:not(.Mui-disabled):not(.MuiPickersDay-dayOutsideMonth)"),
+            // MUI v4 (legacy @material-ui/pickers)
+            By.cssSelector("button.MuiPickersDay-day:not(.MuiPickersDay-dayDisabled)"),
+            // Angular Material
+            By.cssSelector("button.mat-calendar-body-cell:not(.mat-calendar-body-disabled)"),
+            // Ant Design
+            By.cssSelector(".ant-picker-cell:not(.ant-picker-cell-disabled) .ant-picker-cell-inner"),
+            // Bootstrap Datepicker
+            By.cssSelector("td.day:not(.disabled):not(.old):not(.new)"),
+            // Pikaday
+            By.cssSelector(".pika-button:not(.is-disabled):not(.is-outside-current-month)"),
+            // Genérico — qualquer elemento clicável com o número do dia
             By.xpath(
                 "//*[self::td or self::button or self::div or self::span or self::a]" +
                 "[normalize-space(text())='" + dayStr + "']" +
                 "[not(contains(@class,'disabled'))]" +
+                "[not(contains(@class,'other-month'))]" +
                 "[not(contains(@class,'unavailable'))]" +
                 "[not(@disabled)]" +
                 "[not(contains(@aria-disabled,'true'))]"
-            ),
-            By.xpath("//*[contains(@aria-label, '" + dayStr + "')]" +
-                "[not(contains(@aria-disabled,'true'))]" +
-                "[not(contains(@class,'disabled'))]"),
-            By.xpath(
-                "//*[contains(@data-date, '-" + String.format("%02d", day) + "') " +
-                "or contains(@data-day, '" + dayStr + "')]" +
-                "[not(contains(@class,'disabled'))]"
-            ),
-            By.cssSelector(".flatpickr-day:not(.disabled)"),
-            By.cssSelector(".react-datepicker__day:not(.react-datepicker__day--disabled)"),
-            By.cssSelector(".mat-calendar-body-cell:not(.mat-calendar-body-disabled) .mat-calendar-body-cell-content")
+            )
         );
 
         for (By locator : dayLocators) {
             try {
-                List<WebElement> candidates = driver.findElements(locator);
-                for (WebElement candidate : candidates) {
-                    if (!isElementInteractable(driver, candidate)) {
+                for (WebElement candidate : driver.findElements(locator)) {
+                    if (!isElementInteractable(driver, candidate)) continue;
+
+                    String text    = safe(candidate.getText()).trim();
+                    String aria    = safe(candidate.getAttribute("aria-label"));
+                    String dataDay = safe(candidate.getAttribute("data-day"));
+
+                    if (!matchesDay(text, dayStr) && !matchesDay(dataDay, dayStr)
+                            && !aria.matches(".*\\b" + dayStr + "\\b.*")) {
                         continue;
                     }
 
-                    String text = safe(candidate.getText()).trim();
-                    String aria = safe(candidate.getAttribute("aria-label"));
-                    String dataDay = safe(candidate.getAttribute("data-day"));
-
-                    if (matchesDay(text, dayStr) || aria.contains(dayStr) || dataDay.equals(dayStr)) {
-                        scrollCentralizado(driver, candidate);
-                        
-                        try {
-                            candidate.click();
-                        } catch (Exception clickError) {
-                            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", candidate);
-                        }
-                        
-                        try {
-                            Thread.sleep(500);
-                        } catch (InterruptedException ignored) {
-                        }
-                        
-                        return;
-                    }
+                    scrollCentralizado(driver, candidate);
+                    clicarComFallbackJs(driver, candidate);
+                    pausar(500);
+                    return;
                 }
-            } catch (NoSuchElementException ignored) {
-            } catch (Exception e) {
-                // Continua tentando
-            }
+            } catch (Exception ignored) {}
         }
 
         if (!driver.findElements(By.cssSelector(CALENDAR_SELECTOR)).isEmpty()) {
             throw new DatePickerDateNotFoundException(
-                "Não foi possível localizar/clicar o dia '" + dayStr + "' no calendário aberto"
-            );
+                "Dia '" + dayStr + "' não encontrado no calendário para " + expectedYearMonth);
         }
-
         throw new DatePickerCalendarNotOpenedException(
-            "O calendário não abriu ou fechou antes da seleção"
-        );
+            "O calendário fechou antes da seleção do dia '" + dayStr + "'");
     }
 
-    // ========== ⭐ VERIFICAR SE ELEMENTO É CLICÁVEL ==========
-    private boolean isElementInteractable(WebDriver driver, WebElement element) {
-        try {
-            if (!element.isDisplayed()) {
-                return false;
-            }
+    // ─────────────────────────────────────────────────────────────────────────
+    // WAITS E ESTABILIDADE
+    // ─────────────────────────────────────────────────────────────────────────
 
-            if (!element.isEnabled()) {
-                return false;
-            }
-
-            return (boolean) ((JavascriptExecutor) driver).executeScript(
-                "const rect = arguments[0].getBoundingClientRect();" +
-                "return rect.width > 0 && rect.height > 0;",
-                element
-            );
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    // ========== ⭐ COMPARAR DIA COM FLEXIBILIDADE (13 == "13") ==========
-    private boolean matchesDay(String text, String day) {
-        String normalized = text.trim().replace(" ", "");
-        String dayNormalized = day.trim();
-        
-        if (normalized.equals(dayNormalized)) {
-            return true;
-        }
-        
-        try {
-            return Integer.parseInt(normalized) == Integer.parseInt(dayNormalized);
-        } catch (NumberFormatException ignored) {
-        }
-        
-        return false;
-    }
-
-    // ========== ⭐ AGUARDAR FECHAMENTO DO CALENDÁRIO ==========
     private void aguardarFechamentoCalendario(WebDriver driver) {
         try {
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(2));
-            wait.until(d -> d.findElements(By.cssSelector(CALENDAR_SELECTOR)).isEmpty());
-        } catch (Exception ignored) {
-        }
+            new WebDriverWait(driver, Duration.ofSeconds(2))
+                .until(d -> d.findElements(By.cssSelector(CALENDAR_SELECTOR)).isEmpty());
+        } catch (Exception ignored) {}
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // APLICAÇÃO DIRETA NO CAMPO
+    // ─────────────────────────────────────────────────────────────────────────
+
     private void aplicarValorNoCampo(WebDriver driver, WebElement element, String value) {
-        try {
-            element.clear();
-        } catch (Exception ignored) {
+        // ── Flatpickr: usa a API interna diretamente (mais confiável que sendKeys) ──
+        if (driver instanceof JavascriptExecutor js) {
+            try {
+                Boolean setViaFlatpickr = (Boolean) js.executeScript(
+                    "const el = arguments[0], val = arguments[1];" +
+                    "if (el._flatpickr) { el._flatpickr.setDate(val, true); return true; }" +
+                    "return false;",
+                    element, value);
+                if (Boolean.TRUE.equals(setViaFlatpickr)) return;
+            } catch (Exception ignored) {}
         }
 
+        try {
+            element.clear();
+        } catch (Exception ignored) {}
+
+        // ── sendKeys padrão ──
         try {
             element.sendKeys(value);
             dispararEventos(driver, element);
             return;
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
 
+        // ── Fallback JS genérico (remove readonly/disabled, seta value, dispara eventos) ──
         try {
             ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].focus();" +
-                    "arguments[0].value = arguments[1];" +
-                    "arguments[0].dispatchEvent(new Event('input',{bubbles:true}));" +
-                    "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));" +
-                    "arguments[0].dispatchEvent(new Event('blur',{bubbles:true}));",
-                    element, value
-            );
+                "const el = arguments[0], val = arguments[1];" +
+                "el.removeAttribute('readonly');" +
+                "el.removeAttribute('disabled');" +
+                "el.focus();" +
+                "el.value = val;" +
+                "['input','change','blur'].forEach(e => " +
+                "  el.dispatchEvent(new Event(e, {bubbles:true})));",
+                element, value);
         } catch (Exception e) {
-            throw new DatePickerDateDisabledException("Não foi possível aplicar a data no campo: " + value, e);
+            throw new DatePickerDateDisabledException(
+                "Não foi possível aplicar a data no campo: " + value, e);
         }
     }
 
     private void validarValor(WebElement element, String expected) {
         String current = safe(element.getAttribute("value")).trim();
-        if (current.isEmpty()) {
-            current = safe(element.getText()).trim();
-        }
-        if (current.isEmpty()) {
+        if (current.isEmpty()) current = safe(element.getText()).trim();
+        if (current.isEmpty()) return; // campo não expõe valor — não é possível validar
+
+        // Comparação primária: converte ambos para LocalDate (agnóstico de formato e separador)
+        LocalDate expectedDate = parseTargetDate(expected);
+        LocalDate currentDate  = parseTargetDate(current);
+        if (expectedDate != null && currentDate != null) {
+            if (!expectedDate.equals(currentDate)) {
+                throw new IllegalStateException(
+                    "Data selecionada não confere: esperado [" + expected + "] atual [" + current + "]");
+            }
             return;
         }
-        if (!normalizar(current).contains(normalizar(expected)) && !normalizar(expected).contains(normalizar(current))) {
-            throw new IllegalStateException("Data selecionada não confere: esperado [" + expected + "] atual [" + current + "]");
+
+        // Fallback: compara apenas os dígitos (ignora separadores e capitalização)
+        String expectedDigits = expected.replaceAll("[^0-9]", "");
+        String currentDigits  = current.replaceAll("[^0-9]", "");
+        if (!currentDigits.isEmpty()
+                && !currentDigits.contains(expectedDigits)
+                && !expectedDigits.contains(currentDigits)) {
+            throw new IllegalStateException(
+                "Data selecionada não confere: esperado [" + expected + "] atual [" + current + "]");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UTILITÁRIOS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private boolean isElementInteractable(WebDriver driver, WebElement element) {
+        try {
+            if (!element.isDisplayed() || !element.isEnabled()) return false;
+            return Boolean.TRUE.equals(((JavascriptExecutor) driver).executeScript(
+                "const r=arguments[0].getBoundingClientRect(); return r.width>0 && r.height>0;",
+                element));
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private boolean matchesDay(String text, String day) {
+        String trimmed = safe(text).trim();
+        if (trimmed.equals(day.trim())) return true;
+        try {
+            return Integer.parseInt(trimmed) == Integer.parseInt(day.trim());
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
+    }
+
+    private void clicarComFallbackJs(WebDriver driver, WebElement element) {
+        try {
+            element.click();
+        } catch (Exception e) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);
         }
     }
 
     private void dispararEventos(WebDriver driver, WebElement element) {
         try {
             ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].dispatchEvent(new Event('input',{bubbles:true}));" +
-                    "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));" +
-                    "arguments[0].dispatchEvent(new Event('blur',{bubbles:true}));",
-                    element
-            );
-        } catch (Exception ignored) {
-        }
+                "arguments[0].dispatchEvent(new Event('input',{bubbles:true}));" +
+                "arguments[0].dispatchEvent(new Event('change',{bubbles:true}));" +
+                "arguments[0].dispatchEvent(new Event('blur',{bubbles:true}));",
+                element);
+        } catch (Exception ignored) {}
     }
 
     private void scrollCentralizado(WebDriver driver, WebElement element) {
         try {
             ((JavascriptExecutor) driver).executeScript(
-                    "arguments[0].scrollIntoView({block:'center', inline:'nearest'});",
-                    element
-            );
-        } catch (Exception ignored) {
-        }
+                "arguments[0].scrollIntoView({block:'center', inline:'nearest'});", element);
+        } catch (Exception ignored) {}
     }
 
-    private String normalizar(String value) {
-        return safe(value).trim().replace(" ", "").toLowerCase();
+    /**
+     * Remove acentos e diacríticos via NFD + remoção de Combining Marks.
+     * Necessário para normalizar "março" → "marco" antes da comparação com MONTH_MAP.
+     */
+    private String stripAccents(String text) {
+        if (text == null) return "";
+        return Normalizer.normalize(text, Normalizer.Form.NFD)
+                         .replaceAll("\\p{M}+", "");
     }
 
     private String safe(String value) {
         return value == null ? "" : value;
     }
 
-    // ========== CLASSES INTERNAS: CALENDÁRIO ==========
-    private static class DateParts {
-        int day, month, year;
-
-        DateParts(int day, int month, int year) {
-            this.day = day;
-            this.month = month;
-            this.year = year;
-        }
-    }
-
-    private static class MesAnoAtual {
-        int month, year;
-
-        MesAnoAtual(int month, int year) {
-            this.month = month;
-            this.year = year;
+    private void pausar(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
         }
     }
 }

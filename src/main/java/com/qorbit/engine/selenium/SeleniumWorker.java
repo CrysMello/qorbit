@@ -576,7 +576,13 @@ public class SeleniumWorker {
     }
 
     private String extrairDominio(String url) {
-        try { URI u = new URI(url); return u.getScheme() + "://" + u.getHost(); }
+        try {
+            URI u = new URI(url);
+            String scheme = u.getScheme();
+            String host   = u.getHost();
+            if (scheme == null || host == null) return url;
+            return scheme + "://" + host;
+        }
         catch (Exception e) { return url; }
     }
 

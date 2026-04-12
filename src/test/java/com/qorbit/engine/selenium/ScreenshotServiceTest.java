@@ -94,9 +94,12 @@ class ScreenshotServiceTest {
         // Nome com caracteres especiais
         String caminho = screenshotService.capturar(mockDriver, "CT-01", "Tela: Login/Senha!", 1, "PASSOU");
 
-        assertThat(caminho).doesNotContain(":");
-        assertThat(caminho).doesNotContain("/");
-        assertThat(caminho).doesNotContain("!");
+        // Verifica apenas a parte sanitizada do caminho (nome do diretório do teste),
+        // excluindo o prefixo absoluto do SO (ex.: "C:\" no Windows).
+        String nomeDiretorio = Paths.get(caminho).getParent().getFileName().toString();
+        assertThat(nomeDiretorio).doesNotContain(":");
+        assertThat(nomeDiretorio).doesNotContain("/");
+        assertThat(nomeDiretorio).doesNotContain("!");
     }
 
     @Test
