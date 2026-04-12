@@ -30,6 +30,15 @@ class SeleniumWorkerTest {
     @Mock private ExecutionReportService reportService;
     @Mock private SimpMessagingTemplate  mensageria;
 
+    // Dependencias adicionadas ao SeleniumWorker que precisam de mock para evitar NPE
+    @Mock private com.qorbit.engine.service.QorbitLoggerService        qorbitLogger;
+    @Mock private com.qorbit.engine.service.AIPluginService            aiPluginService;
+    @Mock private com.qorbit.engine.execution.StepExecutionPipeline    stepExecutionPipeline;
+    @Mock private com.qorbit.engine.healing.HealingService             healingService;
+    @Mock private com.qorbit.engine.service.IframeScannerService       iframeScannerService;
+    @Mock private com.qorbit.engine.service.ShadowDomScannerService    shadowDomScannerService;
+    @Mock private com.qorbit.engine.repository.EvidenciaRepository     evidenciaRepo;
+
     // Mock com suporte a JavascriptExecutor (necessário para WebDriverWait)
     private WebDriver mockDriver;
 
@@ -46,7 +55,8 @@ class SeleniumWorkerTest {
         ReflectionTestUtils.setField(seleniumWorker, "retryPorStep",   1);
         ReflectionTestUtils.setField(seleniumWorker, "mensageria",     mensageria);
 
-        when(reportService.novaLista()).thenReturn(new ArrayList<>());
+        // lenient: extrairDominio tests nao chamam executar(), portanto nao usam este stub
+        lenient().when(reportService.novaLista()).thenReturn(new ArrayList<>());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

@@ -2,6 +2,16 @@
 
 let contadores = { renomeados: 0, abas: 0, falhas: 0 };
 
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     carregarStatus();
 });
@@ -171,6 +181,6 @@ function addLog(tipo, msg) {
     if (!box) return;
     const t = new Date().toLocaleTimeString('pt-BR');
     const cls = tipo === 'ok' ? 'log-ok' : tipo === 'warn' ? 'log-warn' : tipo === 'err' ? 'log-err' : 'log-info';
-    box.innerHTML += '<br><span class="' + cls + '">[' + t + '] ' + msg + '</span>';
+    box.innerHTML += '<br><span class="' + cls + '">[' + t + '] ' + escapeHtml(msg) + '</span>';
     box.scrollTop = box.scrollHeight;
 }

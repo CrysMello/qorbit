@@ -290,11 +290,22 @@ function atualizarStepNaLista(num, nome, status, detalhe) {
     const item = document.createElement('div');
     item.className = 'step-item executando';
     item.dataset.step = num;
-    item.innerHTML = `
-        <div class="step-num azul">${num}</div>
-        <span class="step-label">${nome || 'Step ' + num}</span>
-        <span class="step-status text-info">● executando</span>
-    `;
+
+    const numDiv = document.createElement('div');
+    numDiv.className = 'step-num azul';
+    numDiv.textContent = num;
+
+    const label = document.createElement('span');
+    label.className = 'step-label';
+    label.textContent = nome || 'Step ' + num;
+
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'step-status text-info';
+    statusSpan.textContent = '● executando';
+
+    item.appendChild(numDiv);
+    item.appendChild(label);
+    item.appendChild(statusSpan);
     lista.appendChild(item);
     item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     ultimoStepRenderizado = num;

@@ -2,6 +2,16 @@
 let execucaoAtualId = null;
 let todasEvidencias = [];
 
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
 async function carregarExecucoes() {
     try {
         const execs = await api('GET', '/api/execucoes');
@@ -82,9 +92,9 @@ function renderizarEvidencias(lista) {
                         step-${ev.numeroStep} — ${ev.statusStep}
                     </div>
                     <div style="font-size:10px;color:#6B7280;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                        ${ev.nomeStep || '—'}
+                        ${escapeHtml(ev.nomeStep || '—')}
                     </div>
-                    ${ev.motivoFalha ? `<div style="font-size:9px;color:#DC2626;margin-top:2px">${ev.motivoFalha.substring(0,60)}...</div>` : ''}
+                    ${ev.motivoFalha ? `<div style="font-size:9px;color:#DC2626;margin-top:2px">${escapeHtml(ev.motivoFalha.substring(0,60))}...</div>` : ''}
                 </div>
             </div>`;
         }).join('');
@@ -97,7 +107,7 @@ function filtrarStatus(status, btn) {
     renderizarEvidencias(filtradas);
 }
 
-function abrirLightbox(nomeArquivo, titulo) {
+function abrirLightbox(nomeArquivo, _titulo) {
     if (!nomeArquivo) return;
     const url = urlImagem(nomeArquivo);
     if (!url) return;

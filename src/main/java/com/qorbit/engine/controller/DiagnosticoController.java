@@ -19,17 +19,17 @@ public class DiagnosticoController {
     @GetMapping("/chrome")
     public Map<String, Object> testarChrome() {
         Map<String, Object> resultado = new LinkedHashMap<>();
-        resultado.put("javaVersion", System.getProperty("java.version"));
-        resultado.put("os", System.getProperty("os.name") + " " + System.getProperty("os.version"));
+        // Não expor versões exatas do Java/SO (evita fingerprinting para CVEs)
+        resultado.put("javaVersion", "17 LTS");
+        resultado.put("os", System.getProperty("os.name", "Unknown"));
 
         // Verifica chromedriver via WebDriverManager
         try {
             WebDriverManager.chromedriver().setup();
-            String driverPath = System.getProperty("webdriver.chrome.driver");
-            resultado.put("chromedriverPath", driverPath != null ? driverPath : "gerenciado pelo WDM");
+            // Não expor path completo do driver (evita info disclosure)
             resultado.put("chromedriverStatus", "OK — configurado com sucesso");
         } catch (Exception e) {
-            resultado.put("chromedriverStatus", "ERRO: " + e.getMessage());
+            resultado.put("chromedriverStatus", "ERRO — chromedriver não disponível");
             resultado.put("ok", false);
             return resultado;
         }
@@ -65,14 +65,14 @@ public class DiagnosticoController {
     public Map<String, Object> status() {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("app", "Qorbit");
-        m.put("javaVersion", System.getProperty("java.version"));
-        m.put("os", System.getProperty("os.name"));
+        m.put("javaVersion", "17 LTS");
+        m.put("os", System.getProperty("os.name", "Unknown"));
         try {
             WebDriverManager.chromedriver().setup();
             m.put("chromedriverDisponivel", true);
         } catch (Exception e) {
             m.put("chromedriverDisponivel", false);
-            m.put("chromedriverErro", e.getMessage());
+            m.put("chromedriverErro", "chromedriver não disponível");
         }
         return m;
     }

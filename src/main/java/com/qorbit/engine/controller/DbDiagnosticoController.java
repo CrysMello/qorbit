@@ -35,11 +35,13 @@ public class DbDiagnosticoController {
             // Para cada tabela, mostra estrutura e contagem
             Map<String, Object> detalhes = new LinkedHashMap<>();
             for (String tabela : tabelas) {
+                // Valida o nome da tabela contra a lista retornada pelo próprio SQLite
+                // para evitar SQL injection por concatenação
+                if (!tabela.matches("[a-zA-Z0-9_]+")) continue;
+
                 Map<String, Object> info = new LinkedHashMap<>();
-                // Estrutura das colunas
                 List<Map<String, Object>> colunas = jdbc.queryForList("PRAGMA table_info(" + tabela + ")");
                 info.put("colunas", colunas.stream().map(c -> c.get("name") + " (" + c.get("type") + ")").toList());
-                // Contagem de registros
                 Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM " + tabela, Integer.class);
                 info.put("totalRegistros", count);
                 detalhes.put(tabela, info);
@@ -107,9 +109,9 @@ public class DbDiagnosticoController {
             resultado.put("totalCasosNoBanco", casoRepo.count());
         } catch (Exception e) {
             resultado.put("sucesso", false);
-            resultado.put("erro", e.getMessage());
-            resultado.put("causa", e.getCause() != null ? e.getCause().getMessage() : "sem causa");
-            e.printStackTrace();
+            resultado.put("erro", "Erro interno ao executar diagnóstico");
+            System.err.println("Erro testar-save: " + e.getMessage());
+            if (e.getCause() != null) System.err.println("Causa: " + e.getCause().getMessage());
         }
         return resultado;
     }

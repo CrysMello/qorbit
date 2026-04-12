@@ -55,8 +55,9 @@ public class CookieController {
                 "cookies", cookiesCapturados
             ));
         } catch (Exception e) {
+            System.err.println("Erro ao capturar cookies: " + e.getMessage());
             return ResponseEntity.internalServerError()
-                .body(Map.of("erro", "Erro ao capturar cookies: " + e.getMessage()));
+                .body(Map.of("erro", "Erro interno ao capturar cookies"));
         }
     }
 

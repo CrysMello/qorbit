@@ -2,6 +2,7 @@ package com.qorbit.engine.execution;
 
 import com.qorbit.engine.classification.ComponentClassification;
 import com.qorbit.engine.classification.ComponentClassifier;
+import com.qorbit.engine.classification.ComponentType;
 import com.qorbit.engine.diagnostic.DiagnosticService;
 import com.qorbit.engine.learning.LearningService;
 import com.qorbit.engine.model.StepTeste;
@@ -12,10 +13,13 @@ import com.qorbit.engine.strategy.StrategySelector;
 import com.qorbit.engine.strategy.StrategyType;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class StepExecutionPipeline {
+    private static final Logger logger = LoggerFactory.getLogger(StepExecutionPipeline.class);
     private final ComponentClassifier classifier;
     private final ComponentSignatureService signatureService;
     private final StrategySelector strategySelector;
@@ -44,15 +48,28 @@ public class StepExecutionPipeline {
 
         ExecutionPlan initialPlan = strategySelector.select(step, classification);
         String recommended = learningService.recommendStrategy(signature, classification.type().name(), initialPlan.strategyType().name());
-        ExecutionPlan selectedPlan = recommended.equalsIgnoreCase(initialPlan.strategyType().name())
-                ? initialPlan
-                : new ExecutionPlan(StrategyType.valueOf(recommended), "estratégia promovida por aprendizado", initialPlan.fallbacks());
+
+        // O cache só pode sobrescrever a estratégia quando o classificador é incerto (tipo genérico/indefinido).
+        // Para tipos específicos com alta confiança (DATEPICKER, COMBOBOX, etc.), o seletor é autoritativo —
+        // promover um fallback gravado pelo cache perpetuaria falhas em vez de corrigi-las.
+        ComponentType detectedType = classification.type();
+        boolean cacheCanOverride = classification.confidence() < 0.75
+                || detectedType == ComponentType.UNDEFINED
+                || detectedType == ComponentType.GENERIC;
+
+        ExecutionPlan selectedPlan = (cacheCanOverride && !recommended.equalsIgnoreCase(initialPlan.strategyType().name()))
+                ? new ExecutionPlan(StrategyType.valueOf(recommended), "estratégia promovida por aprendizado", initialPlan.fallbacks())
+                : initialPlan;
 
         try {
             strategyExecutor.execute(selectedPlan, driver, element, step);
             learningService.onSuccess(signature, selectedPlan.strategyType().name(), classification.type().name());
             return new StepExecutionTrace(classification, selectedPlan, signature);
         } catch (Exception primaryError) {
+            logger.warn("[Pipeline] Estratégia {} falhou para '{}': {}",
+                    selectedPlan.strategyType(),
+                    step != null ? step.getNomeLogicoElemento() : "?",
+                    primaryError.getMessage());
             for (StrategyType fallback : selectedPlan.fallbacks()) {
                 try {
                     strategyExecutor.execute(new ExecutionPlan(fallback, "fallback compatível após falha da estratégia principal"), driver, element, step);

@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.InetAddress;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -28,6 +30,10 @@ public class GravacaoController {
         String url = body.get("url");
         if (url == null || url.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("erro", "URL é obrigatória"));
+        }
+        String erroUrl = validarUrlSegura(url);
+        if (erroUrl != null) {
+            return ResponseEntity.badRequest().body(Map.of("erro", erroUrl));
         }
         if (gravacaoService.isGravando()) {
             return ResponseEntity.badRequest().body(Map.of("erro", "Já existe uma gravação em andamento. Pare primeiro."));
@@ -156,6 +162,35 @@ public class GravacaoController {
         if (driverGravacao != null) {
             try { driverGravacao.quit(); } catch (Exception ignored) {}
             driverGravacao = null;
+        }
+    }
+
+    /** Valida URL para prevenir SSRF: permite apenas http/https para hosts públicos. */
+    private String validarUrlSegura(String url) {
+        try {
+            URI uri = new URI(url.trim());
+            String scheme = uri.getScheme();
+            if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+                return "Apenas URLs http:// e https:// são permitidas";
+            }
+            String host = uri.getHost();
+            if (host == null || host.isBlank()) {
+                return "Host inválido na URL";
+            }
+            // Bloqueia endpoints de metadados de cloud (AWS/GCP/Azure)
+            String hostLower = host.toLowerCase();
+            if (hostLower.equals("169.254.169.254") || hostLower.contains("metadata.google.internal")) {
+                return "URL bloqueada por política de segurança";
+            }
+            // Resolve o host e bloqueia endereços privados/loopback
+            InetAddress addr = InetAddress.getByName(host);
+            if (addr.isLoopbackAddress() || addr.isSiteLocalAddress()
+                    || addr.isLinkLocalAddress() || addr.isAnyLocalAddress()) {
+                return "URL bloqueada por política de segurança";
+            }
+            return null; // OK
+        } catch (Exception e) {
+            return "URL inválida";
         }
     }
 

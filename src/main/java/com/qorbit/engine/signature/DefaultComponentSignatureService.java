@@ -15,6 +15,7 @@ public class DefaultComponentSignatureService implements ComponentSignatureServi
     public String generate(WebElement element, StepTeste step, ComponentClassification classification) {
         try {
             String raw = String.join("|",
+                    nz(step != null ? step.getAcao() : null),
                     nz(step != null ? step.getNomeLogicoElemento() : null),
                     nz(element != null ? element.getTagName() : null),
                     nz(element != null ? element.getAttribute("id") : null),
