@@ -11,7 +11,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 
@@ -46,7 +45,7 @@ public class SecurityConfig {
                     "/auth/forgot-password", "/auth/reset-password",
                     "/auth/verify-email",
                     "/css/**", "/js/**", "/images/**", "/favicon.ico",
-                    "/api/diagnostico/**"
+                    "/api/diagnostico/**", "/error"
                 ).permitAll()
                 .requestMatchers("/auth/mfa", "/auth/mfa/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
@@ -55,9 +54,11 @@ public class SecurityConfig {
             )
 
             // ── CSRF ──────────────────────────────────────────────────────────
-            // Habilitado para forms HTML; desabilitado para /api/** (REST+JSON)
+            // HttpSessionCsrfTokenRepository (padrão) — salva o token na sessão,
+            // não depende de cookie no response. Evita o problema de buffer commit
+            // que ocorria com CookieCsrfTokenRepository quando o CSS inline (~22KB)
+            // esgotava o buffer do Tomcat antes de th:action ser processado.
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 .ignoringRequestMatchers("/api/**")
             )
 

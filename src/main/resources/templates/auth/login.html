@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — Qorbit</title>
+    <!-- Força carregamento do token CSRF antes do buffer do response ser commitado pelo CSS inline -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -458,7 +461,6 @@
             <!-- Formulário -->
             <form id="loginForm" th:action="@{/auth/login}" method="post"
                   th:object="${loginRequest}" onsubmit="handleSubmit(this)">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
 
                 <!-- E-mail -->
                 <div class="form-group">
@@ -549,7 +551,6 @@
             </div>
 
             <form th:action="@{/auth/mfa}" method="post" onsubmit="handleSubmit(this)">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                 <input type="hidden" name="useBackupCode" id="useBackupCode" value="false"/>
 
                 <div class="form-group">
