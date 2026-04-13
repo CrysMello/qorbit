@@ -152,6 +152,37 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- ============================================================ -->
+        <!-- AUTENTICAÇÃO                                                  -->
+        <!-- ============================================================ -->
+
+        <!-- TOTP (MFA) — gera e valida códigos de 6 dígitos compatíveis com
+             Google Authenticator, Authy, etc. Sem dependência do Google. -->
+        <dependency>
+            <groupId>dev.samstevens.totp</groupId>
+            <artifactId>totp</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+
+        <!-- Email — recuperação de senha e verificação de e-mail -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- Thymeleaf extras Security — th:sec:authorize nos templates -->
+        <dependency>
+            <groupId>org.thymeleaf.extras</groupId>
+            <artifactId>thymeleaf-extras-springsecurity6</artifactId>
+        </dependency>
+
+        <!-- Bucket4j — rate limiting in-memory por IP (sem Redis necessário) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -168,7 +199,6 @@
                     <encoding>UTF-8</encoding>
                     <compilerArgs>
                         <arg>-parameters</arg>
-                        <arg>--enable-preview</arg>
                     </compilerArgs>
                     <annotationProcessorPaths>
                         <path>

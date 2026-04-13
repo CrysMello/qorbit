@@ -1,55 +1,106 @@
 package com.qorbit.engine.config;
 
+import com.qorbit.engine.auth.service.QorbitUserDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 
-/**
- * Configuração de segurança HTTP do Qorbit.
- *
- * Modo atual: acesso livre (ferramenta local).
- * A autenticação pode ser habilitada futuramente via QORBIT_APP_PASSWORD.
- *
- * O que esta classe faz mesmo sem autenticação:
- *  - Desabilita CSRF explicitamente (app usa REST/JSON + WebSocket, sem form submissions)
- *  - Desabilita form login e basic auth gerados automaticamente pelo Spring Security
- *  - Adiciona X-Frame-Options: SAMEORIGIN (proteção contra clickjacking)
- *  - Mantém CORS gerenciado pelo CorsConfig (WebMvcConfigurer)
- */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private QorbitUserDetailsService userDetailsService;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Permite todas as requisições sem autenticação
+            // ── Autorização ───────────────────────────────────────────────────
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll()
+                .requestMatchers(
+                    "/auth/login", "/auth/register", "/auth/logout",
+                    "/auth/forgot-password", "/auth/reset-password",
+                    "/auth/verify-email",
+                    "/css/**", "/js/**", "/images/**", "/favicon.ico",
+                    "/api/diagnostico/**"
+                ).permitAll()
+                .requestMatchers("/auth/mfa", "/auth/mfa/**").permitAll()
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().authenticated()
             )
-            // CSRF desabilitado: app usa exclusivamente REST/JSON e WebSocket
-            // Não há form submissions tradicionais que precisem de proteção CSRF
-            .csrf(csrf -> csrf.disable())
-            // CORS gerenciado pelo CorsConfig via WebMvcConfigurer
-            .cors(cors -> cors.disable())
-            // Desativa login form e basic auth automáticos do Spring Security
-            .formLogin(form -> form.disable())
-            .httpBasic(basic -> basic.disable())
-            .logout(logout -> logout.disable())
-            // Headers de segurança HTTP
+
+            // ── CSRF ──────────────────────────────────────────────────────────
+            // Habilitado para forms HTML; desabilitado para /api/** (REST+JSON)
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .ignoringRequestMatchers("/api/**")
+            )
+
+            // ── Form login ────────────────────────────────────────────────────
+            .formLogin(form -> form
+                .loginPage("/auth/login")
+                .loginProcessingUrl("/auth/login")
+                .defaultSuccessUrl("/", true)
+                .failureUrl("/auth/login?error")
+                .permitAll()
+            )
+
+            // ── Logout ────────────────────────────────────────────────────────
+            .logout(logout -> logout
+                .logoutUrl("/auth/logout")
+                .logoutSuccessUrl("/auth/login?logout")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID", "remember-me")
+                .clearAuthentication(true)
+                .permitAll()
+            )
+
+            // ── Sessão ────────────────────────────────────────────────────────
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                .invalidSessionUrl("/auth/login")
+                .maximumSessions(5)
+                .expiredUrl("/auth/login?expired")
+            )
+
+            // ── Remember-me ───────────────────────────────────────────────────
+            .rememberMe(rm -> rm
+                .userDetailsService(userDetailsService)
+                .tokenValiditySeconds(30 * 24 * 60 * 60)
+                .key("qorbit-remember-me-key-change-in-production")
+                .rememberMeParameter("rememberMe")
+            )
+
+            // ── UserDetailsService ────────────────────────────────────────────
+            .userDetailsService(userDetailsService)
+
+            // ── Headers de segurança ──────────────────────────────────────────
             .headers(headers -> headers
-                // Proteção contra clickjacking
                 .frameOptions(frame -> frame.sameOrigin())
-                // Impede MIME-type sniffing (ex.: tratar JS como HTML)
                 .contentTypeOptions(ct -> {})
-                // Força HTTPS em navegadores que já visitaram o site
                 .httpStrictTransportSecurity(hsts -> hsts
                     .includeSubDomains(true)
                     .maxAgeInSeconds(31536000)
                 )
-                // Content-Security-Policy: restringe origens de scripts e estilos
                 .contentSecurityPolicy(csp -> csp.policyDirectives(
                     "default-src 'self'; " +
                     "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
@@ -59,11 +110,13 @@ public class SecurityConfig {
                     "font-src 'self'; " +
                     "frame-ancestors 'self'"
                 ))
-                // Controla quais informações são enviadas no cabeçalho Referer
                 .referrerPolicy(ref -> ref.policy(
-                    org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+                    ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN
                 ))
-            );
+            )
+
+            // ── CORS ──────────────────────────────────────────────────────────
+            .cors(cors -> cors.disable());
 
         return http.build();
     }
