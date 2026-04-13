@@ -17,6 +17,7 @@ import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 @Configuration
 @EnableWebSecurity
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired
@@ -48,6 +49,7 @@ public class SecurityConfig {
                     "/api/diagnostico/**"
                 ).permitAll()
                 .requestMatchers("/auth/mfa", "/auth/mfa/**").permitAll()
+                .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().authenticated()
             )

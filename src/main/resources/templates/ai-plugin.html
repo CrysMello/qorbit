@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6" lang="pt-BR">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -53,44 +54,8 @@
 <div class="app-layout">
 
     <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
-            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
-          <rect width="256" height="256" rx="52" fill="#253D6B"/>
-          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
-          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
-          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
-          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
-          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
-          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
-        </svg>
-            <div>
-                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
-                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
-            </div>
-        </div>
-        <nav>
-            <div class="nav-section">Principal</div>
-            <a href="/" class="nav-item">Dashboard</a>
-            <a href="/nova-execucao" class="nav-item">Nova execução</a>
-            <div class="nav-section">Biblioteca</div>
-            <a href="/elementos" class="nav-item">Elementos (POM)</a>
-            <a href="/casos" class="nav-item">Casos de teste</a>
-            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
-            <div class="nav-section">Gravar</div>
-            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
-            <div class="nav-section">Resultados</div>
-            <a href="/execucoes" class="nav-item">Execuções</a>
-            <a href="/evidencias" class="nav-item">Evidências</a>
-            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
-            <div class="nav-section">Inteligência</div>
-            <a href="/ai-plugin" class="nav-item active" aria-current="page" style="color:#5B21B6;background:#EDE9FE;font-weight:bold">&#10024; Plugin IA</a>
-        </nav>
-        <div class="sidebar-status">
-            <span class="status-dot" id="seleniumStatus"></span>
-            <span id="seleniumLabel">Verificando...</span>
-        </div>
-    </aside>
+    
+    <div th:replace="~{fragments/sidebar :: sidebar('ai-plugin')}" ></div>
 
     <!-- Main -->
     <main class="main-content">
