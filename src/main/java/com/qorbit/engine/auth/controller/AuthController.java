@@ -1,15 +1,12 @@
 package com.qorbit.engine.auth.controller;
 
 import com.qorbit.engine.auth.dto.*;
-import com.qorbit.engine.auth.exception.*;
+import com.qorbit.engine.auth.exception.InvalidTokenException;
 import com.qorbit.engine.auth.service.AuthService;
 import com.qorbit.engine.auth.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -37,37 +34,6 @@ public class AuthController {
         if (logout != null) model.addAttribute("info", "Sessão encerrada com sucesso.");
         model.addAttribute("loginRequest", new LoginRequest("", "", false));
         return "auth/login";
-    }
-
-    @PostMapping("/login")
-    public String login(@Valid @ModelAttribute LoginRequest req,
-                        BindingResult result,
-                        HttpServletRequest httpReq,
-                        Model model,
-                        RedirectAttributes redirectAttrs) {
-        if (result.hasErrors()) {
-            model.addAttribute("error", "Preencha e-mail e senha.");
-            return "auth/login";
-        }
-        try {
-            authService.login(req, httpReq);
-            return "redirect:/";
-        } catch (MfaPendingException e) {
-            return "redirect:/auth/mfa";
-        } catch (AccountLockedException e) {
-            model.addAttribute("error",
-                "Conta bloqueada temporariamente. Tente novamente mais tarde.");
-            return "auth/login";
-        } catch (DisabledException e) {
-            model.addAttribute("error", e.getMessage());
-            return "auth/login";
-        } catch (LockedException | BadCredentialsException e) {
-            model.addAttribute("error", "E-mail ou senha inválidos.");
-            return "auth/login";
-        } catch (Exception e) {
-            model.addAttribute("error", "E-mail ou senha inválidos.");
-            return "auth/login";
-        }
     }
 
     // ── Logout ────────────────────────────────────────────────────────────────

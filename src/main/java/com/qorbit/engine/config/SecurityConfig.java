@@ -1,5 +1,6 @@
 package com.qorbit.engine.config;
 
+import com.qorbit.engine.auth.service.QorbitAuthSuccessHandler;
 import com.qorbit.engine.auth.service.QorbitUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,9 @@ public class SecurityConfig {
 
     @Autowired
     private QorbitUserDetailsService userDetailsService;
+
+    @Autowired
+    private QorbitAuthSuccessHandler authSuccessHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -56,10 +60,13 @@ public class SecurityConfig {
             )
 
             // ── Form login ────────────────────────────────────────────────────
+            // usernameParameter: o formulário usa "email", não "username"
             .formLogin(form -> form
                 .loginPage("/auth/login")
                 .loginProcessingUrl("/auth/login")
-                .defaultSuccessUrl("/", true)
+                .usernameParameter("email")
+                .passwordParameter("password")
+                .successHandler(authSuccessHandler)
                 .failureUrl("/auth/login?error")
                 .permitAll()
             )

@@ -12,8 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Persiste eventos de autenticação para rastreabilidade.
- * Usa REQUIRES_NEW para garantir que logs sejam salvos mesmo se a transação
- * principal fizer rollback (ex: login falhou, mas o log deve persistir).
+ *
+ * IMPORTANTE — SQLite tem pool size=1 (single-writer). Usar REQUIRES_NEW aqui
+ * causaria deadlock: a transação pai já segura a única conexão, e REQUIRES_NEW
+ * tentaria abrir uma segunda. Por isso usamos REQUIRED (participa da transação
+ * existente) ou cria uma nova se não houver nenhuma aberta.
  */
 @Service
 public class AuditService {
@@ -25,7 +28,7 @@ public class AuditService {
         this.repo = repo;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRED)
     public void log(Long userId, String email, String action,
                     String ip, String userAgent,
                     boolean success, String details, RiskLevel risk) {

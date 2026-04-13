@@ -19,8 +19,8 @@ spring.datasource.hikari.max-lifetime=1800000
 spring.datasource.hikari.connection-init-sql=PRAGMA journal_mode=WAL; PRAGMA busy_timeout=30000; PRAGMA synchronous=NORMAL;
 
 # ── Upload de arquivos ────────────────────────────────────
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
+spring.servlet.multipart.max-file-size=50MB
+spring.servlet.multipart.max-request-size=50MB
 
 # ── Evidencias e código gerado ────────────────────────────
 scanner.evidencias.path=evidencias
@@ -74,43 +74,3 @@ scanner.logs.path=logs
 #logging.level.org.hibernate=WARN
 #logging.level.org.springframework.web.servlet.view.ThymeleafView=ERROR
 #logging.level.org.springframework.ui.context=DEBUG?/
-
-# ── Autenticação / Segurança ───────────────────────────────
-# Sessão: 8 horas de inatividade
-server.servlet.session.timeout=480m
-# Cookie de sessão com atributos de segurança
-server.servlet.session.cookie.http-only=true
-server.servlet.session.cookie.secure=false
-server.servlet.session.cookie.same-site=strict
-
-# ── E-mail (SMTP) ──────────────────────────────────────────
-# Configure via variáveis de ambiente em produção
-spring.mail.host=${MAIL_HOST:smtp.gmail.com}
-spring.mail.port=${MAIL_PORT:587}
-spring.mail.username=${MAIL_USERNAME:}
-spring.mail.password=${MAIL_PASSWORD:}
-spring.mail.properties.mail.smtp.auth=true
-spring.mail.properties.mail.smtp.starttls.enable=true
-spring.mail.properties.mail.smtp.starttls.required=true
-spring.mail.properties.mail.smtp.ssl.trust=${MAIL_HOST:smtp.gmail.com}
-# URL base para links de e-mail
-qorbit.app.url=${APP_URL:http://localhost:8080}
-
-# ── MFA (TOTP) ─────────────────────────────────────────────
-qorbit.mfa.issuer=Qorbit
-qorbit.mfa.backup-codes-count=8
-
-# ── Rate Limiting ──────────────────────────────────────────
-qorbit.auth.max-login-attempts=5
-qorbit.auth.lockout-minutes=15
-qorbit.auth.rate-limit-per-minute=20
-
-# ── Auditoria ──────────────────────────────────────────────
-qorbit.audit.retention-days=90
-
-# ── Bootstrap Super Admin ──────────────────────────────────
-# Criado automaticamente na primeira vez que a aplicação sobe (se não existir nenhum SUPER_ADMIN).
-# IMPORTANTE: troque a senha no primeiro login ou defina via variável de ambiente.
-qorbit.super-admin.email=${QORBIT_SUPER_ADMIN_EMAIL:crystianemello@gmail.com}
-qorbit.super-admin.name=${QORBIT_SUPER_ADMIN_NAME:Crystiane Mello}
-qorbit.super-admin.password=${QORBIT_SUPER_ADMIN_PASSWORD:Max@#290358!&regaeton}
