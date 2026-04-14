@@ -27,85 +27,98 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #050814 0%, #0f1a3d 50%, #1a2a5e 100%);
+            background: radial-gradient(ellipse 200% 150% at 50% 30%, #2a1f4a 0%, #1a2855 25%, #0f1637 50%, #050814 100%);
             background-attachment: fixed;
             color: var(--text-primary);
             overflow: hidden;
         }
 
-        /* ── FUNDO COM GALÁXIA BRILHANTE ──────────────────────────────── */
+        /* ── FUNDO COM GALÁXIA REALISTA (AZUL/ROXO) ────────────────────── */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
             background-image: 
-                radial-gradient(2px 2px at 20px 30px, #00ffff, transparent),
-                radial-gradient(1.5px 1.5px at 60px 70px, #ffffff, transparent),
-                radial-gradient(2px 2px at 50px 50px, #00ffff, transparent),
-                radial-gradient(1px 1px at 130px 80px, #ffffff, transparent),
-                radial-gradient(2px 2px at 90px 10px, #00d4ff, transparent),
-                radial-gradient(1px 1px at 200px 120px, #ffffff, transparent),
-                radial-gradient(1.5px 1.5px at 150px 200px, #00ffff, transparent),
-                radial-gradient(1px 1px at 180px 40px, #ffffff, transparent),
-                radial-gradient(2px 2px at 100px 150px, #00d4ff, transparent);
-            background-size: 250px 250px, 200px 200px, 300px 300px, 180px 180px, 220px 220px, 280px 280px, 240px 240px, 260px 260px, 290px 290px;
-            background-position: 0 0, 40px 60px, 130px 270px, 70px 100px, 200px 50px, 100px 180px, 150px 120px, 50px 200px, 200px 100px;
-            opacity: 0.35;
-            animation: starsParallax1 180s linear infinite, starsTwinkle 12s ease-in-out infinite;
+                /* Nebulosa roxo/rosa no fundo */
+                radial-gradient(ellipse 800px 600px at 30% 40%, rgba(168, 85, 247, 0.15), transparent 70%),
+                radial-gradient(ellipse 900px 700px at 70% 60%, rgba(59, 130, 246, 0.12), transparent 70%),
+                /* Estrelas grandes brilhantes */
+                radial-gradient(2.5px 2.5px at 15% 12%, #ffffff, transparent),
+                radial-gradient(2px 2px at 85% 25%, #e0c3fc, transparent),
+                radial-gradient(3px 3px at 45% 35%, #60a5fa, transparent),
+                radial-gradient(2px 2px at 72% 82%, #a78bfa, transparent),
+                radial-gradient(2.5px 2.5px at 25% 75%, #ffffff, transparent),
+                radial-gradient(1.5px 1.5px at 90% 15%, #c4b5fd, transparent),
+                radial-gradient(2px 2px at 38% 65%, #60a5fa, transparent),
+                /* Estrelas médias */
+                radial-gradient(1.5px 1.5px at 8% 68%, #93c5fd, transparent),
+                radial-gradient(1.5px 1.5px at 92% 58%, #a78bfa, transparent),
+                radial-gradient(1.5px 1.5px at 55% 22%, #c4b5fd, transparent),
+                radial-gradient(1px 1px at 22% 45%, #e0c3fc, transparent),
+                radial-gradient(1.5px 1.5px at 78% 38%, #60a5fa, transparent),
+                radial-gradient(1px 1px at 12% 88%, #a78bfa, transparent),
+                radial-gradient(1.5px 1.5px at 65% 12%, #93c5fd, transparent),
+                radial-gradient(1px 1px at 35% 8%, #c4b5fd, transparent),
+                /* Estrelas pequenas */
+                radial-gradient(1px 1px at 5% 25%, #93c5fd, transparent),
+                radial-gradient(1px 1px at 42% 55%, #a78bfa, transparent),
+                radial-gradient(0.8px 0.8px at 88% 72%, #c4b5fd, transparent),
+                radial-gradient(1px 1px at 18% 15%, #e0c3fc, transparent),
+                radial-gradient(0.8px 0.8px at 75% 88%, #60a5fa, transparent),
+                radial-gradient(1px 1px at 52% 78%, #93c5fd, transparent),
+                radial-gradient(0.8px 0.8px at 28% 92%, #a78bfa, transparent),
+                radial-gradient(1px 1px at 95% 42%, #c4b5fd, transparent),
+                radial-gradient(0.8px 0.8px at 32% 28%, #60a5fa, transparent),
+                radial-gradient(1px 1px at 68% 48%, #e0c3fc, transparent),
+                /* Mais micros estrelas para densidade */
+                radial-gradient(0.5px 0.5px at 10% 40%, #93c5fd, transparent),
+                radial-gradient(0.5px 0.5px at 50% 15%, #a78bfa, transparent),
+                radial-gradient(0.5px 0.5px at 80% 65%, #c4b5fd, transparent),
+                radial-gradient(0.5px 0.5px at 25% 62%, #60a5fa, transparent),
+                radial-gradient(0.5px 0.5px at 70% 35%, #e0c3fc, transparent),
+                radial-gradient(0.5px 0.5px at 15% 78%, #93c5fd, transparent),
+                radial-gradient(0.5px 0.5px at 60% 85%, #a78bfa, transparent),
+                radial-gradient(0.5px 0.5px at 40% 42%, #c4b5fd, transparent);
+            background-size: 
+                100% 100%, 100% 100%,
+                220px 220px, 280px 280px, 200px 200px, 250px 250px, 300px 300px, 270px 270px, 240px 240px,
+                260px 260px, 290px 290px, 310px 310px, 230px 230px, 320px 320px, 270px 270px, 250px 250px, 280px 280px,
+                240px 240px, 300px 300px, 260px 260px, 320px 320px, 280px 280px, 310px 310px, 270px 270px, 290px 290px, 250px 250px, 240px 240px,
+                340px 340px, 300px 300px, 320px 320px, 280px 280px, 310px 310px, 290px 290px, 330px 330px, 260px 260px;
+            background-position: 
+                0 0, 0 0,
+                0 0, 20px 30px, 40px 60px, 80px 20px, 100px 80px, 140px 50px, 160px 120px,
+                30px 40px, 70px 100px, 120px 150px, 50px 80px, 180px 40px, 90px 180px, 150px 70px, 200px 100px,
+                10px 120px, 110px 160px, 60px 30px, 190px 190px, 140px 110px, 260px 80px, 220px 160px, 170px 220px, 80px 200px, 130px 90px,
+                0 0, 40px 70px, 100px 140px, 150px 50px, 210px 100px, 260px 180px, 80px 220px, 180px 50px;
+            background-attachment: fixed;
+            opacity: 0.85;
+            animation: starsParallax 240s linear infinite, starsTwinkle 14s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
         }
 
-        @keyframes starsParallax1 {
-            0% { background-position: 0 0, 40px 60px, 130px 270px, 70px 100px, 200px 50px, 100px 180px, 150px 120px, 50px 200px, 200px 100px; }
-            100% { background-position: 60px 0, 100px 60px, 190px 270px, 130px 100px, 260px 50px, 160px 180px, 210px 120px, 110px 200px, 260px 100px; }
+        @keyframes starsParallax {
+            0% { background-position: inherit; }
+            50% { filter: brightness(1.05); }
+            100% { background-position: inherit; }
         }
 
         @keyframes starsTwinkle {
-            0%, 100% { opacity: 0.35; }
-            50% { opacity: 0.38; }
+            0%, 100% { opacity: 0.85; }
+            50% { opacity: 0.9; }
         }
 
-        /* ── OVERLAY OVERLAY LEVE ────────────────────────────────────── */
+        /* ── OVERLAY ESCURO LEVE ──────────────────────────────────────── */
         body::after {
             content: '';
             position: fixed;
             inset: 0;
-            background-color: rgba(10, 14, 39, 0.5);
-            pointer-events: none;
-            z-index: 0;
-        }
-        /* ── SEGUNDA CAMADA DE ESTRELAS (PARALLAX LEVE) ────────────── */
-        main::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                radial-gradient(1px 1px at 30px 40px, rgba(100, 150, 255, 0.8), transparent),
-                radial-gradient(1.5px 1.5px at 80px 90px, rgba(200, 200, 255, 0.6), transparent),
-                radial-gradient(1px 1px at 150px 60px, rgba(100, 150, 255, 0.7), transparent),
-                radial-gradient(0.5px 0.5px at 200px 140px, rgba(200, 200, 255, 0.5), transparent),
-                radial-gradient(1.5px 1.5px at 70px 180px, rgba(100, 150, 255, 0.6), transparent),
-                radial-gradient(1px 1px at 240px 80px, rgba(200, 200, 255, 0.7), transparent),
-                radial-gradient(0.5px 0.5px at 120px 220px, rgba(100, 150, 255, 0.5), transparent),
-                radial-gradient(1px 1px at 180px 120px, rgba(200, 200, 255, 0.6), transparent);
-            background-size: 300px 300px, 250px 250px, 350px 350px, 280px 280px, 320px 320px, 290px 290px, 310px 310px, 270px 270px;
-            background-position: 0 0, 30px 40px, 100px 150px, 50px 80px, 150px 100px, 80px 120px, 120px 70px, 160px 90px;
-            opacity: 0.15;
-            animation: starsParallax2 240s linear infinite, starsTwinkle2 15s ease-in-out infinite;
+            background-color: rgba(5, 8, 20, 0.4);
             pointer-events: none;
             z-index: 0;
         }
 
-        @keyframes starsParallax2 {
-            0% { background-position: 0 0, 30px 40px, 100px 150px, 50px 80px, 150px 100px, 80px 120px, 120px 70px, 160px 90px; }
-            100% { background-position: 40px 0, 70px 40px, 140px 150px, 90px 80px, 190px 100px, 120px 120px, 160px 70px, 200px 90px; }
-        }
-
-        @keyframes starsTwinkle2 {
-            0%, 100% { opacity: 0.15; }
-            50% { opacity: 0.18; }
-        }
         main { position: relative; z-index: 1; }
 
         /* ── SIDEBAR ──────────────────────────────────────────────────── */
