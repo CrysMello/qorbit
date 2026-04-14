@@ -13,7 +13,7 @@
             --border-cyan: #00d4ff;
             --border-strong: rgba(0, 212, 255, 0.4);
             --border-subtle: rgba(59, 130, 246, 0.5);
-            --step-bg: #4a5f8f;
+            --step-bg: #6b82b5;
             --step-text: #ffffff;
             --text-primary: #ffffff;
             --text-secondary: #cbd5e1;
@@ -27,94 +27,45 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: radial-gradient(ellipse 200% 150% at 50% 30%, #2a1f4a 0%, #1a2855 25%, #0f1637 50%, #050814 100%);
+            background: #050814;
+            background-image: url('/images/galaxia.jpg');
+            background-size: cover;
+            background-position: center;
             background-attachment: fixed;
+            background-repeat: no-repeat;
             color: var(--text-primary);
             overflow: hidden;
         }
 
-        /* ── FUNDO COM GALÁXIA REALISTA (AZUL/ROXO) ────────────────────── */
+        /* ── ANIMAÇÃO SUTIL SOBRE A IMAGEM ────────────────────────────── */
         body::before {
             content: '';
             position: fixed;
             inset: 0;
-            background-image: 
-                /* Nebulosa roxo/rosa no fundo */
-                radial-gradient(ellipse 800px 600px at 30% 40%, rgba(168, 85, 247, 0.15), transparent 70%),
-                radial-gradient(ellipse 900px 700px at 70% 60%, rgba(59, 130, 246, 0.12), transparent 70%),
-                /* Estrelas grandes brilhantes */
-                radial-gradient(2.5px 2.5px at 15% 12%, #ffffff, transparent),
-                radial-gradient(2px 2px at 85% 25%, #e0c3fc, transparent),
-                radial-gradient(3px 3px at 45% 35%, #60a5fa, transparent),
-                radial-gradient(2px 2px at 72% 82%, #a78bfa, transparent),
-                radial-gradient(2.5px 2.5px at 25% 75%, #ffffff, transparent),
-                radial-gradient(1.5px 1.5px at 90% 15%, #c4b5fd, transparent),
-                radial-gradient(2px 2px at 38% 65%, #60a5fa, transparent),
-                /* Estrelas médias */
-                radial-gradient(1.5px 1.5px at 8% 68%, #93c5fd, transparent),
-                radial-gradient(1.5px 1.5px at 92% 58%, #a78bfa, transparent),
-                radial-gradient(1.5px 1.5px at 55% 22%, #c4b5fd, transparent),
-                radial-gradient(1px 1px at 22% 45%, #e0c3fc, transparent),
-                radial-gradient(1.5px 1.5px at 78% 38%, #60a5fa, transparent),
-                radial-gradient(1px 1px at 12% 88%, #a78bfa, transparent),
-                radial-gradient(1.5px 1.5px at 65% 12%, #93c5fd, transparent),
-                radial-gradient(1px 1px at 35% 8%, #c4b5fd, transparent),
-                /* Estrelas pequenas */
-                radial-gradient(1px 1px at 5% 25%, #93c5fd, transparent),
-                radial-gradient(1px 1px at 42% 55%, #a78bfa, transparent),
-                radial-gradient(0.8px 0.8px at 88% 72%, #c4b5fd, transparent),
-                radial-gradient(1px 1px at 18% 15%, #e0c3fc, transparent),
-                radial-gradient(0.8px 0.8px at 75% 88%, #60a5fa, transparent),
-                radial-gradient(1px 1px at 52% 78%, #93c5fd, transparent),
-                radial-gradient(0.8px 0.8px at 28% 92%, #a78bfa, transparent),
-                radial-gradient(1px 1px at 95% 42%, #c4b5fd, transparent),
-                radial-gradient(0.8px 0.8px at 32% 28%, #60a5fa, transparent),
-                radial-gradient(1px 1px at 68% 48%, #e0c3fc, transparent),
-                /* Mais micros estrelas para densidade */
-                radial-gradient(0.5px 0.5px at 10% 40%, #93c5fd, transparent),
-                radial-gradient(0.5px 0.5px at 50% 15%, #a78bfa, transparent),
-                radial-gradient(0.5px 0.5px at 80% 65%, #c4b5fd, transparent),
-                radial-gradient(0.5px 0.5px at 25% 62%, #60a5fa, transparent),
-                radial-gradient(0.5px 0.5px at 70% 35%, #e0c3fc, transparent),
-                radial-gradient(0.5px 0.5px at 15% 78%, #93c5fd, transparent),
-                radial-gradient(0.5px 0.5px at 60% 85%, #a78bfa, transparent),
-                radial-gradient(0.5px 0.5px at 40% 42%, #c4b5fd, transparent);
-            background-size: 
-                100% 100%, 100% 100%,
-                220px 220px, 280px 280px, 200px 200px, 250px 250px, 300px 300px, 270px 270px, 240px 240px,
-                260px 260px, 290px 290px, 310px 310px, 230px 230px, 320px 320px, 270px 270px, 250px 250px, 280px 280px,
-                240px 240px, 300px 300px, 260px 260px, 320px 320px, 280px 280px, 310px 310px, 270px 270px, 290px 290px, 250px 250px, 240px 240px,
-                340px 340px, 300px 300px, 320px 320px, 280px 280px, 310px 310px, 290px 290px, 330px 330px, 260px 260px;
-            background-position: 
-                0 0, 0 0,
-                0 0, 20px 30px, 40px 60px, 80px 20px, 100px 80px, 140px 50px, 160px 120px,
-                30px 40px, 70px 100px, 120px 150px, 50px 80px, 180px 40px, 90px 180px, 150px 70px, 200px 100px,
-                10px 120px, 110px 160px, 60px 30px, 190px 190px, 140px 110px, 260px 80px, 220px 160px, 170px 220px, 80px 200px, 130px 90px,
-                0 0, 40px 70px, 100px 140px, 150px 50px, 210px 100px, 260px 180px, 80px 220px, 180px 50px;
-            background-attachment: fixed;
-            opacity: 0.85;
-            animation: starsParallax 240s linear infinite, starsTwinkle 14s ease-in-out infinite;
+            background: linear-gradient(180deg, 
+                rgba(10, 14, 39, 0.1) 0%,
+                rgba(10, 14, 39, 0.3) 50%,
+                rgba(10, 14, 39, 0.2) 100%);
+            opacity: 1;
+            animation: imageTwinkle 12s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
         }
 
-        @keyframes starsParallax {
-            0% { background-position: inherit; }
-            50% { filter: brightness(1.05); }
-            100% { background-position: inherit; }
+        @keyframes imageTwinkle {
+            0%, 100% { opacity: 1; filter: brightness(1); }
+            50% { opacity: 1; filter: brightness(1.02); }
         }
 
-        @keyframes starsTwinkle {
-            0%, 100% { opacity: 0.85; }
-            50% { opacity: 0.9; }
-        }
-
-        /* ── OVERLAY ESCURO LEVE ──────────────────────────────────────── */
+        /* ── OVERLAY ESCURO PARA CONTRASTE Do CONTEÚDO ───────────────── */
         body::after {
             content: '';
             position: fixed;
             inset: 0;
-            background-color: rgba(5, 8, 20, 0.4);
+            background: linear-gradient(180deg, 
+                rgba(5, 8, 20, 0.3) 0%,
+                rgba(5, 8, 20, 0.5) 50%,
+                rgba(5, 8, 20, 0.4) 100%);
             pointer-events: none;
             z-index: 0;
         }
@@ -128,7 +79,7 @@
             top: 0;
             width: 180px;
             height: 100vh;
-            background: linear-gradient(180deg, rgba(20, 35, 75, 0.95), rgba(15, 28, 60, 0.95));
+            background: linear-gradient(180deg, rgba(25, 50, 100, 0.98), rgba(20, 45, 90, 0.98));
             border-right: 1.5px solid var(--border-strong);
             padding: 20px 0;
             display: flex;
@@ -143,6 +94,28 @@
             padding: 0 16px 30px;
             border-bottom: 1.5px solid var(--border-strong);
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-logo img {
+            height: 36px;
+            width: auto;
+            object-fit: contain;
+            opacity: 0.9;
+            filter: drop-shadow(0 2px 6px rgba(0, 212, 255, 0.2));
+            transition: opacity 0.3s, filter 0.3s;
+        }
+
+        .sidebar-logo img:hover {
+            opacity: 1;
+            filter: drop-shadow(0 2px 12px rgba(0, 212, 255, 0.4));
+        }
+
+        .logo-text {
+            display: none;
         }
 
         .logo-text {
@@ -150,12 +123,44 @@
             font-weight: 800;
             color: var(--text-primary);
             letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--btn-primary), #1e40af);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            position: relative;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: logoSpin 8s linear infinite;
+        }
+
+        @keyframes logoSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .logo-sub {
             font-size: 11px;
             color: var(--text-secondary);
-            margin-top: 2px;
+            margin-top: 4px;
             font-weight: 500;
         }
 
@@ -547,8 +552,8 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: linear-gradient(135deg, #5a6f9f 0%, #4a5f8f 100%);
-            border: 1px solid rgba(100, 140, 200, 0.4);
+            background: linear-gradient(135deg, #6b7fa8 0%, #5d7399 100%);
+            border: 1px solid rgba(100, 140, 200, 0.5);
             border-radius: 7px;
             padding: 12px 14px;
             font-size: 12px;
@@ -582,14 +587,14 @@
         }
 
         .step-elemento {
-            background: rgba(59, 130, 246, 0.25);
-            color: #93c5fd;
+            background: rgba(100, 140, 200, 0.3);
+            color: #e0e7ff;
             padding: 4px 10px;
             border-radius: 4px;
             font-weight: 600;
             min-width: 130px;
             flex-shrink: 0;
-            border: 1px solid rgba(59, 130, 246, 0.4);
+            border: 1px solid rgba(100, 140, 200, 0.5);
         }
 
         .step-descricao {
@@ -651,7 +656,10 @@
     <!-- SIDEBAR -->
     <div class="sidebar">
         <div class="sidebar-logo">
-            <div class="logo-text">🌐 Qorbit</div>
+            <div class="logo-text">
+                <div class="logo-icon">Q</div>
+                <span>Qorbit</span>
+            </div>
             <div class="logo-sub">v2.0</div>
         </div>
 
