@@ -7,23 +7,18 @@
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
     <style>
         .thumb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-        .thumb{border-radius:6px;overflow:hidden;border:1px solid #E5E7EB;cursor:pointer}
-        .thumb:hover{border-color:#1F4E79}
-        .thumb-img{height:100px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .thumb{border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+        .thumb:hover{border-color:var(--blue)}
+        .thumb-img{height:100px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;overflow:hidden}
         .thumb-img img{width:100%;height:100%;object-fit:cover}
-        .thumb-info{padding:8px 10px;border-top:1px solid #E5E7EB}
-        .thumb.falhou .thumb-img{background:#FEF2F2}
-        .thumb.falhou{border-color:#FECACA}
-        .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center}
+        .thumb-info{padding:8px 10px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)}
+        .thumb.falhou .thumb-img{background:var(--red-bg)}
+        .thumb.falhou{border-color:var(--red-border)}
+        .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center}
         .lightbox.open{display:flex}
-        .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px}
-        .lightbox-close{position:absolute;top:20px;right:28px;color:white;font-size:28px;cursor:pointer}
+        .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,.6)}
+        .lightbox-close{position:absolute;top:20px;right:28px;color:var(--text-1);font-size:28px;cursor:pointer}
     </style>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <body>
 <div class="app-layout">
@@ -41,7 +36,7 @@
                     Baixar .zip
                 </button>
                 <button class="btn btn-primary" id="btnCodigo" onclick="gerarCodigo()" style="display:none">
-                    Gerar código Cucumber
+                    Exportar código Cucumber
                 </button>
             </div>
         </div>
@@ -50,14 +45,14 @@
 
             <!-- Seletor de execução -->
             <div class="card filter-bar">
-                <label style="font-size:12px;color:#6B7280;white-space:nowrap">Execução:</label>
+                <label style="font-size:12px;color:var(--text-3);white-space:nowrap">Execução:</label>
                 <select id="selectExecucao" class="input" onchange="carregarEvidencias(this.value)">
                     <option value="">Selecione uma execução...</option>
                 </select>
                 <div class="filter-tabs" id="filtroStatus" style="display:none;gap:6px;display:flex">
                     <button class="btn btn-sm active-filter" data-filtro="" onclick="filtrarStatus('',this)">Todos</button>
                     <button class="btn btn-sm" data-filtro="PASSOU" onclick="filtrarStatus('PASSOU',this)">Passou</button>
-                    <button class="btn btn-sm" data-filtro="FALHOU" onclick="filtrarStatus('FALHOU',this)" style="color:#DC2626">Falhou</button>
+                    <button class="btn btn-sm" data-filtro="FALHOU" onclick="filtrarStatus('FALHOU',this)" style="color:var(--red)">Falhou</button>
                 </div>
             </div>
 
@@ -67,13 +62,13 @@
                     <span class="metric-label">Total de steps</span>
                     <span class="metric-value" id="mTotal">0</span>
                 </div>
-                <div class="metric-card" style="background:#DCFCE7">
-                    <span class="metric-label" style="color:#166534">Passou</span>
-                    <span class="metric-value" style="color:#166534" id="mPassou">0</span>
+                <div class="metric-card" style="background:var(--green-bg);border-color:var(--green-border)">
+                    <span class="metric-label" style="color:var(--green)">Passou</span>
+                    <span class="metric-value" style="color:var(--green)" id="mPassou">0</span>
                 </div>
-                <div class="metric-card" style="background:#FEE2E2">
-                    <span class="metric-label" style="color:#DC2626">Falhou</span>
-                    <span class="metric-value" style="color:#DC2626" id="mFalhou">0</span>
+                <div class="metric-card" style="background:var(--red-bg);border-color:var(--red-border)">
+                    <span class="metric-label" style="color:var(--red)">Falhou</span>
+                    <span class="metric-value" style="color:var(--red)" id="mFalhou">0</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">% Sucesso</span>

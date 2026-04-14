@@ -43,8 +43,11 @@ public class DashboardController {
     @GetMapping("/evidencias")
     public String evidencias() { return "evidencias"; }
 
+    @GetMapping("/exportar-codigo")
+    public String exportarCodigo() { return "gerar-codigo"; }
+
     @GetMapping("/gerar-codigo")
-    public String gerarCodigo() { return "gerar-codigo"; }
+    public String gerarCodigoLegacy() { return "redirect:/exportar-codigo"; }
 
     @GetMapping("/casos")
     public String casos() { return "casos"; }

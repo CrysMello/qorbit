@@ -7,7 +7,7 @@
   Fragment: sidebar
   Parâmetro: activeItem — nome da página ativa.
   Valores: dashboard | nova-execucao | elementos | casos | suites |
-           gravar-teste | execucoes | evidencias | gerar-codigo |
+           gravar-teste | execucoes | evidencias | exportar-codigo |
            ai-plugin | admin-usuarios
 -->
 <aside th:fragment="sidebar(activeItem)" class="sidebar">
@@ -63,8 +63,8 @@
         <a href="/evidencias" class="nav-item" th:classappend="${activeItem == 'evidencias'} ? ' active'">
             <span class="nav-icon">◻</span> Evidências
         </a>
-        <a href="/gerar-codigo" class="nav-item" th:classappend="${activeItem == 'gerar-codigo'} ? ' active'">
-            <span class="nav-icon">&lt;/&gt;</span> Gerar código
+        <a href="/exportar-codigo" class="nav-item" th:classappend="${activeItem == 'exportar-codigo'} ? ' active'">
+            <span class="nav-icon">&lt;/&gt;</span> Exportar código
         </a>
 
         <div class="nav-section">Inteligência</div>
@@ -88,7 +88,7 @@
         <span id="seleniumLabel" style="font-size:10px">Verificando...</span>
     </div>
 
-    <!-- Card do usuário logado -->
+    <!-- Card do usuário logado + logout -->
     <div class="sidebar-user">
         <div class="user-avatar" th:text="${#authentication?.name?.substring(0,1)?.toUpperCase() ?: 'U'}">U</div>
         <div class="user-info">
@@ -100,6 +100,17 @@
                 USER
             </span>
         </div>
+        <form th:action="@{/auth/logout}" method="post" style="margin:0;flex-shrink:0">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" title="Sair"
+                    style="background:none;border:none;cursor:pointer;padding:4px;
+                           color:var(--text-3);font-size:14px;line-height:1;border-radius:4px;
+                           transition:color .18s,background .18s"
+                    onmouseover="this.style.color='var(--red)';this.style.background='var(--red-bg)'"
+                    onmouseout="this.style.color='var(--text-3)';this.style.background='none'">
+                ⏻
+            </button>
+        </form>
     </div>
 
 </aside>

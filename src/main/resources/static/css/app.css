@@ -1,56 +1,64 @@
 /* ═══════════════════════════════════════════════════════════════
    Qorbit — Design System Global
-   Tema: Space / Futurista
+   Tema: Via Láctea / Futurista
    ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 /* ── Variáveis ──────────────────────────────────────────────── */
 :root {
-    --bg-base:        #020817;
-    --bg-sidebar:     rgba(6, 12, 30, 0.96);
-    --bg-card:        rgba(10, 18, 42, 0.80);
-    --bg-surface:     rgba(15, 25, 55, 0.70);
-    --bg-input:       rgba(12, 20, 45, 0.90);
-    --bg-hover:       rgba(59, 130, 246, 0.08);
-    --bg-active:      rgba(59, 130, 246, 0.14);
+    --bg-base:        #050A19;
+    --bg-sidebar:     rgba(5, 10, 25, 0.97);
+    --bg-card:        rgba(8, 16, 34, 0.74);
+    --bg-surface:     rgba(12, 22, 48, 0.72);
+    --bg-input:       rgba(8, 16, 34, 0.90);
+    --bg-hover:       rgba(37, 99, 235, 0.08);
+    --bg-active:      rgba(37, 99, 235, 0.15);
 
-    --border:         rgba(59, 130, 246, 0.18);
+    --border:         rgba(37, 99, 235, 0.18);
     --border-light:   rgba(255, 255, 255, 0.06);
-    --border-hover:   rgba(59, 130, 246, 0.35);
+    --border-hover:   rgba(37, 99, 235, 0.38);
 
-    --blue:           #3B82F6;
+    --blue:           #2563EB;
     --blue-dark:      #1D4ED8;
     --blue-light:     #60A5FA;
-    --blue-glow:      rgba(59, 130, 246, 0.4);
+    --blue-glow:      rgba(37, 99, 235, 0.4);
     --purple:         #7C3AED;
     --purple-light:   #A78BFA;
 
-    --text-1:         #EFF6FF;
-    --text-2:         #93C5FD;
+    --text-1:         #F8FAFC;
+    --text-2:         #D6DFEA;
     --text-3:         #64748B;
     --text-4:         #334155;
 
-    --green:          #10B981;
-    --green-bg:       rgba(16, 185, 129, 0.12);
-    --green-border:   rgba(16, 185, 129, 0.3);
-    --red:            #EF4444;
-    --red-bg:         rgba(239, 68, 68, 0.12);
-    --red-border:     rgba(239, 68, 68, 0.3);
-    --yellow:         #F59E0B;
-    --yellow-bg:      rgba(245, 158, 11, 0.12);
-    --yellow-border:  rgba(245, 158, 11, 0.3);
-    --cyan:           #06B6D4;
-    --cyan-bg:        rgba(6, 182, 212, 0.12);
-    --cyan-border:    rgba(6, 182, 212, 0.3);
+    --green:          #1F9D55;
+    --green-bg:       rgba(31, 157, 85, 0.12);
+    --green-border:   rgba(31, 157, 85, 0.3);
+    --red:            #C24141;
+    --red-bg:         rgba(194, 65, 65, 0.12);
+    --red-border:     rgba(194, 65, 65, 0.3);
+    --yellow:         #D97706;
+    --yellow-bg:      rgba(217, 119, 6, 0.12);
+    --yellow-border:  rgba(217, 119, 6, 0.3);
+    --cyan:           #0891B2;
+    --cyan-bg:        rgba(8, 145, 178, 0.12);
+    --cyan-border:    rgba(8, 145, 178, 0.3);
 
     --radius-sm:      6px;
     --radius:         10px;
     --radius-lg:      14px;
-    --font:           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
-    --shadow-card:    0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px var(--border);
+    --font:           'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --shadow-card:    0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
     --shadow-glow:    0 0 20px var(--blue-glow);
-    --sidebar-w:      220px;
+    --sidebar-w:      240px;
     --topbar-h:       52px;
     --transition:     0.18s ease;
+
+    /* ── Aliases de compatibilidade ─────────────────────────────── */
+    --bg:             var(--bg-card);
+    --text:           var(--text-1);
+    --text-muted:     var(--text-3);
+    --bg-tag:         var(--bg-surface);
 }
 
 /* ── Reset ──────────────────────────────────────────────────── */
@@ -252,7 +260,7 @@ body::after {
     flex-shrink: 0;
     box-shadow: 0 0 8px var(--blue-glow);
 }
-.user-info { overflow: hidden; min-width: 0; }
+.user-info { overflow: hidden; min-width: 0; flex: 1; }
 .user-email {
     display: block;
     font-size: 10px;
@@ -396,7 +404,7 @@ body::after {
 }
 .metric-value {
     display: block;
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 700;
     color: var(--text-1);
     letter-spacing: -.02em;
@@ -728,6 +736,99 @@ input[type="checkbox"], input[type="radio"] {
 *::-webkit-scrollbar { width: 4px; height: 4px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT UTILITÁRIOS
+   ═══════════════════════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+
+/* Dois colunas */
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+@media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+/* Filter bar */
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+.filter-tabs { display: flex; gap: 6px; align-items: center; }
+
+/* Form row / grid */
+.form-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+.form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+}
+.helper-text {
+    display: block;
+    font-size: 10px;
+    color: var(--text-3);
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+/* Wizard (Nova Execução) */
+.wizard-steps {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 0;
+}
+.wiz-step {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 600;
+}
+.wiz-step.active { color: var(--blue-light); }
+.wiz-step.done   { color: var(--green); }
+.wiz-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    flex-shrink: 0;
+}
+.wiz-step.active .wiz-num { background: var(--blue); border-color: var(--blue); color: #fff; }
+.wiz-step.done   .wiz-num { background: var(--green); border-color: var(--green); color: #fff; }
+.wiz-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    min-width: 20px;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVO
