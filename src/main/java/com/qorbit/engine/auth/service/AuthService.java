@@ -279,6 +279,9 @@ public class AuthService {
         user.setPasswordHash(encoder.encode(req.password()));
         user.setPasswordChangedAt(LocalDateTime.now());
         user.setPasswordMustChange(false);
+        // Clicar no link de reset prova acesso ao e-mail — verificação implícita
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
 
         // Recalcula expiração de senha para admins
         if (user.getRole().isAdmin() && user.getRole().passwordExpiryDays() != null) {

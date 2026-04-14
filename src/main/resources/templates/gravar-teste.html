@@ -13,18 +13,18 @@
             border: none; transition: all .2s;
         }
         .record-btn.start {
-            background: #DC2626; color: white;
+            background: var(--red); color: white;
         }
         .record-btn.start:hover { background: #b91c1c; }
         .record-btn.stop {
-            background: #374151; color: white;
+            background: var(--bg-surface); color: var(--text-1); border: 1px solid var(--border);
         }
-        .record-btn.stop:hover { background: #1f2937; }
+        .record-btn.stop:hover { background: var(--bg-hover); }
 
         .pulse {
             display: inline-block;
             width: 10px; height: 10px;
-            background: #DC2626; border-radius: 50%;
+            background: var(--red); border-radius: 50%;
             animation: pulse 1s ease-in-out infinite;
             margin-right: 6px;
         }
@@ -36,20 +36,19 @@
         .step-live {
             display: flex; align-items: flex-start;
             gap: 10px; padding: 10px 12px;
-            border-radius: 6px; background: #F9FAFB;
-            border: 1px solid #E5E7EB;
+            border-radius: 6px; background: var(--bg-surface);
+            border: 1px solid var(--border);
             animation: slideIn .25s ease;
         }
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(-8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
-        .step-live:nth-child(odd)  { background: #F9FAFB; }
-        .step-live:nth-child(even) { background: white; }
+        .step-live:nth-child(even) { background: var(--bg-card); }
 
         .step-num-rec {
             width: 24px; height: 24px; border-radius: 50%;
-            background: #1F4E79; color: white;
+            background: var(--blue-dark); color: white;
             display: flex; align-items: center; justify-content: center;
             font-size: 10px; font-weight: bold; flex-shrink: 0;
         }
@@ -58,20 +57,20 @@
             display: inline-block; font-size: 9px; font-weight: bold;
             padding: 2px 6px; border-radius: 3px; margin-right: 4px;
         }
-        .acao-CLICAR    { background: #EBF3FA; color: #1F4E79; }
-        .acao-PREENCHER { background: #EAF3DE; color: #27500A; }
-        .acao-NAVEGAR   { background: #EEEDFE; color: #3C3489; }
-        .acao-SELECIONAR{ background: #FEF3C7; color: #92400E; }
-        .acao-VALIDAR   { background: #DCFCE7; color: #166534; }
+        .acao-CLICAR    { background: rgba(59,130,246,.15);  color: var(--blue-light); }
+        .acao-PREENCHER { background: rgba(16,185,129,.15);  color: var(--green); }
+        .acao-NAVEGAR   { background: rgba(124,58,237,.15);  color: var(--purple-light); }
+        .acao-SELECIONAR{ background: rgba(245,158,11,.15);  color: var(--yellow); }
+        .acao-VALIDAR   { background: rgba(6,182,212,.15);   color: var(--cyan); }
 
         .gherkin-text {
-            font-size: 11px; color: #6B7280;
+            font-size: 11px; color: var(--text-3);
             font-style: italic; margin-top: 2px;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .step-delete {
             background: none; border: none; cursor: pointer;
-            color: #DC2626; font-size: 14px; padding: 0 4px;
+            color: var(--red); font-size: 14px; padding: 0 4px;
             flex-shrink: 0; line-height: 1;
         }
         .step-delete:hover { opacity: .7; }
@@ -79,14 +78,14 @@
         .status-bar {
             display: flex; align-items: center; gap: 12px;
             padding: 10px 16px; border-radius: 6px;
-            background: #FEF2F2; border: 1px solid #FECACA;
+            background: var(--red-bg); border: 1px solid var(--red-border);
             margin-bottom: 12px;
         }
         .status-bar.inativo {
-            background: #F9FAFB; border-color: #E5E7EB;
+            background: var(--bg-surface); border-color: var(--border);
         }
         .status-bar.gravando-ativo {
-            background: #FEF2F2; border-color: #FECACA;
+            background: var(--red-bg); border-color: var(--red-border);
         }
 
         #listaSteps {
@@ -95,17 +94,12 @@
         }
 
         .dica-box {
-            background: #EBF3FA; border: 1px solid #BFDBFE;
+            background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2);
             border-radius: 6px; padding: 12px 16px;
-            font-size: 12px; color: #1F4E79; line-height: 1.7;
+            font-size: 12px; color: var(--text-2); line-height: 1.7;
         }
-        .dica-box strong { font-weight: bold; }
+        .dica-box strong { font-weight: bold; color: var(--text-1); }
     </style>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <body>
 <div class="app-layout">
@@ -131,13 +125,13 @@
                     <!-- Status da gravação -->
                     <div class="status-bar inativo" id="statusBar">
                         <span id="statusIcon">○</span>
-                        <span id="statusTexto" style="font-size:12px;color:#6B7280">
+                        <span id="statusTexto" style="font-size:12px;color:var(--text-3)">
                             Nenhuma gravação em andamento
                         </span>
                     </div>
 
                     <!-- Indicador de carregamento inicial -->
-                    <div id="loadingVerificacao" class="card" style="text-align:center;padding:20px;color:#9CA3AF;font-size:12px">Verificando estado da gravação...</div>
+                    <div id="loadingVerificacao" class="card" style="text-align:center;padding:20px;color:var(--text-3);font-size:12px">Verificando estado da gravação...</div>
 
                     <!-- Formulário de início -->
                     <div class="card hidden" id="formIniciar">
@@ -148,7 +142,7 @@
                             <label>URL da aplicação alvo *</label>
                             <input type="url" id="urlGravacao" class="input"
                                    placeholder="https://app.suaempresa.com.br/pagina"/>
-                            <span style="font-size:10px;color:#9CA3AF;margin-top:3px;display:block">
+                            <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
                                 O Chrome abrirá nessa URL automaticamente
                             </span>
                         </div>
@@ -159,7 +153,7 @@
 
                     <!-- Painel durante a gravação -->
                     <div class="card hidden" id="painelGravando">
-                        <div class="card-title" style="margin-bottom:14px;color:#DC2626">
+                        <div class="card-title" style="margin-bottom:14px;color:var(--red)">
                             <span class="pulse"></span> Gravação em andamento
                         </div>
 
@@ -179,8 +173,8 @@
                             <button class="record-btn stop" onclick="pararGravacao()" style="flex:2">
                                 ⏹ Parar e salvar
                             </button>
-                            <button class="btn btn-sm" onclick="descartarGravacao()"
-                                    style="flex:1;color:#DC2626">
+                            <button class="btn btn-sm btn-danger" onclick="descartarGravacao()"
+                                    style="flex:1">
                                 Descartar
                             </button>
                         </div>
@@ -211,7 +205,7 @@
                         </div>
 
                         <div id="listaSteps">
-                            <div style="text-align:center;padding:40px;color:#9CA3AF;font-size:12px">
+                            <div style="text-align:center;padding:40px;color:var(--text-3);font-size:12px">
                                 Os steps aparecerão aqui conforme você interage<br>com a aplicação no browser aberto.
                             </div>
                         </div>
@@ -224,7 +218,7 @@
                             <button class="btn btn-sm" onclick="copiarGherkin()">Copiar</button>
                         </div>
                         <pre id="previewGherkin" style="font-family:monospace;font-size:11px;
-                             color:#374151;background:#F9FAFB;padding:12px;border-radius:4px;
+                             color:var(--text-2);background:var(--bg-input);border:1px solid var(--border);padding:12px;border-radius:4px;
                              overflow-x:auto;white-space:pre-wrap;max-height:200px;overflow-y:auto"></pre>
                     </div>
                 </div>

@@ -7,67 +7,62 @@
     <title>Suites — Qorbit</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
     <style>
-        .suite-sidebar { width: 220px; flex-shrink: 0; border-right: 1px solid var(--border); padding: 1rem; }
-        .suite-sidebar-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
+        .suite-sidebar { width: 220px; flex-shrink: 0; border-right: 1px solid var(--border); padding: 1rem; overflow-y: auto; }
+        .suite-sidebar-title { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .75rem; }
         .suite-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; text-decoration: none; }
         .suite-item:hover { background: var(--bg-hover); }
-        .suite-item.active { background: #EEEDFE; border-color: #AFA9EC; }
+        .suite-item.active { background: var(--bg-active); border-color: var(--blue); }
         .suite-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-        .suite-dot.green { background: #639922; }
-        .suite-dot.blue { background: #378ADD; }
-        .suite-dot.amber { background: #BA7517; }
-        .suite-dot.purple { background: #7F77DD; }
-        .suite-dot.coral { background: #D85A30; }
-        .suite-item-name { font-size: 13px; color: var(--text); flex: 1; }
-        .suite-item.active .suite-item-name { color: #3C3489; font-weight: 500; }
-        .suite-item-count { font-size: 11px; color: var(--text-muted); background: var(--bg-tag); padding: 1px 6px; border-radius: 20px; }
-        .suite-area { flex: 1; padding: 1.5rem; min-width: 0; }
+        .suite-dot.green { background: #22c55e; }
+        .suite-dot.blue { background: var(--blue); }
+        .suite-dot.amber { background: var(--yellow); }
+        .suite-dot.purple { background: var(--purple-light); }
+        .suite-dot.coral { background: #f97316; }
+        .suite-item-name { font-size: 13px; color: var(--text-2); flex: 1; }
+        .suite-item.active .suite-item-name { color: var(--blue-light); font-weight: 600; }
+        .suite-item-count { font-size: 11px; color: var(--text-3); background: var(--bg-surface); padding: 1px 6px; border-radius: 20px; }
+        .suite-area { flex: 1; padding: 1.5rem; min-width: 0; overflow-y: auto; }
         .suite-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
         .suite-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .suite-header-actions { display: flex; gap: 8px; }
-        .badge-purple { background: #EEEDFE; color: #534AB7; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
-        .badge-green { background: #EAF3DE; color: #3B6D11; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
-        .badge-red { background: #FCEBEB; color: #A32D2D; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
-        .case-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg); }
+        .badge-purple { background: rgba(124,58,237,.15); color: var(--purple-light); border: 1px solid rgba(124,58,237,.3); font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .badge-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .badge-red { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+        .case-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; background: var(--bg-card); }
         .case-row:hover { border-color: var(--border-hover); }
         .case-info { flex: 1; min-width: 0; }
-        .case-name { font-size: 13px; color: var(--text); font-weight: 500; }
-        .case-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .case-name { font-size: 13px; color: var(--text-1); font-weight: 500; }
+        .case-meta { font-size: 11px; color: var(--text-3); margin-top: 2px; }
         .tag { font-size: 10px; padding: 1px 6px; border-radius: 20px; font-weight: 500; margin-right: 4px; }
-        .tag-modulo { background: #E6F1FB; color: #185FA5; }
-        .btn-remove-case { font-size: 11px; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
-        .btn-remove-case:hover { color: #A32D2D; background: #FCEBEB; }
-        .add-cases-row { padding: 10px 14px; background: var(--bg-hover); border: 0.5px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin-top: 4px; }
-        .add-cases-row:hover { background: var(--bg-hover); }
-        .empty-suite { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
-        .empty-suite-title { font-size: 15px; color: var(--text); margin-bottom: .5rem; }
-        .suite-layout { display: flex; min-height: 500px; }
+        .tag-modulo { background: var(--cyan-bg); color: var(--cyan); }
+        .btn-remove-case { font-size: 11px; color: var(--text-3); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+        .btn-remove-case:hover { color: var(--red); background: var(--red-bg); }
+        .add-cases-row { padding: 10px 14px; background: var(--bg-surface); border: 1px dashed var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin-top: 4px; }
+        .add-cases-row:hover { border-color: var(--blue); background: var(--bg-hover); }
+        .empty-suite { text-align: center; padding: 3rem 1rem; color: var(--text-3); }
+        .empty-suite-title { font-size: 15px; color: var(--text-1); margin-bottom: .5rem; }
+        .suite-layout { display: flex; min-height: 500px; overflow: hidden; }
         .no-suite { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; text-align: center; flex: 1; }
-        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; align-items: center; justify-content: center; }
+        .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-bg.show { display: flex; }
-        .modal-box { background: var(--bg); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; width: 360px; max-width: 95vw; box-sizing: border-box; }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); flex-wrap: wrap; }
+        .modal-box { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); padding: 1.5rem; width: 360px; max-width: 95vw; box-sizing: border-box; box-shadow: var(--shadow-card); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border-light); flex-wrap: wrap; }
         .modal-actions .btn { flex-shrink: 0; }
-        .modal-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 1rem; }
-        .modal-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; }
-        .modal-input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); margin-bottom: .75rem; }
+        .modal-title { font-size: 15px; font-weight: 600; color: var(--text-1); margin-bottom: 1rem; }
+        .modal-label { font-size: 12px; color: var(--text-3); margin-bottom: 4px; display: block; }
+        .modal-input { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-input); color: var(--text-1); margin-bottom: .75rem; outline: none; }
+        .modal-input:focus { border-color: var(--blue); }
         .modal-select-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
         .modal-select-row:hover { border-color: var(--border-hover); background: var(--bg-hover); }
-        .modal-select-row.selected { border-color: #534AB7; background: #EEEDFE; }
-        .modal-select-row.selected .modal-row-name { color: #3C3489; font-weight: 500; }
-        .modal-row-name { font-size: 13px; color: var(--text); flex: 1; }
-        .modal-row-count { font-size: 11px; color: var(--text-muted); }
-        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1rem; padding-top: .75rem; border-top: 1px solid var(--border); }
+        .modal-select-row.selected { border-color: var(--blue); background: var(--bg-active); }
+        .modal-select-row.selected .modal-row-name { color: var(--blue-light); font-weight: 500; }
+        .modal-row-name { font-size: 13px; color: var(--text-2); flex: 1; }
+        .modal-row-count { font-size: 11px; color: var(--text-3); }
         .cor-selector { display: flex; gap: 8px; margin-bottom: .75rem; }
         .cor-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
-        .cor-btn.selected { border-color: var(--text); }
-        .drag { color: var(--text-muted); cursor: grab; font-size: 14px; }
+        .cor-btn.selected { border-color: var(--text-1); }
+        .drag { color: var(--text-3); cursor: grab; font-size: 14px; }
     </style>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <!-- Modal: Executar suite -->
 <div class="modal-bg" id="modalExecutar">
@@ -143,7 +138,7 @@
                             </div>
                             <div class="suite-header-actions">
                                 <button class="btn" onclick="renomearSuite()">Renomear</button>
-                                <button class="btn" style="color:#A32D2D;border-color:#A32D2D" onclick="excluirSuite()">Excluir suite</button>
+                                <button class="btn btn-danger" onclick="excluirSuite()">Excluir suite</button>
                                 <button class="btn" onclick="gerarZipSuite()">&#11015; Gerar ZIP</button>
                                 <button class="btn btn-primary" onclick="executarSuite()">&#9654; Executar suite</button>
                             </div>
@@ -191,11 +186,11 @@
         <input class="modal-input" id="inputDescSuite" placeholder="Descrição breve..." />
         <label class="modal-label">Cor</label>
         <div class="cor-selector">
-            <div class="cor-btn selected" style="background:#639922" data-cor="green" onclick="selecionarCor(this)"></div>
-            <div class="cor-btn" style="background:#378ADD" data-cor="blue" onclick="selecionarCor(this)"></div>
-            <div class="cor-btn" style="background:#BA7517" data-cor="amber" onclick="selecionarCor(this)"></div>
-            <div class="cor-btn" style="background:#7F77DD" data-cor="purple" onclick="selecionarCor(this)"></div>
-            <div class="cor-btn" style="background:#D85A30" data-cor="coral" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn selected" style="background:#22c55e" data-cor="green" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#3B82F6" data-cor="blue" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#F59E0B" data-cor="amber" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#A78BFA" data-cor="purple" onclick="selecionarCor(this)"></div>
+            <div class="cor-btn" style="background:#f97316" data-cor="coral" onclick="selecionarCor(this)"></div>
         </div>
         <div class="modal-actions">
             <button class="btn" onclick="fecharModal('modalCriar')">Cancelar</button>
@@ -416,7 +411,7 @@ async function abrirModalAdicionarCasos() {
             `).join('');
         }
     } catch(e) {
-        lista.innerHTML = '<p style="font-size:13px;color:#A32D2D;padding:1rem">Erro ao carregar casos: ' + e.message + '</p>';
+        lista.innerHTML = '<p style="font-size:13px;color:var(--red);padding:1rem">Erro ao carregar casos: ' + e.message + '</p>';
     }
 }
 

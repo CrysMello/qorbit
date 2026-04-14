@@ -1,5 +1,6 @@
 package com.qorbit.engine.repository;
 
+import com.qorbit.engine.auth.model.QorbitUser;
 import com.qorbit.engine.model.Execucao;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,5 +16,12 @@ public interface ExecucaoRepository extends JpaRepository<Execucao, Long> {
     // Compatibilidade com código existente
     default List<Execucao> findAllByOrderByIniciadoEmDesc() {
         return findAllByOrderByIdDesc();
+    }
+
+    // Métodos para filtrar por usuário
+    List<Execucao> findByUsuarioOrderByIdDesc(QorbitUser usuario);
+    
+    default List<Execucao> findByUsuarioOrderByIniciadoEmDesc(QorbitUser usuario) {
+        return findByUsuarioOrderByIdDesc(usuario);
     }
 }

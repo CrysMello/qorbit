@@ -1,6 +1,7 @@
 package com.qorbit.engine.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.qorbit.engine.auth.model.QorbitUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -41,6 +42,10 @@ public class CasoDeTeste {
             fetch = FetchType.EAGER, orphanRemoval = true)
     @JsonManagedReference
     private List<StepTeste> steps = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private QorbitUser usuario;
 
     @Column(name = "criado_em")
     private String criadoEm;

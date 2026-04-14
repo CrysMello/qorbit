@@ -126,7 +126,7 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public String resetPassword(@Valid @ModelAttribute ResetPasswordRequest req,
+    public String resetPassword(@Valid @ModelAttribute("resetRequest") ResetPasswordRequest req,
                                  BindingResult result,
                                  HttpServletRequest httpReq,
                                  Model model,

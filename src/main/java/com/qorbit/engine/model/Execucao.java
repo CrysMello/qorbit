@@ -1,6 +1,7 @@
 package com.qorbit.engine.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.qorbit.engine.auth.model.QorbitUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -59,6 +60,10 @@ public class Execucao {
 
     @Column(name = "finalizado_em")
     private String finalizadoEm;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private QorbitUser usuario;
 
     @PrePersist
     public void prePersist() {

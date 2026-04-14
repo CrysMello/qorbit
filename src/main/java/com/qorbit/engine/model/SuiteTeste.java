@@ -1,5 +1,6 @@
 package com.qorbit.engine.model;
 
+import com.qorbit.engine.auth.model.QorbitUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,6 +46,10 @@ public class SuiteTeste {
 
     @Column(name = "ultimo_resultado")
     private String ultimoResultado; // ex: "5/5 passou" | "3/5 passou"
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private QorbitUser usuario;
 
     // ManyToMany — uma suite tem vários casos, um caso pode estar em várias suites
     // Usa EAGER para carregar os casos junto com a suite

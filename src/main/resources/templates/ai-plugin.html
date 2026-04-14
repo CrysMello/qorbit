@@ -7,48 +7,43 @@
     <title>Qorbit — Plugin IA</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
     <style>
-        .ai-banner{background:#EDE9FE;border:1px solid #C4B5FD;border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
+        .ai-banner{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px}
         .ai-banner-icon{font-size:22px}
-        .ai-banner-title{font-size:12px;font-weight:bold;color:#5B21B6}
-        .ai-banner-sub{font-size:11px;color:#7C3AED;margin-top:2px}
-        .step-row{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #F3F4F6}
+        .ai-banner-title{font-size:12px;font-weight:bold;color:var(--purple-light)}
+        .ai-banner-sub{font-size:11px;color:var(--purple-light);opacity:.8;margin-top:2px}
+        .step-row{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border-light)}
         .step-row:last-child{border-bottom:none}
-        .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;flex-shrink:0;margin-top:2px;background:#7C3AED;color:white}
-        .step-num.done{background:#1D9E75}
-        .step-num.pending{background:#F3F4F6;color:#9CA3AF}
+        .step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;flex-shrink:0;margin-top:2px;background:var(--purple);color:white}
+        .step-num.done{background:var(--green)}
+        .step-num.pending{background:var(--bg-surface);color:var(--text-3)}
         .step-info{flex:1}
-        .step-title{font-size:12px;font-weight:bold;color:#111827;margin-bottom:3px}
-        .step-desc{font-size:11px;color:#6B7280;line-height:1.5;margin-bottom:8px}
+        .step-title{font-size:12px;font-weight:bold;color:var(--text-1);margin-bottom:3px}
+        .step-desc{font-size:11px;color:var(--text-3);line-height:1.5;margin-bottom:8px}
         .feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
-        .feature-card{border:1px solid #E5E7EB;border-radius:6px;padding:14px;background:white}
-        .feature-title{font-size:12px;font-weight:bold;color:#111827;margin-bottom:4px}
-        .feature-desc{font-size:11px;color:#6B7280;margin-bottom:10px;line-height:1.5}
-        .log-box{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:4px;padding:10px;font-size:11px;font-family:monospace;color:#374151;line-height:1.8;min-height:80px;max-height:200px;overflow-y:auto}
-        .log-ok{color:#166534}
-        .log-info{color:#1E40AF}
-        .log-warn{color:#D97706}
-        .log-err{color:#DC2626}
+        .feature-card{border:1px solid var(--border);border-radius:6px;padding:14px;background:var(--bg-card)}
+        .feature-title{font-size:12px;font-weight:bold;color:var(--text-1);margin-bottom:4px}
+        .feature-desc{font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.5}
+        .log-box{background:var(--bg-input);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:11px;font-family:monospace;color:var(--text-2);line-height:1.8;min-height:80px;max-height:200px;overflow-y:auto}
+        .log-ok{color:var(--green)}
+        .log-info{color:var(--blue-light)}
+        .log-warn{color:var(--yellow)}
+        .log-err{color:var(--red)}
         .toggle-wrap{display:flex;align-items:center;gap:8px;margin-bottom:10px}
         .toggle{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0}
         .toggle input{opacity:0;width:0;height:0;position:absolute}
-        .toggle-track{position:absolute;top:0;left:0;right:0;bottom:0;background:#D1D5DB;border-radius:20px;transition:.2s}
-        .toggle input:checked + .toggle-track{background:#7C3AED}
-        .toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:white;border-radius:50%;transition:.2s;pointer-events:none}
+        .toggle-track{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg-surface);border-radius:20px;transition:.2s}
+        .toggle input:checked + .toggle-track{background:var(--purple)}
+        .toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:var(--text-1);border-radius:50%;transition:.2s;pointer-events:none}
         .toggle input:checked ~ .toggle-thumb{left:18px}
-        .btn-purple{background:#7C3AED;color:white;border-color:transparent}
+        .btn-purple{background:var(--purple);color:white;border-color:transparent}
         .btn-purple:hover{background:#6D28D9}
         .metrics-ai{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
-        .metric-ai{background:#EDE9FE;border-radius:6px;padding:14px}
-        .metric-ai .metric-label{color:#7C3AED}
-        .metric-ai .metric-value{color:#5B21B6}
+        .metric-ai{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.2);border-radius:6px;padding:14px}
+        .metric-ai .metric-label{color:var(--purple-light)}
+        .metric-ai .metric-value{font-size:22px;font-weight:700;color:var(--text-1)}
         #screen-config{display:block}
         #screen-ativo{display:none}
     </style>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <body>
 <div class="app-layout">
@@ -135,7 +130,7 @@
                     <div class="step-row">
                         <div class="step-num pending" id="step4num">4</div>
                         <div class="step-info">
-                            <div class="step-title" style="color:#9CA3AF">Pronto para usar</div>
+                            <div class="step-title" style="color:var(--text-3)">Pronto para usar</div>
                             <div class="step-desc">O plugin melhora a captura automaticamente.</div>
                         </div>
                     </div>
@@ -152,11 +147,11 @@
             <!-- TELA ATIVO -->
             <div id="screen-ativo">
 
-                <div style="background:#DCFCE7;border:1px solid #86EFAC;border-radius:6px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px">
-                    <span style="font-size:18px">&#10003;</span>
+                <div style="background:var(--green-bg);border:1px solid var(--green-border);border-radius:6px;padding:12px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                    <span style="font-size:18px;color:var(--green)">&#10003;</span>
                     <div style="flex:1">
-                        <span style="font-size:12px;font-weight:bold;color:#166534">Plugin IA activo</span>
-                        <span style="display:block;font-size:11px;color:#16a34a;margin-top:2px">
+                        <span style="font-size:12px;font-weight:bold;color:var(--green)">Plugin IA activo</span>
+                        <span style="display:block;font-size:11px;color:var(--green);opacity:.8;margin-top:2px">
                             Modelo: <span id="lblModelo"></span> &nbsp;·&nbsp; <span id="lblEndpoint"></span>
                         </span>
                     </div>
@@ -228,8 +223,8 @@
                             <div class="toggle-thumb"></div>
                         </label>
                         <div>
-                            <div style="font-size:12px;font-weight:bold;color:#111827">Naming automático na captura</div>
-                            <div style="font-size:11px;color:#6B7280">Renomeia elementos durante a captura de elementos</div>
+                            <div style="font-size:12px;font-weight:bold;color:var(--text-1)">Naming automático na captura</div>
+                            <div style="font-size:11px;color:var(--text-3)">Renomeia elementos durante a captura de elementos</div>
                         </div>
                     </div>
                     <div class="toggle-wrap">
@@ -239,8 +234,8 @@
                             <div class="toggle-thumb"></div>
                         </label>
                         <div>
-                            <div style="font-size:12px;font-weight:bold;color:#111827">Detecção automática de abas</div>
-                            <div style="font-size:11px;color:#6B7280">Clica em cada aba antes de capturar elementos</div>
+                            <div style="font-size:12px;font-weight:bold;color:var(--text-1)">Detecção automática de abas</div>
+                            <div style="font-size:11px;color:var(--text-3)">Clica em cada aba antes de capturar elementos</div>
                         </div>
                     </div>
                     <div class="toggle-wrap">
@@ -250,8 +245,8 @@
                             <div class="toggle-thumb"></div>
                         </label>
                         <div>
-                            <div style="font-size:12px;font-weight:bold;color:#111827">Diagnóstico automático de falhas</div>
-                            <div style="font-size:11px;color:#6B7280">Analisa automaticamente quando um step falha</div>
+                            <div style="font-size:12px;font-weight:bold;color:var(--text-1)">Diagnóstico automático de falhas</div>
+                            <div style="font-size:11px;color:var(--text-3)">Analisa automaticamente quando um step falha</div>
                         </div>
                     </div>
                 </div>

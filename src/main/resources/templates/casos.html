@@ -5,11 +5,6 @@
     <meta charset="UTF-8"/>
     <title>Casos de Teste — Qorbit</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <body>
 <div class="app-layout">
@@ -112,7 +107,7 @@
                placeholder="Valor (para Preencher/Selecionar)" style="width:200px"/>
         <input type="text" class="input step-gherkin"
                placeholder="Texto Gherkin (gerado automático)" style="flex:1"/>
-        <button class="btn btn-sm" style="color:#DC2626;flex-shrink:0" onclick="removerStep(this)">✕</button>
+        <button class="btn btn-sm btn-danger" style="flex-shrink:0" onclick="removerStep(this)">✕</button>
     </div>
 </template>
 

@@ -36,7 +36,11 @@ public class AdminController {
     @GetMapping("/usuarios")
     public String listUsers(Model model) {
         List<QorbitUser> users = userRepo.findAll();
+        long activeCount = users.stream().filter(QorbitUser::isActive).count();
+        long adminCount  = users.stream().filter(u -> u.getRole().isAdmin()).count();
         model.addAttribute("users", users);
+        model.addAttribute("activeCount", activeCount);
+        model.addAttribute("adminCount", adminCount);
         model.addAttribute("roles", UserRole.values());
         return "admin/usuarios";
     }

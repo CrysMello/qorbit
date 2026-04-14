@@ -1,6 +1,8 @@
 package com.qorbit.engine.controller;
 
 import org.springframework.transaction.annotation.Transactional;
+import com.qorbit.engine.auth.model.QorbitUser;
+import com.qorbit.engine.auth.repository.QorbitUserRepository;
 import com.qorbit.engine.model.CasoDeTeste;
 import com.qorbit.engine.model.Execucao;
 import com.qorbit.engine.model.SuiteTeste;
@@ -12,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +30,19 @@ public class SuiteTesteController {
     @Autowired private CasoDeTesteRepository casoRepo;
     @Autowired private ExecucaoRepository execucaoRepo;
     @Autowired private GeradorCodigoService geradorCodigoService;
+    @Autowired private QorbitUserRepository userRepo;
+
+    /**
+     * Obtém o usuário autenticado do contexto de segurança
+     */
+    private QorbitUser getUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            String email = auth.getName();
+            return userRepo.findByEmailIgnoreCase(email).orElse(null);
+        }
+        return null;
+    }
 
     // ── Página HTML ───────────────────────────────────────────────────────────
 
@@ -33,7 +50,10 @@ public class SuiteTesteController {
     @Transactional(readOnly = true)
     public String pagina(Model model) {
         try {
-            List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
+            QorbitUser usuario = getUsuarioAutenticado();
+            List<SuiteTeste> suites = usuario != null 
+                ? suiteRepo.findByUsuarioOrderByNomeAsc(usuario)
+                : List.of();
             model.addAttribute("suites", suites != null ? suites : List.of());
             model.addAttribute("totalSuites", suites != null ? suites.size() : 0);
         } catch (Exception e) {
@@ -52,7 +72,12 @@ public class SuiteTesteController {
     @Transactional(readOnly = true)
     public ResponseEntity<?> listar() {
         try {
-            List<SuiteTeste> suites = suiteRepo.findAllByOrderByNomeAsc();
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
+            List<SuiteTeste> suites = suiteRepo.findByUsuarioOrderByNomeAsc(usuario);
             List<Map<String, Object>> resultado = new ArrayList<>();
             for (SuiteTeste s : suites) resultado.add(toMap(s));
             return ResponseEntity.ok(resultado);
@@ -66,9 +91,20 @@ public class SuiteTesteController {
     @ResponseBody
     @Transactional(readOnly = true)
     public ResponseEntity<?> buscar(@PathVariable Long id) {
-        return suiteRepo.findById(id)
-                .map(s -> ResponseEntity.ok(toMapDetalhado(s)))
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
+            return suiteRepo.findById(id)
+                    .filter(s -> s.getUsuario() != null && s.getUsuario().getId().equals(usuario.getId()))
+                    .map(s -> ResponseEntity.ok(toMapDetalhado(s)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            System.err.println("Erro ao buscar suite " + id + ": " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("erro", "Erro interno ao buscar suite"));
+        }
     }
 
     @PostMapping("/api/suites")
@@ -76,6 +112,11 @@ public class SuiteTesteController {
     @Transactional
     public ResponseEntity<?> criar(@RequestBody Map<String, String> body) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
             String nome = body.getOrDefault("nome", "").trim();
             if (nome.isBlank()) return ResponseEntity.badRequest().body(Map.of("erro", "Nome obrigatório."));
             if (suiteRepo.existsByNome(nome)) return ResponseEntity.badRequest().body(Map.of("erro", "Já existe uma suite com este nome."));
@@ -84,6 +125,7 @@ public class SuiteTesteController {
             suite.setNome(nome);
             suite.setDescricao(body.getOrDefault("descricao", ""));
             suite.setCor(body.getOrDefault("cor", "green"));
+            suite.setUsuario(usuario);
             suiteRepo.save(suite);
             return ResponseEntity.ok(Map.of("ok", true, "id", suite.getId(), "mensagem", "Suite criada com sucesso."));
         } catch (Exception e) {
@@ -97,8 +139,15 @@ public class SuiteTesteController {
     @Transactional
     public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
             SuiteTeste suite = suiteRepo.findById(id).orElse(null);
-            if (suite == null) return ResponseEntity.notFound().build();
+            if (suite == null || !suite.getUsuario().getId().equals(usuario.getId())) {
+                return ResponseEntity.notFound().build();
+            }
 
             if (body.containsKey("nome") && !body.get("nome").isBlank()) suite.setNome(body.get("nome").trim());
             if (body.containsKey("descricao")) suite.setDescricao(body.get("descricao"));
@@ -116,8 +165,18 @@ public class SuiteTesteController {
     @Transactional
     public ResponseEntity<?> excluir(@PathVariable Long id) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
             if (!suiteRepo.existsById(id)) return ResponseEntity.notFound().build();
             SuiteTeste suite = suiteRepo.findById(id).get();
+            
+            if (!suite.getUsuario().getId().equals(usuario.getId())) {
+                return ResponseEntity.status(403).body(Map.of("erro", "Sem permissão para excluir esta suite"));
+            }
+            
             suite.getCasos().clear(); 
             suiteRepo.save(suite);
             suiteRepo.deleteById(id);
@@ -133,8 +192,15 @@ public class SuiteTesteController {
     @Transactional
     public ResponseEntity<?> adicionarCasos(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
             SuiteTeste suite = suiteRepo.findById(id).orElse(null);
-            if (suite == null) return ResponseEntity.notFound().build();
+            if (suite == null || !suite.getUsuario().getId().equals(usuario.getId())) {
+                return ResponseEntity.notFound().build();
+            }
 
             @SuppressWarnings("unchecked")
             List<Integer> casoIds = (List<Integer>) body.get("casoIds");
@@ -163,8 +229,15 @@ public class SuiteTesteController {
     @Transactional
     public ResponseEntity<?> adicionarDaExecucao(@PathVariable Long id, @PathVariable Long execId) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+            
             SuiteTeste suite = suiteRepo.findById(id).orElse(null);
-            if (suite == null) return ResponseEntity.notFound().build();
+            if (suite == null || !suite.getUsuario().getId().equals(usuario.getId())) {
+                return ResponseEntity.notFound().build();
+            }
 
             Execucao exec = execucaoRepo.findById(execId).orElse(null);
             if (exec == null) return ResponseEntity.notFound().build();

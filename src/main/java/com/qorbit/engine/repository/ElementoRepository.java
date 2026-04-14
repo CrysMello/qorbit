@@ -1,5 +1,6 @@
 package com.qorbit.engine.repository;
 
+import com.qorbit.engine.auth.model.QorbitUser;
 import com.qorbit.engine.model.Elemento;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -16,4 +17,11 @@ public interface ElementoRepository extends JpaRepository<Elemento, Long> {
     List<Elemento> findAllByOrderByPaginaAscNomeLogicoAsc();
     List<Elemento> findByNomeLogico(String nomeLogico);
     Optional<Elemento> findFirstByNomeLogicoIgnoreCase(String nomeLogico);
+
+    // Métodos para filtrar por usuário
+    List<Elemento> findByUsuarioOrderByPaginaAscNomeLogicoAsc(QorbitUser usuario);
+    List<Elemento> findByUsuarioAndPaginaIgnoreCase(QorbitUser usuario, String pagina);
+    List<Elemento> findByUsuarioAndStatus(QorbitUser usuario, String status);
+    List<Elemento> findByUsuarioAndNomeLogicoContainingIgnoreCaseOrSeletorTecnicoContainingIgnoreCase(QorbitUser usuario, String nome, String seletor);
+    long countByUsuario(QorbitUser usuario);
 }

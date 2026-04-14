@@ -64,12 +64,10 @@
                         Total <span th:text="${users.size()}">0</span>
                     </div>
                     <div class="stat-pill">
-                        Ativos <span style="color:#34D399"
-                            th:text="${users.stream().filter(u -> u.active).count()}">0</span>
+                        Ativos <span style="color:#34D399" th:text="${activeCount}">0</span>
                     </div>
                     <div class="stat-pill">
-                        Admins <span style="color:#A78BFA"
-                            th:text="${users.stream().filter(u -> u.role.admin).count()}">0</span>
+                        Admins <span style="color:#A78BFA" th:text="${adminCount}">0</span>
                     </div>
                 </div>
             </div>
@@ -122,10 +120,10 @@
                             <td>
                                 <span class="role-badge"
                                       th:text="${user.role.name()}"
-                                      th:classappend="${user.role.name() == 'SUPER_ADMIN'} ? ' rb-super-admin'
-                                                    : (${user.role.name() == 'ADMIN'} ? ' rb-admin'
-                                                    : (${user.role.name() == 'MODERATOR'} ? ' rb-moderator'
-                                                    : ' rb-user'))">USER</span>
+                                      th:classappend="${user.role.name() == 'SUPER_ADMIN' ? ' rb-super-admin'
+                                                    : (user.role.name() == 'ADMIN' ? ' rb-admin'
+                                                    : (user.role.name() == 'MODERATOR' ? ' rb-moderator'
+                                                    : ' rb-user'))}">USER</span>
                             </td>
                             <td>
                                 <span class="status-pill"
@@ -165,7 +163,9 @@
 
                                     <!-- Reset senha -->
                                     <button class="btn btn-xs btn-warning"
-                                            th:onclick="'openResetModal(' + ${user.id} + ', \'' + ${user.email} + '\')'">
+                                            th:data-uid="${user.id}"
+                                            th:data-email="${user.email}"
+                                            onclick="openResetModal(this)">
                                         Reset senha
                                     </button>
                                 </div>
@@ -222,7 +222,9 @@ function filterTable(q) {
     });
 }
 
-function openResetModal(id, email) {
+function openResetModal(btn) {
+    const id    = btn.dataset.uid;
+    const email = btn.dataset.email;
     document.getElementById('resetEmail').value = email;
     document.getElementById('resetPassword').value = '';
     document.getElementById('resetForm').action = '/admin/usuarios/' + id + '/reset-senha';

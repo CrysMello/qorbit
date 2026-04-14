@@ -5,11 +5,6 @@
     <meta charset="UTF-8"/>
     <title>Execuções — Qorbit</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <body>
 <div class="app-layout">
@@ -23,7 +18,7 @@
                 <span class="topbar-sub">Todas as execuções realizadas</span>
             </div>
             <div class="topbar-actions">
-                <button class="btn" style="color:#DC2626;border-color:#DC2626"
+                <button class="btn btn-danger"
                         onclick="limparAguardando()">🗑 Limpar pendentes</button>
                 <a href="/nova-execucao" class="btn btn-primary">+ Nova execução</a>
             </div>
@@ -73,7 +68,7 @@
                                         style="margin-left:4px">Baixar código</button>
                                 <button class="btn btn-sm"
                                         th:onclick="'deletarExecucao(' + ${exec.id} + ')'"
-                                        style="margin-left:4px;color:#DC2626"
+                                        style="margin-left:4px;color:var(--red)"
                                         title="Remover esta execução">✕</button>
                             </td>
                         </tr>
