@@ -412,6 +412,34 @@ public class GeradorCodigoService {
         sb.append("        }\n");
         sb.append("        throw new RuntimeException(\"Falha ao clicar no elemento de forma resiliente\", ultimaFalha);\n");
         sb.append("    }\n\n");
+        // Overload resiliente: re-localiza o elemento em cada tentativa para evitar StaleElementReferenceException
+        sb.append("    public void clicar(By locator) {\n");
+        sb.append("        Exception ultimaFalha = null;\n");
+        sb.append("        for (int tentativa = 0; tentativa < 4; tentativa++) {\n");
+        sb.append("            try {\n");
+        sb.append("                aguardarEstabilidade();\n");
+        sb.append("                WebElement elemento = wait.until(ExpectedConditions.elementToBeClickable(locator));\n");
+        sb.append("                scrollParaCentro(elemento);\n");
+        sb.append("                aguardarAnimacaoCurta();\n");
+        sb.append("                if (possuiInterceptacao(elemento)) { fecharOverlaysConhecidos(); elemento = driver.findElement(locator); scrollParaCentro(elemento); }\n");
+        sb.append("                elemento.click();\n");
+        sb.append("                return;\n");
+        sb.append("            } catch (ElementClickInterceptedException e) {\n");
+        sb.append("                ultimaFalha = e;\n");
+        sb.append("                fecharOverlaysConhecidos();\n");
+        sb.append("                if (tentativa == 3) {\n");
+        sb.append("                    try { clicarViaJs(driver.findElement(locator)); return; } catch (Exception jsEx) { ultimaFalha = jsEx; }\n");
+        sb.append("                }\n");
+        sb.append("            } catch (StaleElementReferenceException e) {\n");
+        sb.append("                ultimaFalha = e;\n");
+        sb.append("                aguardarAnimacaoCurta();\n");
+        sb.append("            } catch (Exception e) {\n");
+        sb.append("                ultimaFalha = e;\n");
+        sb.append("                try { clicarViaJs(driver.findElement(locator)); return; } catch (Exception jsEx) { ultimaFalha = jsEx; }\n");
+        sb.append("            }\n");
+        sb.append("        }\n");
+        sb.append("        throw new RuntimeException(\"Falha ao clicar no elemento de forma resiliente\", ultimaFalha);\n");
+        sb.append("    }\n\n");
         sb.append("    public void preencher(String valor, WebElement elemento) {\n");
         sb.append("        try { elemento.clear(); } catch (Exception ignored) { }\n");
         sb.append("        elemento.sendKeys(valor);\n");
@@ -460,12 +488,29 @@ public class GeradorCodigoService {
         sb.append("    }\n\n");
 
         for (ElementSpec element : page.elementos) {
+            String tipoLiteral = normalizador.literalJava(element.locator().tipo());
+            String seletorLiteral = normalizador.literalJava(element.locator().valor());
+            String frameLiteral = normalizador.literalJava(element.context().framePath());
+
             sb.append("    // ").append(normalizador.literalJava(element.source().getNomeLogico())).append("\n");
             sb.append("    public WebElement ").append(element.methodName()).append("() {\n");
-            sb.append("        return localizar(\"").append(normalizador.literalJava(element.locator().tipo())).append("\", \"")
-                    .append(normalizador.literalJava(element.locator().valor())).append("\", \"")
-                    .append(normalizador.literalJava(element.context().framePath())).append("\");\n");
+            sb.append("        return localizar(\"").append(tipoLiteral).append("\", \"")
+                    .append(seletorLiteral).append("\", \"").append(frameLiteral).append("\");\n");
             sb.append("    }\n\n");
+
+            // Método byXxx() — retorna By para uso no clicar(By) resiliente
+            String byMethod = "by" + Character.toUpperCase(element.methodName().charAt(0)) + element.methodName().substring(1);
+            sb.append("    public By ").append(byMethod).append("() {\n");
+            String byExpression = switch (tipoLiteral.toUpperCase(Locale.ROOT)) {
+                case "XPATH" -> "By.xpath(\"" + seletorLiteral + "\")";
+                case "ID" -> "By.id(\"" + seletorLiteral + "\")";
+                case "NAME" -> "By.name(\"" + seletorLiteral + "\")";
+                case "LINK_TEXT" -> "By.linkText(\"" + seletorLiteral + "\")";
+                default -> "By.cssSelector(\"" + seletorLiteral + "\")";
+            };
+            sb.append("        return ").append(byExpression).append(";\n");
+            sb.append("    }\n\n");
+
             sb.append("    public String ").append(element.methodName()).append("TipoComponente() {\n");
             sb.append("        return \"").append(normalizador.literalJava(element.context().componentType())).append("\";\n");
             sb.append("    }\n\n");
@@ -576,8 +621,9 @@ public class GeradorCodigoService {
             }
             case "CLICAR" -> {
                 if (resolved != null && resolved.methodName() != null) {
+                    String byMethod = "by" + Character.toUpperCase(resolved.methodName().charAt(0)) + resolved.methodName().substring(1);
                     sb.append("        ").append(pageVar).append(".clicar(")
-                            .append(pageVar).append(".").append(resolved.methodName()).append("());\n");
+                            .append(pageVar).append(".").append(byMethod).append("());\n");
                 } else {
                     failElemento(sb, "clique", step);
                 }
