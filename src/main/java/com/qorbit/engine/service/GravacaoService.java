@@ -88,9 +88,20 @@ public class GravacaoService {
             return Map.of("erro", "Nenhum step gravado. Interaja com a aplicação antes de parar.");
         }
 
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return Map.of("erro", "Usuário não autenticado. Faça login para gravar testes.");
+        }
+
+        // Salva elementos com o usuário correto
         elementosGravados.forEach(el -> {
-            boolean jaExiste = elementoRepo.findByNomeLogicoAndPagina(el.getNomeLogico(), el.getPagina()).isPresent();
-            if (!jaExiste) elementoRepo.save(el);
+            boolean jaExiste = elementoRepo.findByNomeLogicoAndPagina(el.getNomeLogico(), el.getPagina())
+                    .filter(ex -> ex.getUsuario() != null && ex.getUsuario().getId().equals(usuario.getId()))
+                    .isPresent();
+            if (!jaExiste) {
+                el.setUsuario(usuario);
+                elementoRepo.save(el);
+            }
         });
 
         CasoDeTeste caso = new CasoDeTeste();
@@ -99,12 +110,6 @@ public class GravacaoService {
         caso.setUrlAlvo(urlBase);
         caso.setCodigo("CT-" + String.format("%02d", casoRepo.count() + 1));
         caso.setStatus("ATIVO");
-        
-        // ✅ CORRIGIR: Setar o usuário autenticado
-        QorbitUser usuario = getUsuarioAutenticado();
-        if (usuario == null) {
-            return Map.of("erro", "Usuário não autenticado. Faça login para gravar testes.");
-        }
         caso.setUsuario(usuario);
 
         List<StepTeste> copia = new ArrayList<>();

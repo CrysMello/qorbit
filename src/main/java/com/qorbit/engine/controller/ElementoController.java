@@ -47,8 +47,7 @@ public class ElementoController {
         }
 
         if (busca != null && !busca.isBlank()) {
-            return elementoRepo
-                .findByUsuarioAndNomeLogicoContainingIgnoreCaseOrSeletorTecnicoContainingIgnoreCase(usuario, busca, busca);
+            return elementoRepo.buscarPorUsuarioETexto(usuario, busca);
         }
         if (pagina != null && !pagina.isBlank()) {
             return elementoRepo.findByUsuarioAndPaginaIgnoreCase(usuario, pagina);
