@@ -1,319 +1,17 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6"
+      lang="pt-BR">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Casos de Teste — Qorbit</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
     <style>
-        /* ── VARIÁVEIS DE COR ─────────────────────────────────────────── */
-        :root {
-            --bg-dark: #0a0e27;
-            --bg-card: rgba(25, 35, 75, 0.95);
-            --border-cyan: #00d4ff;
-            --border-strong: rgba(0, 212, 255, 0.4);
-            --border-subtle: rgba(59, 130, 246, 0.5);
-            --step-bg: #6b82b5;
-            --step-text: #ffffff;
-            --text-primary: #ffffff;
-            --text-secondary: #cbd5e1;
-            --badge-green: #10b981;
-            --badge-blue: #2563eb;
-            --btn-primary: #3b82f6;
-            --accent-green: #34d399;
-        }
-
-        /* ── LAYOUT GERAL ─────────────────────────────────────────────── */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #050814;
-            background-image: url('/images/galaxia.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-            color: var(--text-primary);
-            overflow: hidden;
-        }
-
-        /* ── ANIMAÇÃO SUTIL SOBRE A IMAGEM ────────────────────────────── */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(180deg, 
-                rgba(10, 14, 39, 0.1) 0%,
-                rgba(10, 14, 39, 0.3) 50%,
-                rgba(10, 14, 39, 0.2) 100%);
-            opacity: 1;
-            animation: imageTwinkle 12s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        @keyframes imageTwinkle {
-            0%, 100% { opacity: 1; filter: brightness(1); }
-            50% { opacity: 1; filter: brightness(1.02); }
-        }
-
-        /* ── OVERLAY ESCURO PARA CONTRASTE Do CONTEÚDO ───────────────── */
-        body::after {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(180deg, 
-                rgba(5, 8, 20, 0.3) 0%,
-                rgba(5, 8, 20, 0.5) 50%,
-                rgba(5, 8, 20, 0.4) 100%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        main { position: relative; z-index: 1; }
-
-        /* ── SIDEBAR ──────────────────────────────────────────────────── */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 180px;
-            height: 100vh;
-            background: linear-gradient(180deg, rgba(25, 50, 100, 0.98), rgba(20, 45, 90, 0.98));
-            border-right: 1.5px solid var(--border-strong);
-            padding: 20px 0;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
-            z-index: 100;
-            backdrop-filter: blur(10px);
-            box-shadow: 2px 0 12px rgba(0, 212, 255, 0.1);
-        }
-
-        .sidebar-logo {
-            padding: 0 16px 30px;
-            border-bottom: 1.5px solid var(--border-strong);
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sidebar-logo img {
-            height: 36px;
-            width: auto;
-            object-fit: contain;
-            opacity: 0.9;
-            filter: drop-shadow(0 2px 6px rgba(0, 212, 255, 0.2));
-            transition: opacity 0.3s, filter 0.3s;
-        }
-
-        .sidebar-logo img:hover {
-            opacity: 1;
-            filter: drop-shadow(0 2px 12px rgba(0, 212, 255, 0.4));
-        }
-
-        .logo-text {
-            display: none;
-        }
-
-        .logo-text {
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--text-primary);
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .logo-icon {
-            width: 28px;
-            height: 28px;
-            background: linear-gradient(135deg, var(--btn-primary), #1e40af);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 14px;
-            position: relative;
-            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
-        }
-
-        .logo-icon::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            animation: logoSpin 8s linear infinite;
-        }
-
-        @keyframes logoSpin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .logo-sub {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-            font-weight: 500;
-        }
-
-        .menu-section {
-            padding: 0;
-            margin-bottom: 0;
-        }
-
-        .menu-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            padding: 8px 16px;
-            letter-spacing: 0.8px;
-            margin-top: 16px;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 11px 16px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 13px;
-            transition: all 0.2s;
-            border-left: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .menu-item:hover {
-            background: rgba(59, 130, 246, 0.15);
-            color: var(--btn-primary);
-        }
-
-        .menu-item.active {
-            background: rgba(59, 130, 246, 0.2);
-            border-left-color: var(--btn-primary);
-            color: var(--btn-primary);
-        }
-
-        .sidebar-user {
-            margin-top: auto;
-            padding-top: 16px;
-            border-top: 1.5px solid var(--border-strong);
-            padding: 16px;
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--btn-primary), #1e40af);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 800;
-            font-size: 12px;
-            margin-bottom: 8px;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-        }
-
-        .user-email {
-            font-size: 11px;
-            color: var(--text-secondary);
-            word-break: break-all;
-            line-height: 1.3;
-            font-weight: 500;
-        }
-
-        .user-role {
-            font-size: 9px;
-            color: var(--accent-green);
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 6px;
-            letter-spacing: 0.5px;
-        }
-
-        /* ── MAIN CONTENT ─────────────────────────────────────────────── */
-        .app-container {
-            margin-left: 180px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: transparent;
-        }
-
-        .page-header {
-            padding: 24px 32px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 1.5px solid var(--border-strong);
-            background: rgba(10, 14, 39, 0.4);
-        }
-
-        .header-title {
-            flex: 1;
-        }
-
-        .page-title {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-        }
-
-        .page-subtitle {
-            font-size: 14px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn-primary-new {
-            background: linear-gradient(135deg, var(--btn-primary), #2563eb);
-            color: white;
-            border: none;
-            padding: 11px 22px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-primary-new:hover {
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-            transform: translateY(-2px);
-        }
-
-        /* ── CONTEÚDO DA PÁGINA ───────────────────────────────────────── */
-        .content-area {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px 32px;
-        }
-
         /* ── FILTROS ──────────────────────────────────────────────────── */
         .filters-container {
             background: linear-gradient(135deg, rgba(30, 50, 90, 0.8), rgba(25, 35, 75, 0.85));
-            border: 1.5px solid var(--border-strong);
+            border: 1.5px solid rgba(0, 212, 255, 0.4);
             border-radius: 10px;
             padding: 18px;
             margin-bottom: 24px;
@@ -321,7 +19,6 @@
             gap: 12px;
             align-items: flex-start;
             flex-wrap: wrap;
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.08);
         }
 
         .search-input-wrapper {
@@ -336,8 +33,8 @@
             content: '🔍';
             position: absolute;
             left: 12px;
-            color: var(--text-secondary);
             font-size: 14px;
+            pointer-events: none;
         }
 
         .search-input {
@@ -346,59 +43,17 @@
             border: 1.5px solid rgba(0, 212, 255, 0.3);
             border-radius: 7px;
             padding: 11px 12px 11px 38px;
-            color: var(--text-primary);
+            color: var(--text-1);
             font-size: 13px;
             outline: none;
         }
 
-        .search-input::placeholder {
-            color: var(--text-secondary);
-        }
+        .search-input::placeholder { color: var(--text-3); }
 
         .search-input:focus {
-            border-color: var(--border-cyan);
+            border-color: #00d4ff;
             background: rgba(100, 120, 180, 0.25);
             box-shadow: 0 0 12px rgba(0, 212, 255, 0.15);
-        }
-
-        .dropdown-container {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(100, 120, 180, 0.2);
-            border: 1.5px solid rgba(0, 212, 255, 0.3);
-            border-radius: 7px;
-            padding: 10px 14px;
-            cursor: pointer;
-            min-width: 180px;
-        }
-
-        .dropdown-container:hover {
-            border-color: var(--border-cyan);
-        }
-
-        .dropdown-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .btn-clear {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.15));
-            border: 1.5px solid rgba(59, 130, 246, 0.4);
-            color: #60a5fa;
-            padding: 10px 18px;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-clear:hover {
-            background: rgba(59, 130, 246, 0.25);
-            border-color: #60a5fa;
         }
 
         /* ── LISTA DE CASOS ───────────────────────────────────────────── */
@@ -410,7 +65,7 @@
 
         .caso-card {
             background: linear-gradient(135deg, rgba(30, 50, 90, 0.95), rgba(25, 35, 75, 0.9));
-            border: 1.5px solid var(--border-strong);
+            border: 1.5px solid rgba(0, 212, 255, 0.4);
             border-radius: 12px;
             overflow: hidden;
             transition: all 0.3s;
@@ -418,18 +73,17 @@
         }
 
         .caso-card:hover {
-            border-color: var(--border-cyan);
+            border-color: #00d4ff;
             box-shadow: 0 8px 32px rgba(0, 212, 255, 0.15);
             transform: translateY(-2px);
         }
 
-        /* ── CABEÇALHO DO CARD ────────────────────────────────────────── */
         .caso-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 18px 20px;
-            border-bottom: 1px solid var(--border-subtle);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.5);
             background: rgba(15, 26, 61, 0.5);
         }
 
@@ -437,11 +91,10 @@
             display: flex;
             align-items: center;
             gap: 14px;
-            flex: 1;
         }
 
         .caso-id {
-            color: var(--border-cyan);
+            color: #00d4ff;
             font-weight: 900;
             font-size: 16px;
             letter-spacing: 1px;
@@ -452,11 +105,10 @@
             font-size: 15px;
             color: #ffffff;
             font-weight: 600;
-            flex: 1;
         }
 
         .badge-status {
-            background: linear-gradient(135deg, var(--badge-green), #059669);
+            background: linear-gradient(135deg, #10b981, #059669);
             color: white;
             padding: 4px 10px;
             border-radius: 5px;
@@ -466,25 +118,27 @@
             letter-spacing: 0.5px;
         }
 
+        .badge-status.inativo {
+            background: linear-gradient(135deg, #d97706, #b45309);
+        }
+
         .caso-actions {
             display: flex;
             gap: 8px;
             margin-left: 16px;
-        }
-
-        .btn-action {
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 600;
+            flex-shrink: 0;
         }
 
         .btn-executar {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
             box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
         }
 
@@ -497,6 +151,12 @@
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
             border: 1px solid rgba(59, 130, 246, 0.5);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
         .btn-editar:hover {
@@ -510,22 +170,21 @@
             border: none;
             font-size: 18px;
             padding: 4px 8px;
+            cursor: pointer;
             opacity: 0.7;
             transition: opacity 0.2s;
         }
 
-        .btn-deletar:hover {
-            opacity: 1;
-        }
+        .btn-deletar:hover { opacity: 1; }
 
         /* ── METADADOS ────────────────────────────────────────────────── */
         .caso-metadata {
             display: flex;
             gap: 18px;
             padding: 14px 20px;
-            border-bottom: 1px solid var(--border-subtle);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.5);
             font-size: 13px;
-            color: var(--text-secondary);
+            color: var(--text-3);
             background: rgba(10, 14, 39, 0.3);
         }
 
@@ -533,10 +192,6 @@
             display: flex;
             align-items: center;
             gap: 6px;
-        }
-
-        .metadata-icon {
-            font-size: 14px;
         }
 
         /* ── LISTA DE STEPS ───────────────────────────────────────────── */
@@ -552,7 +207,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            background: linear-gradient(135deg, #6b7fa8 0%, #5d7399 100%);
+            background: #626D81;
             border: 1px solid rgba(100, 140, 200, 0.5);
             border-radius: 7px;
             padding: 12px 14px;
@@ -574,7 +229,7 @@
             box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
         }
 
-        .step-acao {
+        .step-acao-badge {
             background: rgba(16, 185, 129, 0.25);
             color: #4ade80;
             padding: 4px 10px;
@@ -586,7 +241,7 @@
             border: 1px solid rgba(16, 185, 129, 0.4);
         }
 
-        .step-elemento {
+        .step-elemento-badge {
             background: rgba(100, 140, 200, 0.3);
             color: #e0e7ff;
             padding: 4px 10px;
@@ -605,34 +260,16 @@
             word-break: break-word;
         }
 
-        /* ── SCROLL BAR ───────────────────────────────────────────────── */
-        .content-area::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .content-area::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .content-area::-webkit-scrollbar-thumb {
-            background: rgba(59, 130, 246, 0.3);
-            border-radius: 4px;
-        }
-
-        .content-area::-webkit-scrollbar-thumb:hover {
-            background: rgba(59, 130, 246, 0.5);
-        }
-
         /* ── EMPTY STATE ──────────────────────────────────────────────── */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: var(--text-secondary);
+            color: var(--text-3);
         }
 
         .empty-state-title {
             font-size: 18px;
-            color: var(--text-primary);
+            color: var(--text-1);
             margin-bottom: 8px;
         }
 
@@ -640,78 +277,36 @@
             font-size: 13px;
             margin-bottom: 16px;
         }
-
-        .empty-state-btn {
-            background: var(--btn-primary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
     </style>
 </head>
 <body>
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <div class="sidebar-logo">
-            <div class="logo-text">
-                <div class="logo-icon">Q</div>
-                <span>Qorbit</span>
+<div class="app-layout">
+
+    <div th:replace="~{fragments/sidebar :: sidebar('casos')}"></div>
+
+    <main class="main-content">
+        <div class="topbar">
+            <div>
+                <h1 class="topbar-title">Casos de Teste</h1>
+                <span class="topbar-sub" id="totalLabel">0 casos de teste</span>
             </div>
-            <div class="logo-sub">v2.0</div>
-        </div>
-
-        <div class="menu-section">
-            <div class="menu-title">PRINCIPAL</div>
-            <a href="/" class="menu-item">Dashboard</a>
-            <a href="/nova-execucao" class="menu-item">Nova execução</a>
-        </div>
-
-        <div class="menu-section">
-            <div class="menu-title">BIBLIOTECA</div>
-            <a href="/elementos" class="menu-item">Elementos (POM)</a>
-            <a href="/casos" class="menu-item active">Casos de teste</a>
-            <a href="/execucoes" class="menu-item">Execuções</a>
-            <a href="/evidencias" class="menu-item">Evidências</a>
-            <a href="/exportar-codigo" class="menu-item">Exportar código</a>
-            <a href="#" class="menu-item">Plugin IA</a>
-        </div>
-
-        <!-- USUÁRIO NO RODAPÉ -->
-        <div class="sidebar-user">
-            <div class="user-avatar">C</div>
-            <div class="user-email" id="userEmail">usuario@email.com</div>
-            <div class="user-role" id="userRole">USER</div>
-        </div>
-    </div>
-
-    <!-- MAIN CONTAINER -->
-    <div class="app-container">
-        <!-- HEADER -->
-        <div class="page-header">
-            <div class="header-title">
-                <div class="page-title">Casos de Teste</div>
-                <div class="page-subtitle" id="subtituloQtd">0 casos de teste</div>
-            </div>
-            <div class="header-actions">
-                <button class="btn-primary-new" onclick="abrirFormNovo()">+ Novo caso de teste</button>
+            <div class="topbar-actions">
+                <button class="btn btn-primary btn-sm" onclick="abrirFormNovo()">+ Novo caso de teste</button>
             </div>
         </div>
 
-        <!-- CONTENT -->
-        <div class="content-area">
+        <div class="content">
             <!-- FILTROS -->
             <div class="filters-container">
                 <div class="search-input-wrapper">
-                    <input type="text" class="search-input" id="filtroBusca" placeholder="Buscar por nome..." onkeyup="filtrarCasos()"/>
+                    <input type="text" class="search-input" id="filtroBusca"
+                           placeholder="Buscar por nome..." onkeyup="filtrar()"/>
                 </div>
-                <div class="dropdown-container" onclick="abrirDropdown()">
-                    <span class="dropdown-label" id="filtroModuloLabel">Módulo</span>
-                    <span>▼</span>
-                </div>
-                <button class="btn-clear" onclick="abrirFormNovo()">Limpar</button>
+                <select class="input" id="filtroModulo" onchange="filtrar()"
+                        style="min-width:180px;padding:10px 14px">
+                    <option value="">Módulo</option>
+                </select>
+                <button class="btn btn-sm" onclick="limparFiltros()">Limpar</button>
             </div>
 
             <!-- LISTA DE CASOS -->
@@ -719,226 +314,61 @@
                 <div class="empty-state">
                     <div class="empty-state-title">Nenhum caso de teste</div>
                     <div class="empty-state-text">Comece criando o seu primeiro teste automatizado</div>
-                    <button class="empty-state-btn" onclick="abrirFormNovo()">+ Novo caso de teste</button>
+                    <button class="btn btn-primary btn-sm" onclick="abrirFormNovo()">+ Novo caso de teste</button>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <script>
-        let todosCasos = [];
-
-        async function api(metodo, url, dados = null) {
-            const opts = {
-                method: metodo,
-                headers: { 'Content-Type': 'application/json' }
-            };
-            if (dados) opts.body = JSON.stringify(dados);
-            const res = await fetch(url, opts);
-            if (!res.ok) throw new Error('Erro ' + res.status);
-            return res.json();
-        }
-
-        async function carregarCasos() {
-            try {
-                todosCasos = await api('GET', '/api/casos');
-                renderizarCasos(todosCasos);
-                atualizarSubtitulo();
-            } catch (e) {
-                console.error('Erro ao carregar:', e);
-            }
-        }
-
-        function renderizarCasos(lista) {
-            const container = document.getElementById('listaCasos');
-
-            if (!lista.length) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-title">Nenhum caso de teste</div>
-                        <div class="empty-state-text">Comece criando o seu primeiro teste automatizado</div>
-                        <button class="empty-state-btn" onclick="abrirFormNovo()">+ Novo caso de teste</button>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = lista.map(c => `
-                <div class="caso-card">
-                    <div class="caso-header">
-                        <div class="caso-info">
-                            <span class="caso-id">${c.codigo || 'CT-' + c.id}</span>
-                            <span class="caso-nome">${c.nome}</span>
-                            <span class="badge-status">${c.status}</span>
-                        </div>
-                        <div class="caso-actions">
-                            <button class="btn-action btn-executar" onclick="executarCaso(${c.id})">▶ Executar</button>
-                            <button class="btn-action btn-editar" onclick="editarCaso(${c.id})">✎ Editar</button>
-                            <button class="btn-action btn-deletar" onclick="deletarCaso(${c.id})">✕</button>
-                        </div>
-                    </div>
-
-                    <div class="caso-metadata">
-                        <div class="metadata-item">
-                            <span class="metadata-icon">📁</span>
-                            <span>${c.modulo || 'Geral'}</span>
-                        </div>
-                        <div class="metadata-item">
-                            <span class="metadata-icon">📋</span>
-                            <span>${c.steps?.length || 0} steps</span>
-                        </div>
-                        ${c.urlAlvo ? `
-                        <div class="metadata-item">
-                            <span class="metadata-icon">🔗</span>
-                            <span><a href="${c.urlAlvo}" target="_blank" style="color: inherit; text-decoration: underline;">${c.urlAlvo.replace('https://', '').substring(0, 40)}</a></span>
-                        </div>
-                        ` : ''}
-                    </div>
-
-                    ${c.steps && c.steps.length ? `
-                    <div class="steps-list">
-                        ${c.steps.map(s => `
-                            <div class="step-item">
-                                <div class="step-number">${s.numeroStep}</div>
-                                <div class="step-acao">${s.acao}</div>
-                                <div class="step-elemento">${s.nomeLogicoElemento || '—'}</div>
-                                <div class="step-descricao">${s.descricaoGherkin || '—'}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
-
-        function atualizarSubtitulo() {
-            const qtd = todosCasos.length;
-            document.getElementById('subtituloQtd').textContent = qtd + ' caso' + (qtd !== 1 ? 's' : '') + ' de teste';
-        }
-
-        function filtrarCasos() {
-            const busca = document.getElementById('filtroBusca').value.toLowerCase();
-            const filtrados = todosCasos.filter(c => c.nome.toLowerCase().includes(busca));
-            renderizarCasos(filtrados);
-        }
-
-        function abrirDropdown() {
-            alert('Dropdown de módulo');
-        }
-
-        function abrirFormNovo() {
-            window.location.href = '/casos';
-        }
-
-        function editarCaso(id) {
-            console.log('Editar:', id);
-        }
-
-        function deletarCaso(id) {
-            if (confirm('Deletar este caso?')) {
-                api('DELETE', '/api/casos/' + id)
-                    .then(() => carregarCasos())
-                    .catch(e => alert('Erro: ' + e.message));
-            }
-        }
-
-        function executarCaso(id) {
-            window.location.href = '/nova-execucao';
-        }
-
-        // Carregar dados do usuário
-        async function carregarUsuario() {
-            try {
-                // Buscar do backend se houver endpoint
-                const user = { email: 'usuario@email.com', role: 'USER' };
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userRole').textContent = user.role;
-            } catch (e) {
-                console.error('Erro ao carregar usuário:', e);
-            }
-        }
-
-        // Inicializar
-        window.addEventListener('load', () => {
-            carregarCasos();
-            carregarUsuario();
-        });
-    </script>
-</body>
-</html>
-
-        // Carregar dados do usuário
-        async function carregarUsuario() {
-            try {
-                // Buscar do backend se houver endpoint
-                const user = { email: 'usuario@email.com', role: 'USER' };
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userRole').textContent = user.role;
-            } catch (e) {
-                console.error('Erro ao carregar usuário:', e);
-            }
-        }
-
-        // Inicializar
-        window.addEventListener('load', () => {
-            carregarCasos();
-            carregarUsuario();
-        });
-    </script>\n
-
-            <!-- Formulário novo/editar caso -->
-            <div class="card hidden" id="formCaso">
-                <div class="card-header">
-                    <span class="card-title" id="formTitulo">Novo caso de teste</span>
-                    <button class="btn btn-sm" onclick="fecharForm()">✕ Fechar</button>
-                </div>
-
-                <div class="form-grid" style="grid-template-columns:1fr 1fr">
-                    <div class="form-group">
-                        <label>Nome do caso *</label>
-                        <input type="text" id="fNome" class="input" placeholder="Ex: CadastroCliente completo"/>
-                    </div>
-                    <div class="form-group">
-                        <label>Módulo</label>
-                        <input type="text" id="fModulo" class="input" placeholder="Ex: Cadastros" list="listaModulos"/>
-                        <datalist id="listaModulos"></datalist>
-                    </div>
-                    <div class="form-group">
-                        <label>URL alvo</label>
-                        <input type="url" id="fUrl" class="input" placeholder="https://app.suaempresa.com/pagina"/>
-                    </div>
-                    <div class="form-group">
-                        <label>Descrição</label>
-                        <input type="text" id="fDescricao" class="input" placeholder="Descrição do cenário"/>
-                    </div>
-                </div>
-
-                <!-- Steps -->
-                <div class="card-header" style="margin-top:16px">
-                    <span class="card-title">Steps do teste</span>
-                    <button class="btn btn-sm btn-primary" onclick="adicionarStep()">+ Adicionar step</button>
-                </div>
-                <div class="helper-text" style="margin-bottom:10px">
-                    Cada step será uma linha do arquivo .feature (Gherkin) e um método Java no StepDefinitions.
-                </div>
-
-                <div id="containerSteps">
-                    <p class="text-muted text-sm text-center" style="padding:16px" id="semSteps">
-                        Nenhum step ainda. Clique em "+ Adicionar step" para começar.
-                    </p>
-                </div>
-
-                <div class="form-actions" style="margin-top:16px">
-                    <button class="btn" onclick="fecharForm()">Cancelar</button>
-                    <button class="btn btn-primary" onclick="salvarCaso()">Salvar caso de teste</button>
-                </div>
-            </div>
-
         </div>
     </main>
 </div>
 
-<!-- Template de um step (clonado dinamicamente) -->
+<!-- Formulário criar/editar caso — overlay fixo -->
+<div class="card hidden" id="formCaso"
+     style="position:fixed;top:60px;left:260px;right:20px;z-index:200;
+            max-height:calc(100vh - 80px);overflow-y:auto;
+            background:rgba(15,23,42,0.97);border:1px solid #334155;
+            border-radius:10px;padding:20px;">
+    <div class="card-header">
+        <span class="card-title" id="formTitulo">Novo caso de teste</span>
+        <button class="btn btn-sm" onclick="fecharForm()">✕ Fechar</button>
+    </div>
+    <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group">
+            <label>Nome do caso *</label>
+            <input type="text" id="fNome" class="input" placeholder="Ex: CadastroCliente completo"/>
+        </div>
+        <div class="form-group">
+            <label>Módulo</label>
+            <input type="text" id="fModulo" class="input" placeholder="Ex: Cadastros" list="listaModulos"/>
+            <datalist id="listaModulos"></datalist>
+        </div>
+        <div class="form-group">
+            <label>URL alvo</label>
+            <input type="url" id="fUrl" class="input" placeholder="https://app.suaempresa.com/pagina"/>
+        </div>
+        <div class="form-group">
+            <label>Descrição</label>
+            <input type="text" id="fDescricao" class="input" placeholder="Descrição do cenário"/>
+        </div>
+    </div>
+    <div class="card-header" style="margin-top:16px">
+        <span class="card-title">Steps do teste</span>
+        <button class="btn btn-sm btn-primary" onclick="adicionarStep()">+ Adicionar step</button>
+    </div>
+    <div class="helper-text" style="margin-bottom:10px">
+        Cada step será uma linha do arquivo .feature (Gherkin) e um método Java no StepDefinitions.
+    </div>
+    <div id="containerSteps">
+        <p class="text-muted text-sm text-center" style="padding:16px" id="semSteps">
+            Nenhum step ainda. Clique em "+ Adicionar step" para começar.
+        </p>
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+        <button class="btn" onclick="fecharForm()">Cancelar</button>
+        <button class="btn btn-primary" onclick="salvarCaso()">Salvar caso de teste</button>
+    </div>
+</div>
+
+<!-- Template de step (clonado dinamicamente) -->
 <template id="stepTemplate">
     <div class="step-form-row" data-index="">
         <div class="step-num-badge"></div>
@@ -961,7 +391,6 @@
 </template>
 
 <datalist id="listaElementos"></datalist>
-
 <script src="/js/app.js"></script>
 <script src="/js/casos.js"></script>
 </body>

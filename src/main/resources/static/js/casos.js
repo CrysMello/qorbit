@@ -20,41 +20,41 @@ function renderizarCasos(lista) {
     if (!lista.length) {
         container.innerHTML = `
             <div class="empty-state">
-                <p class="empty-title">Nenhum caso de teste ainda</p>
-                <p class="empty-sub">Crie o primeiro caso de teste para começar a automatizar.</p>
-                <button class="btn btn-primary" onclick="abrirFormNovo()">+ Novo caso de teste</button>
+                <div class="empty-state-title">Nenhum caso de teste</div>
+                <div class="empty-state-text">Comece criando o seu primeiro teste automatizado</div>
+                <button class="btn btn-primary btn-sm" onclick="abrirFormNovo()">+ Novo caso de teste</button>
             </div>`;
         return;
     }
     container.innerHTML = lista.map(c => `
-        <div class="card" style="margin-bottom:10px">
-            <div class="card-header">
-                <div>
-                    <span style="font-weight:bold;color:#1F4E79">${c.codigo || ('CT-' + c.id)}</span>
-                    <span style="font-size:13px;margin-left:8px">${c.nome}</span>
-                    <span class="badge ${c.status === 'ATIVO' ? 'badge-success' : 'badge-warning'}" style="margin-left:8px">${c.status}</span>
+        <div class="caso-card">
+            <div class="caso-header">
+                <div class="caso-info">
+                    <span class="caso-id">${c.codigo || 'CT-' + c.id}</span>
+                    <span class="caso-nome">${c.nome}</span>
+                    <span class="badge-status ${c.status !== 'ATIVO' ? 'inativo' : ''}">${c.status}</span>
                 </div>
-                <div style="display:flex;gap:6px">
-                    <a href="/nova-execucao" class="btn btn-sm btn-success">▶ Executar</a>
-                    <button class="btn btn-sm" onclick="abrirFormEditar(${c.id})">✎ Editar</button>
-                    <button class="btn btn-sm" style="color:#DC2626" onclick="deletarCaso(${c.id})">✕</button>
+                <div class="caso-actions">
+                    <button class="btn-executar" onclick="window.location.href='/nova-execucao'">▶ Executar</button>
+                    <button class="btn-editar" onclick="abrirFormEditar(${c.id})">✎ Editar</button>
+                    <button class="btn-deletar" onclick="deletarCaso(${c.id})">✕</button>
                 </div>
             </div>
-            <div style="display:flex;gap:16px;font-size:11px;color:#6B7280;margin-top:4px">
-                ${c.modulo ? `<span>📁 ${c.modulo}</span>` : ''}
-                <span>📋 ${c.steps?.length || 0} steps</span>
-                ${c.urlAlvo ? `<span>🔗 ${c.urlAlvo}</span>` : ''}
+            <div class="caso-metadata">
+                ${c.modulo ? `<div class="metadata-item"><span>📁</span><span>${c.modulo}</span></div>` : ''}
+                <div class="metadata-item"><span>📋</span><span>${c.steps?.length || 0} steps</span></div>
+                ${c.urlAlvo ? `<div class="metadata-item"><span>🔗</span><a href="${c.urlAlvo}" target="_blank" style="color:inherit;text-decoration:underline">${c.urlAlvo.replace('https://','').substring(0,40)}</a></div>` : ''}
             </div>
             ${c.steps?.length ? `
-            <div style="margin-top:10px;display:flex;flex-direction:column;gap:3px">
+            <div class="steps-list">
                 ${c.steps.map(s => `
-                <div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:4px 8px;background:#F9FAFB;border-radius:4px">
-                    <span style="width:20px;height:20px;border-radius:50%;background:#1F4E79;color:white;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:bold;flex-shrink:0">${s.numeroStep}</span>
-                    <span style="color:#6B7280;min-width:70px">${s.acao}</span>
-                    <span style="color:#1F4E79;font-weight:bold">${s.nomeLogicoElemento || ''}</span>
-                    ${s.valorEntrada ? `<span style="color:#9CA3AF">→ "${s.valorEntrada}"</span>` : ''}
-                    ${s.descricaoGherkin ? `<span style="color:#9CA3AF;font-style:italic;margin-left:auto">${s.descricaoGherkin}</span>` : ''}
-                </div>`).join('')}
+                    <div class="step-item">
+                        <div class="step-number">${s.numeroStep}</div>
+                        <div class="step-acao-badge">${s.acao}</div>
+                        <div class="step-elemento-badge">${s.nomeLogicoElemento || '—'}</div>
+                        <div class="step-descricao">${s.descricaoGherkin || '—'}</div>
+                    </div>
+                `).join('')}
             </div>` : ''}
         </div>
     `).join('');
