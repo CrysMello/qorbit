@@ -1,70 +1,30 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6" lang="pt-BR">
 <head>
     <meta charset="UTF-8"/>
-    <title>Gerar Código — Qorbit</title>
+    <title>Exportar Código — Qorbit</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
+
 <style>
     /* ... estilos existentes ... */
     .toggle-switch { position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0 }
     .toggle-switch input { opacity:0;width:0;height:0 }
-    .toggle-slider { position:absolute;cursor:pointer;inset:0;background:#CBD5E1;border-radius:24px;transition:.3s }
-    .toggle-slider:before { content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s }
-    .toggle-switch input:checked + .toggle-slider { background:#2563EB }
+    .toggle-slider { position:absolute;cursor:pointer;inset:0;background:var(--bg-surface);border-radius:24px;transition:.3s }
+    .toggle-slider:before { content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:var(--text-1);border-radius:50%;transition:.3s }
+    .toggle-switch input:checked + .toggle-slider { background:var(--blue) }
     .toggle-switch input:checked + .toggle-slider:before { transform:translateX(18px) }
 </style>
 </head>
 <body>
 <div class="app-layout">
-    <aside class="sidebar">
-        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
-            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
-          <rect width="256" height="256" rx="52" fill="#253D6B"/>
-          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
-          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
-          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
-          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
-          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
-          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
-        </svg>
-            <div>
-                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
-                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
-            </div>
-        </div>
-        <nav>
-            <div class="nav-section">Principal</div>
-            <a href="/" class="nav-item">Dashboard</a>
-            <a href="/nova-execucao" class="nav-item">Nova execução</a>
-            <div class="nav-section">Biblioteca</div>
-            <a href="/elementos" class="nav-item">Elementos (POM)</a>
-            <a href="/casos" class="nav-item">Casos de teste</a>
-            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
-            <div class="nav-section">Gravar</div>
-            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
-            <div class="nav-section">Resultados</div>
-            <a href="/execucoes" class="nav-item">Execuções</a>
-            <a href="/evidencias" class="nav-item">Evidências</a>
-            <a href="/gerar-codigo" class="nav-item active" aria-current="page">Gerar código</a>
-
-            <div class="nav-section">Inteligência</div>
-            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
-        </nav>
-        <div class="sidebar-status">
-            <span class="status-dot" id="seleniumStatus"></span>
-            <span id="seleniumLabel">Verificando...</span>
-        </div>
-    </aside>
+    
+    <div th:replace="~{fragments/sidebar :: sidebar('exportar-codigo')}" ></div>
 
     <main class="main-content">
         <div class="topbar">
             <div>
-                <h1 class="topbar-title">Gerar Código</h1>
+                <h1 class="topbar-title">Exportar Código</h1>
                 <span class="topbar-sub">Exportar projeto Selenium + Cucumber pronto para execução</span>
             </div>
         </div>
@@ -91,11 +51,11 @@
 
                 <div>
                     <!-- CI/CD Toggle -->
-                        <div style="border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-top:16px;background:#F0F7FF">
+                        <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:16px;background:var(--bg-surface)">
                             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
                                 <div>
-                                    <div style="font-size:13px;font-weight:600;color:#1F4E79">Incluir configuração de CI/CD</div>
-                                    <div style="font-size:11px;color:#3B82F6;margin-top:2px">
+                                    <div style="font-size:13px;font-weight:600;color:var(--text-1)">Incluir configuração de CI/CD</div>
+                                    <div style="font-size:11px;color:var(--blue-light);margin-top:2px">
                                         Gera pipeline pronto para GitHub Actions e configura o projeto para rodar em ambientes de CI/CD.
                                     </div>
                                 </div>
@@ -107,26 +67,26 @@
 
                             <div id="ciCdDetails" style="display:none;margin-top:14px">
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-                                    <div style="background:white;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
+                                    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:1px"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.577 9.577 0 0112 6.836c.85.004 1.705.114 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.934.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" fill="#24292F"/></svg>
                                         <div>
-                                            <div style="font-size:11px;font-weight:600;color:#374151">GitHub Actions</div>
-                                            <div style="font-size:10px;color:#6B7280;margin-top:1px">.github/workflows/testes.yml</div>
-                                            <div style="font-size:10px;color:#6B7280">Pipeline pronto para executar os testes</div>
+                                            <div style="font-size:11px;font-weight:600;color:var(--text-1)">GitHub Actions</div>
+                                            <div style="font-size:10px;color:var(--text-3);margin-top:1px">.github/workflows/testes.yml</div>
+                                            <div style="font-size:10px;color:var(--text-3)">Pipeline pronto para executar os testes</div>
                                         </div>
                                     </div>
-                                    <div style="background:white;border:1px solid #E2E8F0;border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
+                                    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;margin-top:1px"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#374151" stroke-width="1.5" fill="none"/><path d="M8 21h8M12 17v4" stroke="#374151" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="10" r="3" stroke="#374151" stroke-width="1.5" fill="none"/></svg>
                                         <div>
-                                            <div style="font-size:11px;font-weight:600;color:#374151">Driver Headless</div>
-                                            <div style="font-size:10px;color:#6B7280;margin-top:1px">Configuração otimizada para CI/CD</div>
-                                            <div style="font-size:10px;color:#6B7280">Headless por padrão, configurável</div>
+                                            <div style="font-size:11px;font-weight:600;color:var(--text-1)">Driver Headless</div>
+                                            <div style="font-size:10px;color:var(--text-3);margin-top:1px">Configuração otimizada para CI/CD</div>
+                                            <div style="font-size:10px;color:var(--text-3)">Headless por padrão, configurável</div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <details style="font-size:11px;color:#374151">
-                                    <summary style="cursor:pointer;font-weight:600;color:#1F4E79;margin-bottom:8px;user-select:none">
+                                <details style="font-size:11px;color:var(--text-2)">
+                                    <summary style="cursor:pointer;font-weight:600;color:var(--blue-light);margin-bottom:8px;user-select:none">
                                         Opções avançadas
                                     </summary>
                                     <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
@@ -134,21 +94,21 @@
                                             <input type="checkbox" id="optHeadless" checked style="margin-top:2px" disabled/>
                                             <div>
                                                 <div style="font-weight:500">Configurar headless por padrão</div>
-                                                <div style="color:#6B7280;font-size:10px">Recomendado para CI/CD</div>
+                                                <div style="color:var(--text-3);font-size:10px">Recomendado para CI/CD</div>
                                             </div>
                                         </label>
                                         <label style="display:flex;align-items:flex-start;gap:6px">
                                             <input type="checkbox" id="optMultiBrowser" style="margin-top:2px"/>
                                             <div>
                                                 <div style="font-weight:500">Incluir suporte a múltiplos navegadores</div>
-                                                <div style="color:#6B7280;font-size:10px">Chrome e Firefox</div>
+                                                <div style="color:var(--text-3);font-size:10px">Chrome e Firefox</div>
                                             </div>
                                         </label>
                                         <label style="display:flex;align-items:flex-start;gap:6px">
                                             <input type="checkbox" id="optScripts" checked style="margin-top:2px"/>
                                             <div>
                                                 <div style="font-weight:500">Incluir scripts de execução</div>
-                                                <div style="color:#6B7280;font-size:10px">run-tests.sh e run-tests.bat</div>
+                                                <div style="color:var(--text-3);font-size:10px">run-tests.sh e run-tests.bat</div>
                                             </div>
                                         </label>
                                     </div>
@@ -159,19 +119,19 @@
                         <div class="form-group">
                             <label>Incluir no .zip</label>
                             <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
-                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">
                                     <input type="checkbox" id="inclPageObjects" checked/> Page Objects (POM)
                                 </label>
-                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">
                                     <input type="checkbox" id="inclFeatures" checked/> Arquivos .feature (Gherkin)
                                 </label>
-                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">
                                     <input type="checkbox" id="inclSteps" checked/> Step Definitions
                                 </label>
-                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">
                                     <input type="checkbox" id="inclRunner" checked/> TestRunner + Hooks
                                 </label>
-                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151">
+                                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">
                                     <input type="checkbox" id="inclReadme" checked/> README.md com instruções
                                 </label>
                             </div>
@@ -179,14 +139,14 @@
                     </div>
 
                     <!-- Instrução de uso -->
-                    <div class="card" style="background:#EBF3FA;border-color:#BFDBFE">
-                        <div class="card-title" style="color:#1F4E79;margin-bottom:10px">Como usar o código gerado</div>
-                        <div style="font-size:11px;color:#1F4E79;line-height:1.8">
+                    <div class="card" style="background:rgba(59,130,246,.08);border-color:rgba(59,130,246,.2)">
+                        <div class="card-title" style="color:var(--blue-light);margin-bottom:10px">Como usar o código gerado</div>
+                        <div style="font-size:11px;color:var(--text-2);line-height:1.8">
                             <strong>1.</strong> Baixe o .zip e descompacte em uma pasta<br>
                             <strong>2.</strong> Abra a pasta no VSCode (com Extension Pack for Java)<br>
                             <strong>3.</strong> Aguarde o Maven baixar as dependências<br>
                             <strong>4.</strong> Execute no terminal:<br>
-                            <div style="background:#1F4E79;color:white;padding:8px 12px;border-radius:4px;margin-top:6px;font-family:monospace;font-size:11px">
+                            <div style="background:var(--bg-input);color:var(--text-2);border:1px solid var(--border);padding:8px 12px;border-radius:4px;margin-top:6px;font-family:monospace;font-size:11px">
                                 mvn test
                             </div>
                             <div style="margin-top:8px">

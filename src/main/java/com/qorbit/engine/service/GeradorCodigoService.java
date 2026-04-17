@@ -41,40 +41,40 @@ public class GeradorCodigoService {
         Map<String, PageObjectSpec> pages = construirPages(todosElementos);
 
         try (ZipOutputStream zip = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
-            adicionarArquivo(zip, "qorbit-tests-export/pom.xml", gerarPomXml());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/runner/TestRunner.java", gerarTestRunner());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/config/Hooks.java", gerarHooks());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/config/DriverFactory.java",includeCiCd ? gerarDriverFactoryCiCd() : gerarDriverFactory());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/StepEvidence.java", gerarStepEvidence());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/ExecutionContext.java", gerarExecutionContext());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/FeatureStepCatalog.java", gerarFeatureStepCatalog());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/report/HtmlReportGenerator.java", gerarHtmlReportGenerator());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/steps/CommonSteps.java", gerarCommonSteps(pages));
+            adicionarArquivo(zip, "pom.xml", gerarPomXml());
+            adicionarArquivo(zip, "src/test/java/runner/TestRunner.java", gerarTestRunner());
+            adicionarArquivo(zip, "src/test/java/config/Hooks.java", gerarHooks());
+            adicionarArquivo(zip, "src/test/java/config/DriverFactory.java", includeCiCd ? gerarDriverFactoryCiCd() : gerarDriverFactory());
+            adicionarArquivo(zip, "src/test/java/report/StepEvidence.java", gerarStepEvidence());
+            adicionarArquivo(zip, "src/test/java/report/ExecutionContext.java", gerarExecutionContext());
+            adicionarArquivo(zip, "src/test/java/report/FeatureStepCatalog.java", gerarFeatureStepCatalog());
+            adicionarArquivo(zip, "src/test/java/report/HtmlReportGenerator.java", gerarHtmlReportGenerator());
+            adicionarArquivo(zip, "src/test/java/steps/CommonSteps.java", gerarCommonSteps(pages));
 
             for (PageObjectSpec page : pages.values()) {
                 adicionarArquivo(zip,
-                        "qorbit-tests-export/src/test/java/pages/" + page.className + ".java",
+                        "src/test/java/pages/" + page.className + ".java",
                         gerarPageObject(page));
             }
 
             for (CasoDeTeste caso : casos) {
                 String nomeClasse = normalizador.normalizarClasse(caso.getNome(), "CasoGerado");
                 adicionarArquivo(zip,
-                        "qorbit-tests-export/src/test/resources/features/" + nomeClasse.toLowerCase(Locale.ROOT) + ".feature",
+                        "src/test/resources/features/" + nomeClasse.toLowerCase(Locale.ROOT) + ".feature",
                         gerarFeature(caso));
                 adicionarArquivo(zip,
-                        "qorbit-tests-export/src/test/java/steps/" + nomeClasse + "Steps.java",
+                        "src/test/java/steps/" + nomeClasse + "Steps.java",
                         gerarStepDefinitions(caso, pages, elementosPorNome));
             }
 
-            adicionarArquivo(zip, "qorbit-tests-export/README.md",includeCiCd ? gerarReadmeCiCd() : gerarReadme());
-            adicionarArquivo(zip, "qorbit-tests-export/executar-testes.bat", gerarExecutarTestesBat());
-            adicionarArquivo(zip, "qorbit-tests-export/executar-testes.sh", gerarExecutarTestesSh());
+            adicionarArquivo(zip, "README.md", includeCiCd ? gerarReadmeCiCd() : gerarReadme());
+            adicionarArquivo(zip, "executar-testes.bat", gerarExecutarTestesBat());
+            adicionarArquivo(zip, "executar-testes.sh", gerarExecutarTestesSh());
             if (includeCiCd) {
-                adicionarArquivo(zip, "qorbit-tests-export/.github/workflows/testes.yml", gerarGithubActionsWorkflow());
+                adicionarArquivo(zip, ".github/workflows/testes.yml", gerarGithubActionsWorkflow());
             }
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/java/healing/HealingService.java", gerarHealingService());
-            adicionarArquivo(zip, "qorbit-tests-export/src/test/resources/healing.properties", gerarHealingProperties());
+            adicionarArquivo(zip, "src/test/java/healing/HealingService.java", gerarHealingService());
+            adicionarArquivo(zip, "src/test/resources/healing.properties", gerarHealingProperties());
         }
 
         return baos.toByteArray();
@@ -412,6 +412,34 @@ public class GeradorCodigoService {
         sb.append("        }\n");
         sb.append("        throw new RuntimeException(\"Falha ao clicar no elemento de forma resiliente\", ultimaFalha);\n");
         sb.append("    }\n\n");
+        // Overload resiliente: re-localiza o elemento em cada tentativa para evitar StaleElementReferenceException
+        sb.append("    public void clicar(By locator) {\n");
+        sb.append("        Exception ultimaFalha = null;\n");
+        sb.append("        for (int tentativa = 0; tentativa < 4; tentativa++) {\n");
+        sb.append("            try {\n");
+        sb.append("                aguardarEstabilidade();\n");
+        sb.append("                WebElement elemento = wait.until(ExpectedConditions.elementToBeClickable(locator));\n");
+        sb.append("                scrollParaCentro(elemento);\n");
+        sb.append("                aguardarAnimacaoCurta();\n");
+        sb.append("                if (possuiInterceptacao(elemento)) { fecharOverlaysConhecidos(); elemento = driver.findElement(locator); scrollParaCentro(elemento); }\n");
+        sb.append("                elemento.click();\n");
+        sb.append("                return;\n");
+        sb.append("            } catch (ElementClickInterceptedException e) {\n");
+        sb.append("                ultimaFalha = e;\n");
+        sb.append("                fecharOverlaysConhecidos();\n");
+        sb.append("                if (tentativa == 3) {\n");
+        sb.append("                    try { clicarViaJs(driver.findElement(locator)); return; } catch (Exception jsEx) { ultimaFalha = jsEx; }\n");
+        sb.append("                }\n");
+        sb.append("            } catch (StaleElementReferenceException e) {\n");
+        sb.append("                ultimaFalha = e;\n");
+        sb.append("                aguardarAnimacaoCurta();\n");
+        sb.append("            } catch (Exception e) {\n");
+        sb.append("                ultimaFalha = e;\n");
+        sb.append("                try { clicarViaJs(driver.findElement(locator)); return; } catch (Exception jsEx) { ultimaFalha = jsEx; }\n");
+        sb.append("            }\n");
+        sb.append("        }\n");
+        sb.append("        throw new RuntimeException(\"Falha ao clicar no elemento de forma resiliente\", ultimaFalha);\n");
+        sb.append("    }\n\n");
         sb.append("    public void preencher(String valor, WebElement elemento) {\n");
         sb.append("        try { elemento.clear(); } catch (Exception ignored) { }\n");
         sb.append("        elemento.sendKeys(valor);\n");
@@ -460,12 +488,29 @@ public class GeradorCodigoService {
         sb.append("    }\n\n");
 
         for (ElementSpec element : page.elementos) {
+            String tipoLiteral = normalizador.literalJava(element.locator().tipo());
+            String seletorLiteral = normalizador.literalJava(element.locator().valor());
+            String frameLiteral = normalizador.literalJava(element.context().framePath());
+
             sb.append("    // ").append(normalizador.literalJava(element.source().getNomeLogico())).append("\n");
             sb.append("    public WebElement ").append(element.methodName()).append("() {\n");
-            sb.append("        return localizar(\"").append(normalizador.literalJava(element.locator().tipo())).append("\", \"")
-                    .append(normalizador.literalJava(element.locator().valor())).append("\", \"")
-                    .append(normalizador.literalJava(element.context().framePath())).append("\");\n");
+            sb.append("        return localizar(\"").append(tipoLiteral).append("\", \"")
+                    .append(seletorLiteral).append("\", \"").append(frameLiteral).append("\");\n");
             sb.append("    }\n\n");
+
+            // Método byXxx() — retorna By para uso no clicar(By) resiliente
+            String byMethod = "by" + Character.toUpperCase(element.methodName().charAt(0)) + element.methodName().substring(1);
+            sb.append("    public By ").append(byMethod).append("() {\n");
+            String byExpression = switch (tipoLiteral.toUpperCase(Locale.ROOT)) {
+                case "XPATH" -> "By.xpath(\"" + seletorLiteral + "\")";
+                case "ID" -> "By.id(\"" + seletorLiteral + "\")";
+                case "NAME" -> "By.name(\"" + seletorLiteral + "\")";
+                case "LINK_TEXT" -> "By.linkText(\"" + seletorLiteral + "\")";
+                default -> "By.cssSelector(\"" + seletorLiteral + "\")";
+            };
+            sb.append("        return ").append(byExpression).append(";\n");
+            sb.append("    }\n\n");
+
             sb.append("    public String ").append(element.methodName()).append("TipoComponente() {\n");
             sb.append("        return \"").append(normalizador.literalJava(element.context().componentType())).append("\";\n");
             sb.append("    }\n\n");
@@ -482,11 +527,16 @@ public class GeradorCodigoService {
         sb.append("Funcionalidade: ").append(safe(caso.getNome())).append("\n\n");
         sb.append("  Cenario: ").append(safe(caso.getNome())).append("\n");
 
+        String prefixoCaso = prefixoCenario(caso);
         List<StepTeste> steps = orderedSteps(caso);
         for (int i = 0; i < steps.size(); i++) {
             StepTeste step = steps.get(i);
             String keyword = i == 0 ? "Dado" : ("VALIDAR".equalsIgnoreCase(step.getAcao()) ? "Entao" : "E");
-            sb.append("    ").append(keyword).append(" ").append(descricaoStep(step)).append("\n");
+            String acao = Optional.ofNullable(step.getAcao()).orElse("").toUpperCase(Locale.ROOT);
+            String desc = descricaoStep(step);
+            // NAVEGAR fica sem prefixo pois é tratado pelo CommonSteps com expressão genérica
+            String textoStep = "NAVEGAR".equals(acao) ? desc : prefixoCaso + desc;
+            sb.append("    ").append(keyword).append(" ").append(textoStep).append("\n");
         }
         return sb.toString();
     }
@@ -524,6 +574,7 @@ public class GeradorCodigoService {
         }
         sb.append("\n");
 
+        String prefixoCaso = prefixoCenario(caso);
         List<StepTeste> ordered = orderedSteps(caso);
         Set<String> expressoesGeradas = new LinkedHashSet<>();
         int metodoSeq = 1;
@@ -535,7 +586,8 @@ public class GeradorCodigoService {
             }
             ResolvedStep resolved = i < resolvedSteps.size() ? resolvedSteps.get(i) : null;
             String annotation = i == 0 ? "@Dado" : ("VALIDAR".equalsIgnoreCase(step.getAcao()) ? "@Entao" : "@E");
-            String expressaoRaw = expressaoStep(step);
+            // Prefixo garante unicidade global entre steps de casos diferentes
+            String expressaoRaw = prefixoCaso + expressaoStep(step);
             if (!expressoesGeradas.add(expressaoRaw)) {
                 continue;
             }
@@ -576,8 +628,9 @@ public class GeradorCodigoService {
             }
             case "CLICAR" -> {
                 if (resolved != null && resolved.methodName() != null) {
+                    String byMethod = "by" + Character.toUpperCase(resolved.methodName().charAt(0)) + resolved.methodName().substring(1);
                     sb.append("        ").append(pageVar).append(".clicar(")
-                            .append(pageVar).append(".").append(resolved.methodName()).append("());\n");
+                            .append(pageVar).append(".").append(byMethod).append("());\n");
                 } else {
                     failElemento(sb, "clique", step);
                 }
@@ -658,6 +711,10 @@ public class GeradorCodigoService {
     private boolean isDynamicComponent(String componentType) {
         if (componentType == null) return false;
         return Set.of("CUSTOM_SELECT", "AUTOCOMPLETE", "DATEPICKER", "SELECT").contains(componentType.toUpperCase(Locale.ROOT));
+    }
+
+    private String prefixoCenario(CasoDeTeste caso) {
+        return caso.getNome().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "") + ": ";
     }
 
     private String expressaoStep(StepTeste step) {
@@ -1040,11 +1097,17 @@ public class GeradorCodigoService {
                 + "        String duracao = snapshot.duracaoSegundos() + \"s\";\n"
                 + "        List<StepEvidence> steps = snapshot.stepsPorCenario().values().stream().flatMap(List::stream).collect(Collectors.toList());\n"
                 + "        String tabela = steps.stream().map(step -> \"<tr><td><b>\" + step.indice() + \"</b></td><td>\" + esc(step.descricao()) + \"</td><td><span class='badge \" + cssStatus(step.status()) + \"'>\" + simbolo(step.status()) + \" \" + esc(step.status()) + \"</span></td><td style='color:#DC2626;font-size:12px'>\" + esc(vazioOuTraco(step.detalheFalha())) + \"</td></tr>\").collect(Collectors.joining());\n"
-                + "        String evidencias = steps.stream().map(step -> \"<div class='step-box'><div class='step-head'><div class='step-num'>\" + step.indice() + \"</div><div style='flex:1;font-size:13px;font-weight:500'>\" + esc(step.descricao()) + \"</div><span class='badge \" + cssStatus(step.status()) + \"'>\" + simbolo(step.status()) + \" \" + esc(step.status()) + \"</span></div><div class='step-body'>\" + (step.detalheFalha() == null || step.detalheFalha().isBlank() ? \"\" : \"<div class='erro'>\" + esc(step.detalheFalha()) + \"</div>\") + \"<img src='\" + esc(step.imagemRelativa()) + \"' alt='Step \" + step.indice() + \"'></div></div>\").collect(Collectors.joining());\n"
+                + "        StringBuilder evBuilder = new StringBuilder();\n"
+                + "        int[] ctIdx = {1};\n"
+                + "        snapshot.stepsPorCenario().forEach((nomeCenario, stepsCenario) -> {\n"
+                + "            evBuilder.append(\"<div class='ct-header'><span class='ct-badge'>CT\").append(ctIdx[0]++).append(\"</span><span class='ct-titulo'>\").append(esc(nomeCenario)).append(\"</span></div>\");\n"
+                + "            stepsCenario.forEach(step -> evBuilder.append(\"<div class='step-box'><div class='step-head'><div class='step-num'>\" + step.indice() + \"</div><div style='flex:1;font-size:13px;font-weight:500'>\" + esc(step.descricao()) + \"</div><span class='badge \" + cssStatus(step.status()) + \"'>\" + simbolo(step.status()) + \" \" + esc(step.status()) + \"</span></div><div class='step-body'>\" + (step.detalheFalha() == null || step.detalheFalha().isBlank() ? \"\" : \"<div class='erro'>\" + esc(step.detalheFalha()) + \"</div>\") + \"<img src='\" + esc(step.imagemRelativa()) + \"' alt='Step \" + step.indice() + \"'></div></div>\"));\n"
+                + "        });\n"
+                + "        String evidencias = evBuilder.toString();\n"
                 + "        String labels = steps.stream().map(step -> \"'Step \" + step.indice() + \"'\").collect(Collectors.joining(\",\"));\n"
                 + "        String dataPassou = steps.stream().map(step -> \"PASSOU\".equalsIgnoreCase(step.status()) ? \"1\" : \"0\").collect(Collectors.joining(\",\"));\n"
                 + "        String dataFalhou = steps.stream().map(step -> \"FALHOU\".equalsIgnoreCase(step.status()) ? \"1\" : \"0\").collect(Collectors.joining(\",\"));\n"
-                + "        return \"<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Relatório de Execução</title><script src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'></script><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#F1F5F9;color:#1E293B}.header{background:linear-gradient(135deg,#1F4E79 0%,#2563EB 100%);color:white;padding:32px 40px}.header h1{font-size:24px;font-weight:700;margin-bottom:6px}.header .meta{font-size:13px;opacity:.85}.header .meta span{margin-right:20px}.body{max-width:1100px;margin:0 auto;padding:32px 24px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}.card{background:white;border-radius:12px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}.card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#64748B;margin-bottom:6px}.card-value{font-size:32px;font-weight:700}.charts{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}.chart-box{background:white;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}.chart-box h2{font-size:15px;font-weight:600;margin-bottom:16px;color:#1E293B}.section{background:white;border-radius:12px;padding:24px;margin-bottom:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}.section h2{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #E2E8F0}table{width:100%;border-collapse:collapse;font-size:13px}thead th{background:#F8FAFC;color:#475569;font-size:11px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:2px solid #E2E8F0}tbody td{padding:11px 14px;border-bottom:1px solid #F1F5F9;vertical-align:top}tbody tr:hover{background:#F8FAFC}.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}.passou{background:#DCFCE7;color:#166534}.falhou{background:#FEE2E2;color:#DC2626}.step-box{border:1px solid #E2E8F0;border-radius:8px;margin-bottom:12px;overflow:hidden}.step-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0}.step-num{width:26px;height:26px;border-radius:50%;background:#1F4E79;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}.step-body{padding:12px 16px}.erro{color:#DC2626;background:#FEF2F2;padding:8px;border-radius:6px;font-size:12px;margin-top:6px;font-family:monospace}.step-body img{max-width:100%;border:1px solid #E2E8F0;border-radius:6px;margin-top:8px}.bar{height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden;margin-top:8px}.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#16A34A,#22C55E)}.footer{text-align:center;padding:24px;color:#94A3B8;font-size:12px}</style></head><body><div class='header'><h1>&#128203; Relatório de Execução</h1><div class='meta'><span>&#128279; \" + esc(urlBase == null || urlBase.isBlank() ? \"URL não capturada\" : urlBase) + \"</span><span>&#128336; \" + dataHora + \"</span><span>&#9200; Duração: \" + duracao + \"</span></div></div><div class='body'><div class='cards'><div class='card'><div class='card-label'>Total</div><div class='card-value' style='color:#2563EB'>\" + total + \"</div></div><div class='card'><div class='card-label'>Passou</div><div class='card-value' style='color:#16A34A'>\" + passou + \"</div></div><div class='card'><div class='card-label'>Falhou</div><div class='card-value' style='color:#DC2626'>\" + falhou + \"</div></div><div class='card'><div class='card-label'>% Sucesso</div><div class='card-value' style='color:#16A34A'>\" + percentual + \"%</div><div class='bar'><div class='bar-fill' style='width:\" + percentual + \"%'></div></div></div></div><div class='charts'><div class='chart-box'><h2>&#128202; Resultado por Step</h2><canvas id='c1'></canvas></div><div class='chart-box'><h2>&#128200; Resumo</h2><canvas id='c2'></canvas></div></div><div class='section'><h2>&#128203; Tabela de Steps</h2><table><thead><tr><th>#</th><th>Descrição</th><th>Status</th><th>Detalhe da falha</th></tr></thead><tbody>\" + tabela + \"</tbody></table></div><div class='section'><h2>&#128247; Evidências</h2>\" + evidencias + \"</div><div class='footer'>Gerado pelo Qorbit v2.0</div></div><script>new Chart(document.getElementById('c1').getContext('2d'),{type:'bar',data:{labels:[\" + labels + \"],datasets:[{label:'Passou',data:[\" + dataPassou + \"],backgroundColor:'#22C55E'},{label:'Falhou',data:[\" + dataFalhou + \"],backgroundColor:'#EF4444'}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{position:'top'}}}});new Chart(document.getElementById('c2').getContext('2d'),{type:'bar',data:{labels:['Passou','Falhou'],datasets:[{label:'Steps',data:[\" + passou + \",\" + falhou + \"],backgroundColor:['#22C55E','#EF4444']}]},options:{responsive:true,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});</script></body></html>\";\n"
+                + "        return \"<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Relatório de Execução</title><script src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'></script><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;background:#F1F5F9;color:#1E293B}.header{background:linear-gradient(135deg,#1F4E79 0%,#2563EB 100%);color:white;padding:32px 40px}.header h1{font-size:24px;font-weight:700;margin-bottom:6px}.header .meta{font-size:13px;opacity:.85}.header .meta span{margin-right:20px}.body{max-width:1100px;margin:0 auto;padding:32px 24px}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}.card{background:white;border-radius:12px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}.card-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:#64748B;margin-bottom:6px}.card-value{font-size:32px;font-weight:700}.charts{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}.chart-box{background:white;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}.chart-box h2{font-size:15px;font-weight:600;margin-bottom:16px;color:#1E293B}.section{background:white;border-radius:12px;padding:24px;margin-bottom:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}.section h2{font-size:15px;font-weight:600;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #E2E8F0}table{width:100%;border-collapse:collapse;font-size:13px}thead th{background:#F8FAFC;color:#475569;font-size:11px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:2px solid #E2E8F0}tbody td{padding:11px 14px;border-bottom:1px solid #F1F5F9;vertical-align:top}tbody tr:hover{background:#F8FAFC}.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}.passou{background:#DCFCE7;color:#166534}.falhou{background:#FEE2E2;color:#DC2626}.step-box{border:1px solid #E2E8F0;border-radius:8px;margin-bottom:12px;overflow:hidden}.step-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #E2E8F0}.step-num{width:26px;height:26px;border-radius:50%;background:#1F4E79;color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}.step-body{padding:12px 16px}.erro{color:#DC2626;background:#FEF2F2;padding:8px;border-radius:6px;font-size:12px;margin-top:6px;font-family:monospace}.step-body img{max-width:100%;border:1px solid #E2E8F0;border-radius:6px;margin-top:8px}.bar{height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden;margin-top:8px}.bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#16A34A,#22C55E)}.footer{text-align:center;padding:24px;color:#94A3B8;font-size:12px}.ct-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,#1F4E79,#2563EB);border-radius:8px;margin:16px 0 8px;color:white}.ct-badge{background:white;color:#1F4E79;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;flex-shrink:0}.ct-titulo{font-size:14px;font-weight:600}details.steps-accordion{width:100%}summary.steps-toggle{cursor:pointer;list-style:none;display:flex;align-items:center;font-size:15px;font-weight:600;color:#1E293B;padding:4px 0;gap:8px}summary.steps-toggle::-webkit-details-marker{display:none}summary.steps-toggle::after{content:'\\25BC';margin-left:auto;font-size:11px;color:#64748B}details.steps-accordion[open] summary.steps-toggle::after{content:'\\25B2'}.expand-dica{font-size:12px;font-weight:400;color:#64748B}</style></head><body><div class='header'><h1>&#128203; Relatório de Execução</h1><div class='meta'><span>&#128279; \" + esc(urlBase == null || urlBase.isBlank() ? \"URL não capturada\" : urlBase) + \"</span><span>&#128336; \" + dataHora + \"</span><span>&#9200; Duração: \" + duracao + \"</span></div></div><div class='body'><div class='cards'><div class='card'><div class='card-label'>Total</div><div class='card-value' style='color:#2563EB'>\" + total + \"</div></div><div class='card'><div class='card-label'>Passou</div><div class='card-value' style='color:#16A34A'>\" + passou + \"</div></div><div class='card'><div class='card-label'>Falhou</div><div class='card-value' style='color:#DC2626'>\" + falhou + \"</div></div><div class='card'><div class='card-label'>% Sucesso</div><div class='card-value' style='color:#16A34A'>\" + percentual + \"%</div><div class='bar'><div class='bar-fill' style='width:\" + percentual + \"%'></div></div></div></div><div class='charts'><div class='chart-box'><h2>&#128202; Resultado por Step</h2><canvas id='c1'></canvas></div><div class='chart-box'><h2>&#128200; Resumo</h2><canvas id='c2'></canvas></div></div><div class='section'><details class='steps-accordion'><summary class='steps-toggle'>&#128203; Tabela de Steps <span class='expand-dica'>— clique para expandir</span></summary><div style='overflow-x:auto;margin-top:12px'><table><thead><tr><th>#</th><th>Descrição</th><th>Status</th><th>Detalhe da falha</th></tr></thead><tbody>\" + tabela + \"</tbody></table></div></details></div><div class='section'><h2>&#128247; Evidências</h2>\" + evidencias + \"</div><div class='footer'>Gerado pelo Qorbit v2.0</div></div><script>new Chart(document.getElementById('c1').getContext('2d'),{type:'bar',data:{labels:[\" + labels + \"],datasets:[{label:'Passou',data:[\" + dataPassou + \"],backgroundColor:'#22C55E'},{label:'Falhou',data:[\" + dataFalhou + \"],backgroundColor:'#EF4444'}]},options:{responsive:true,scales:{y:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{position:'top'}}}});new Chart(document.getElementById('c2').getContext('2d'),{type:'bar',data:{labels:['Passou','Falhou'],datasets:[{label:'Steps',data:[\" + passou + \",\" + falhou + \"],backgroundColor:['#22C55E','#EF4444']}]},options:{responsive:true,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});</script></body></html>\";\n"
                 + "    }\n\n"
                 + "    private static String cssStatus(String status) {\n"
                 + "        return \"FALHOU\".equalsIgnoreCase(status) ? \"falhou\" : \"passou\";\n"

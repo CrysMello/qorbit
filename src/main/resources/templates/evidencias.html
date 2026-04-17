@@ -1,70 +1,29 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6" lang="pt-BR">
 <head>
     <meta charset="UTF-8"/>
     <title>Evidências — Qorbit</title>
     <link rel="stylesheet" th:href="@{/css/app.css}"/>
     <style>
         .thumb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-        .thumb{border-radius:6px;overflow:hidden;border:1px solid #E5E7EB;cursor:pointer}
-        .thumb:hover{border-color:#1F4E79}
-        .thumb-img{height:100px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .thumb{border-radius:6px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+        .thumb:hover{border-color:var(--blue)}
+        .thumb-img{height:100px;background:var(--bg-surface);display:flex;align-items:center;justify-content:center;overflow:hidden}
         .thumb-img img{width:100%;height:100%;object-fit:cover}
-        .thumb-info{padding:8px 10px;border-top:1px solid #E5E7EB}
-        .thumb.falhou .thumb-img{background:#FEF2F2}
-        .thumb.falhou{border-color:#FECACA}
-        .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center}
+        .thumb-info{padding:8px 10px;border-top:1px solid var(--border);font-size:11px;color:var(--text-3)}
+        .thumb.falhou .thumb-img{background:var(--red-bg)}
+        .thumb.falhou{border-color:var(--red-border)}
+        .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center}
         .lightbox.open{display:flex}
-        .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px}
-        .lightbox-close{position:absolute;top:20px;right:28px;color:white;font-size:28px;cursor:pointer}
+        .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,.6)}
+        .lightbox-close{position:absolute;top:20px;right:28px;color:var(--text-1);font-size:28px;cursor:pointer}
     </style>
-<style>
-        .nav-item { border-left: 3px solid transparent !important; }
-        .nav-item.active { border-left: 3px solid #4F9CF9 !important; background: rgba(79,156,249,.1) !important; }
-        .nav-item:hover { background: rgba(255,255,255,.06) !important; }
-        </style>
 </head>
 <body>
 <div class="app-layout">
-    <aside class="sidebar">
-        <div class="sidebar-logo" style="display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:6px">
-            <svg width="36" height="36" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Qorbit logo">
-          <rect width="256" height="256" rx="52" fill="#253D6B"/>
-          <circle cx="128" cy="108" r="38" fill="none" stroke="#4F9CF9" stroke-width="10"/>
-          <circle cx="128" cy="108" r="16" fill="#4F9CF9"/>
-          <rect x="148" y="128" width="10" height="46" rx="5" fill="#4F9CF9" transform="rotate(45 153 151)"/>
-          <circle cx="128" cy="60" r="7" fill="#7EC8F7" opacity="0.7"/>
-          <circle cx="170" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
-          <circle cx="86" cy="80" r="5" fill="#7EC8F7" opacity="0.5"/>
-        </svg>
-            <div>
-                <span class="logo-title" style="display:block;font-size:15px;font-weight:700;color:#fff;letter-spacing:.5px">Qorbit</span>
-                <span class="logo-sub" style="display:block;font-size:10px;color:rgba(255,255,255,.75);letter-spacing:.5px">v2.0</span>
-            </div>
-        </div>
-        <nav>
-            <div class="nav-section">Principal</div>
-            <a href="/" class="nav-item">Dashboard</a>
-            <a href="/nova-execucao" class="nav-item">Nova execução</a>
-            <div class="nav-section">Biblioteca</div>
-            <a href="/elementos" class="nav-item">Elementos (POM)</a>
-            <a href="/casos" class="nav-item">Casos de teste</a>
-            <a href="/suites" class="nav-item" style="color:#7C3AED">&#9632; Suites</a>
-            <div class="nav-section">Gravar</div>
-            <a href="/gravar-teste" class="nav-item">&#9210; Gravar teste</a>
-            <div class="nav-section">Resultados</div>
-            <a href="/execucoes" class="nav-item">Execuções</a>
-            <a href="/evidencias" class="nav-item active" aria-current="page">Evidências</a>
-            <a href="/gerar-codigo" class="nav-item">Gerar código</a>
-
-            <div class="nav-section">Inteligência</div>
-            <a href="/ai-plugin" class="nav-item" style="color:#7C3AED">&#10024; Plugin IA</a>
-        </nav>
-        <div class="sidebar-status">
-            <span class="status-dot" id="seleniumStatus"></span>
-            <span id="seleniumLabel">Verificando...</span>
-        </div>
-    </aside>
+    
+    <div th:replace="~{fragments/sidebar :: sidebar('evidencias')}" ></div>
 
     <main class="main-content">
         <div class="topbar">
@@ -77,7 +36,7 @@
                     Baixar .zip
                 </button>
                 <button class="btn btn-primary" id="btnCodigo" onclick="gerarCodigo()" style="display:none">
-                    Gerar código Cucumber
+                    Exportar código Cucumber
                 </button>
             </div>
         </div>
@@ -86,14 +45,14 @@
 
             <!-- Seletor de execução -->
             <div class="card filter-bar">
-                <label style="font-size:12px;color:#6B7280;white-space:nowrap">Execução:</label>
+                <label style="font-size:12px;color:var(--text-3);white-space:nowrap">Execução:</label>
                 <select id="selectExecucao" class="input" onchange="carregarEvidencias(this.value)">
                     <option value="">Selecione uma execução...</option>
                 </select>
                 <div class="filter-tabs" id="filtroStatus" style="display:none;gap:6px;display:flex">
                     <button class="btn btn-sm active-filter" data-filtro="" onclick="filtrarStatus('',this)">Todos</button>
                     <button class="btn btn-sm" data-filtro="PASSOU" onclick="filtrarStatus('PASSOU',this)">Passou</button>
-                    <button class="btn btn-sm" data-filtro="FALHOU" onclick="filtrarStatus('FALHOU',this)" style="color:#DC2626">Falhou</button>
+                    <button class="btn btn-sm" data-filtro="FALHOU" onclick="filtrarStatus('FALHOU',this)" style="color:var(--red)">Falhou</button>
                 </div>
             </div>
 
@@ -103,13 +62,13 @@
                     <span class="metric-label">Total de steps</span>
                     <span class="metric-value" id="mTotal">0</span>
                 </div>
-                <div class="metric-card" style="background:#DCFCE7">
-                    <span class="metric-label" style="color:#166534">Passou</span>
-                    <span class="metric-value" style="color:#166534" id="mPassou">0</span>
+                <div class="metric-card" style="background:var(--green-bg);border-color:var(--green-border)">
+                    <span class="metric-label" style="color:var(--green)">Passou</span>
+                    <span class="metric-value" style="color:var(--green)" id="mPassou">0</span>
                 </div>
-                <div class="metric-card" style="background:#FEE2E2">
-                    <span class="metric-label" style="color:#DC2626">Falhou</span>
-                    <span class="metric-value" style="color:#DC2626" id="mFalhou">0</span>
+                <div class="metric-card" style="background:var(--red-bg);border-color:var(--red-border)">
+                    <span class="metric-label" style="color:var(--red)">Falhou</span>
+                    <span class="metric-value" style="color:var(--red)" id="mFalhou">0</span>
                 </div>
                 <div class="metric-card">
                     <span class="metric-label">% Sucesso</span>

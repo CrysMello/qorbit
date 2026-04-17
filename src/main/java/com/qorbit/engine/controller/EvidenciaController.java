@@ -1,5 +1,7 @@
 package com.qorbit.engine.controller;
 
+import com.qorbit.engine.auth.model.QorbitUser;
+import com.qorbit.engine.auth.repository.QorbitUserRepository;
 import com.qorbit.engine.model.Evidencia;
 import com.qorbit.engine.model.Execucao;
 import com.qorbit.engine.repository.ExecucaoRepository;
@@ -9,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
@@ -23,13 +27,35 @@ public class EvidenciaController {
 
     @Autowired private ExecucaoRepository execucaoRepo;
     @Autowired private com.qorbit.engine.repository.EvidenciaRepository evidenciaRepo;
+    @Autowired private QorbitUserRepository userRepo;
 
     @Value("${scanner.evidencias.path:evidencias}")
     private String basePath;
 
+    /**
+     * Obtém o usuário autenticado do contexto de segurança
+     */
+    private QorbitUser getUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            String email = auth.getName();
+            return userRepo.findByEmailIgnoreCase(email).orElse(null);
+        }
+        return null;
+    }
+
     @GetMapping("/execucao/{execucaoId}")
     public ResponseEntity<?> listarPorExecucao(@PathVariable Long execucaoId) {
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return ResponseEntity.status(401).build();
+        }
+
         return execucaoRepo.findById(execucaoId).map(exec -> {
+            // ✅ Validar que a execução pertence ao usuário
+            if (exec.getUsuario() == null || !exec.getUsuario().getId().equals(usuario.getId())) {
+                return (ResponseEntity<?>) ResponseEntity.status(403).build();
+            }
             List<Map<String, Object>> result = new ArrayList<>();
             if (exec.getEvidencias() != null) {
                 exec.getEvidencias().forEach(ev -> {

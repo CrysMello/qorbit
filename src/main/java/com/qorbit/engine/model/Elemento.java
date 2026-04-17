@@ -1,5 +1,6 @@
 package com.qorbit.engine.model;
 
+import com.qorbit.engine.auth.model.QorbitUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -38,6 +39,10 @@ public class Elemento {
 
     @Column(name = "atualizado_em")
     private String atualizadoEm;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private QorbitUser usuario;
 
     @PrePersist
     public void prePersist() {

@@ -1,5 +1,7 @@
 package com.qorbit.engine.controller;
 
+import com.qorbit.engine.auth.model.QorbitUser;
+import com.qorbit.engine.auth.repository.QorbitUserRepository;
 import com.qorbit.engine.model.CasoDeTeste;
 import com.qorbit.engine.model.Execucao;
 import com.qorbit.engine.repository.CasoDeTesteRepository;
@@ -8,6 +10,8 @@ import com.qorbit.engine.repository.ExecucaoRepository;
 import com.qorbit.engine.selenium.SeleniumWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -20,22 +24,50 @@ public class ExecucaoController {
     @Autowired private CasoDeTesteRepository casoRepo;
     @Autowired private ElementoRepository    elementoRepo;
     @Autowired private SeleniumWorker        worker;
+    @Autowired private QorbitUserRepository  userRepo;
+
+    /**
+     * Obtém o usuário autenticado do contexto de segurança
+     */
+    private QorbitUser getUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            String email = auth.getName();
+            return userRepo.findByEmailIgnoreCase(email).orElse(null);
+        }
+        return null;
+    }
 
     @GetMapping
     public List<Map<String, Object>> listar() {
-        return execucaoRepo.findAllByOrderByIniciadoEmDesc()
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return new ArrayList<>();
+        }
+        return execucaoRepo.findByUsuarioOrderByIdDesc(usuario)
                 .stream().map(this::toMap).toList();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> buscar(@PathVariable Long id) {
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return ResponseEntity.status(401).build();
+        }
+
         return execucaoRepo.findById(id)
+                .filter(e -> e.getUsuario() != null && e.getUsuario().getId().equals(usuario.getId()))
                 .map(e -> ResponseEntity.ok(toMap(e)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/iniciar")
     public ResponseEntity<?> iniciar(@RequestBody Map<String, Object> body) {
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+        }
+
         String url        = (String) body.get("url");
         String browser    = (String) body.getOrDefault("browser", "chrome");
         String metodoAuth = (String) body.getOrDefault("metodoAuth", "COOKIE");
@@ -50,6 +82,14 @@ public class ExecucaoController {
 
         List<Long> ids = idsCasos.stream().map(Integer::longValue).toList();
         List<CasoDeTeste> casos = casoRepo.findAllById(ids);
+        
+        // ✅ VALIDAR: Todos os casos pertencem ao usuário autenticado
+        for (CasoDeTeste caso : casos) {
+            if (caso.getUsuario() == null || !caso.getUsuario().getId().equals(usuario.getId())) {
+                return ResponseEntity.status(403).body(Map.of("erro", "Você não tem permissão para executar esse caso"));
+            }
+        }
+
         if (casos.isEmpty())
             return ResponseEntity.badRequest().body(Map.of("erro", "Nenhum caso de teste encontrado"));
 
@@ -58,6 +98,7 @@ public class ExecucaoController {
         exec.setBrowser(browser);
         exec.setMetodoAuth(metodoAuth);
         exec.setStatus("AGUARDANDO");
+        exec.setUsuario(usuario);  // ✅ SETAR O USUÁRIO
         exec = execucaoRepo.save(exec);
 
         worker.executar(exec, casos, browser, null);
@@ -71,10 +112,18 @@ public class ExecucaoController {
     /** Deleta uma execução específica pelo ID */
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deletar(@PathVariable Long id) {
-        if (!execucaoRepo.existsById(id))
-            return ResponseEntity.notFound().build();
-        execucaoRepo.deleteById(id);
-        return ResponseEntity.ok(Map.of("mensagem", "Execução #" + id + " removida"));
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        return execucaoRepo.findById(id).map(exec -> {
+            if (exec.getUsuario() == null || !exec.getUsuario().getId().equals(usuario.getId())) {
+                return ResponseEntity.status(403).<ResponseEntity<?>>build();
+            }
+            execucaoRepo.deleteById(id);
+            return ResponseEntity.ok(Map.of("mensagem", "Execução #" + id + " removida"));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     /** Deleta todas as execuções com status AGUARDANDO */

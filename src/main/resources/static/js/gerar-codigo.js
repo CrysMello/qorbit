@@ -26,10 +26,10 @@ function renderizarCasos(lista) {
                 ${selecionados.has(c.id) ? '✓' : ''}
             </div>
             <div style="flex:1">
-                <div style="font-size:12px;font-weight:bold;color:${selecionados.has(c.id) ? '#1F4E79' : '#374151'}">
+                <div style="font-size:12px;font-weight:bold;color:${selecionados.has(c.id) ? '#1F4E79' : '#fff'}">
                     ${c.codigo || 'CT-' + c.id} · ${c.nome}
                 </div>
-                <div class="text-muted text-sm">${c.steps?.length || 0} steps · ${c.modulo || 'Geral'}</div>
+                <div style="font-size:11px;color:#fff;opacity:0.7">${c.steps?.length || 0} steps · ${c.modulo || 'Geral'}</div>
             </div>
         </div>
     `).join('');

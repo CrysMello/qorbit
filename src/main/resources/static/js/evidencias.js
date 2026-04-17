@@ -125,7 +125,7 @@ async function downloadEvidencias() {
 }
 
 async function gerarCodigo() {
-    window.location.href = '/gerar-codigo';
+    window.location.href = '/exportar-codigo';
 }
 
 carregarExecucoes();

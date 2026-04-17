@@ -1,5 +1,7 @@
 package com.qorbit.engine.service;
 
+import com.qorbit.engine.auth.model.QorbitUser;
+import com.qorbit.engine.auth.repository.QorbitUserRepository;
 import com.qorbit.engine.gerador.NormalizadorNomes;
 import com.qorbit.engine.model.CasoDeTeste;
 import com.qorbit.engine.model.Elemento;
@@ -8,6 +10,8 @@ import com.qorbit.engine.repository.CasoDeTesteRepository;
 import com.qorbit.engine.repository.ElementoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -20,6 +24,7 @@ import java.util.regex.Pattern;
 public class GravacaoService {
     @Autowired private CasoDeTesteRepository casoRepo;
     @Autowired private ElementoRepository elementoRepo;
+    @Autowired private QorbitUserRepository userRepo;
     @Autowired(required = false) private SimpMessagingTemplate mensageria;
     @Autowired private NormalizadorNomes normalizadorNomes;
 
@@ -41,6 +46,18 @@ public class GravacaoService {
     private final Map<String, String> ultimoValorPorCampo = new ConcurrentHashMap<>();
     private static final Set<String> TAGS_CONTAINER = Set.of("div", "section", "form", "article", "main", "aside", "header", "footer", "fieldset", "ul", "ol", "li", "table", "tbody", "tr", "td", "th");
     private static final Set<String> ROLES_CONTAINER = Set.of("main", "region", "group", "list", "grid", "table", "form", "document", "presentation", "none");
+
+    /**
+     * Obtém o usuário autenticado do contexto de segurança
+     */
+    private QorbitUser getUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            String email = auth.getName();
+            return userRepo.findByEmailIgnoreCase(email).orElse(null);
+        }
+        return null;
+    }
 
     public Map<String, Object> iniciarGravacao(String url) {
         if (gravando.get()) {
@@ -71,9 +88,20 @@ public class GravacaoService {
             return Map.of("erro", "Nenhum step gravado. Interaja com a aplicação antes de parar.");
         }
 
+        QorbitUser usuario = getUsuarioAutenticado();
+        if (usuario == null) {
+            return Map.of("erro", "Usuário não autenticado. Faça login para gravar testes.");
+        }
+
+        // Salva elementos com o usuário correto
         elementosGravados.forEach(el -> {
-            boolean jaExiste = elementoRepo.findByNomeLogicoAndPagina(el.getNomeLogico(), el.getPagina()).isPresent();
-            if (!jaExiste) elementoRepo.save(el);
+            boolean jaExiste = elementoRepo.findByNomeLogicoAndPagina(el.getNomeLogico(), el.getPagina())
+                    .filter(ex -> ex.getUsuario() != null && ex.getUsuario().getId().equals(usuario.getId()))
+                    .isPresent();
+            if (!jaExiste) {
+                el.setUsuario(usuario);
+                elementoRepo.save(el);
+            }
         });
 
         CasoDeTeste caso = new CasoDeTeste();
@@ -82,6 +110,7 @@ public class GravacaoService {
         caso.setUrlAlvo(urlBase);
         caso.setCodigo("CT-" + String.format("%02d", casoRepo.count() + 1));
         caso.setStatus("ATIVO");
+        caso.setUsuario(usuario);
 
         List<StepTeste> copia = new ArrayList<>();
         for (int i = 0; i < stepsGravados.size(); i++) {

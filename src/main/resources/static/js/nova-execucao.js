@@ -41,10 +41,10 @@ function renderizarCasos(lista) {
                 ${casosSelecionados.has(c.id) ? '✓' : ''}
             </div>
             <div style="flex:1">
-                <div style="font-size:12px;font-weight:bold;color:${casosSelecionados.has(c.id) ? '#1F4E79' : '#374151'}">
+                <div class="test-info-code">
                     ${c.codigo || ('CT-' + c.id)} · ${c.nome}
                 </div>
-                <div class="text-muted text-sm">${c.steps?.length || 0} steps · ${c.modulo || 'Geral'}</div>
+                <div class="test-info-meta">${c.steps?.length || 0} steps · ${c.modulo || 'Geral'}</div>
             </div>
         </div>
     `).join('');

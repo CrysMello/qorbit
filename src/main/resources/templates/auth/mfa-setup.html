@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ativar MFA — Qorbit</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0A0E1A 0%, #0D1B2A 50%, #0A1628 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 1rem;
+        }
+        .card {
+            width: 100%; max-width: 460px;
+            background: rgba(17,24,39,0.95);
+            border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 16px; padding: 2.5rem 2rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .logo { text-align: center; margin-bottom: 1.5rem; }
+        .logo-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #6366F1, #818CF8);
+            border-radius: 12px; margin-bottom: 0.5rem;
+            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        }
+        .logo-icon svg { width: 26px; height: 26px; fill: white; }
+        .logo-name { font-size: 1.4rem; font-weight: 700; color: #F9FAFB; }
+        .logo-name span { color: #6366F1; }
+        .steps-indicator {
+            display: flex; justify-content: center; gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .step-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #374151; transition: background 0.3s;
+        }
+        .step-dot.active { background: #6366F1; }
+        .step-dot.done { background: #10B981; }
+        .setup-step { display: none; }
+        .setup-step.active { display: block; }
+        h2 { font-size: 1.1rem; font-weight: 600; color: #F9FAFB; margin-bottom: 0.5rem; }
+        p { font-size: 0.875rem; color: #6B7280; margin-bottom: 1rem; line-height: 1.5; }
+        .qr-container {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 1rem; background: white; border-radius: 12px;
+            margin: 1rem 0; width: fit-content; margin-inline: auto;
+        }
+        .qr-container img { width: 180px; height: 180px; display: block; }
+        .secret-box {
+            background: #1F2937; border: 1px solid #374151;
+            border-radius: 8px; padding: 0.75rem 1rem;
+            font-family: monospace; font-size: 0.875rem; color: #A5B4FC;
+            letter-spacing: 0.1rem; word-break: break-all;
+            text-align: center; margin: 0.75rem 0;
+            cursor: pointer; transition: border-color 0.15s;
+        }
+        .secret-box:hover { border-color: #6366F1; }
+        .copy-hint { font-size: 0.75rem; color: #6B7280; text-align: center; margin-bottom: 1rem; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1rem; }
+        .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #FCA5A5; }
+        .alert-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #6EE7B7; }
+        .form-label { display: block; font-size: 0.8125rem; color: #9CA3AF; margin-bottom: 0.4rem; }
+        .form-input {
+            width: 100%; padding: 0.75rem;
+            background: #1F2937; border: 1px solid #374151;
+            border-radius: 8px; color: #F9FAFB;
+            font-size: 1.5rem; text-align: center;
+            letter-spacing: 0.5rem; font-family: monospace;
+            outline: none; transition: border-color 0.15s;
+        }
+        .form-input:focus { border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+        .btn-primary {
+            width: 100%; padding: 0.75rem; margin-top: 1rem;
+            background: linear-gradient(135deg, #6366F1, #4F46E5);
+            color: white; border: none; border-radius: 8px;
+            font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+            transition: opacity 0.15s;
+        }
+        .btn-primary:hover { opacity: 0.92; }
+        .link { color: #6366F1; text-decoration: none; font-size: 0.875rem; }
+        .link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">
+        <div class="logo-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-name">Q<span>orbit</span></div>
+    </div>
+
+    <div class="steps-indicator">
+        <div class="step-dot active" id="dot1"></div>
+        <div class="step-dot" id="dot2"></div>
+        <div class="step-dot" id="dot3"></div>
+    </div>
+
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <!-- Passo 1: Escanear QR -->
+    <div class="setup-step active" id="setupStep1">
+        <h2>1. Escaneie o QR Code</h2>
+        <p>Abra seu aplicativo autenticador (Google Authenticator, Authy, etc.) e escaneie o código abaixo.</p>
+
+        <div class="qr-container" th:if="${qrUri and !qrUri.isEmpty()}">
+            <img th:src="${qrUri}" alt="QR Code MFA"/>
+        </div>
+
+        <p style="margin-top:0.75rem">Prefere inserir manualmente? Copie o código abaixo:</p>
+        <div class="secret-box" th:text="${secret}" onclick="copySecret(this)"></div>
+        <div class="copy-hint">Clique para copiar — guarde em local seguro</div>
+
+        <button type="button" class="btn-primary" onclick="goToStep(2)">Continuar →</button>
+    </div>
+
+    <!-- Passo 2: Confirmar código -->
+    <div class="setup-step" id="setupStep2">
+        <h2>2. Confirme o código</h2>
+        <p>Digite o código de 6 dígitos que aparece no seu app para confirmar a configuração.</p>
+
+        <form th:action="@{/auth/mfa/enable}" method="post">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <input type="hidden" name="useBackupCode" value="false"/>
+
+            <label class="form-label">Código do autenticador</label>
+            <input id="confirmCode" type="text" name="code" class="form-input"
+                   placeholder="000000" maxlength="6" autofocus
+                   inputmode="numeric" autocomplete="one-time-code"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+
+            <button type="submit" class="btn-primary">Ativar MFA</button>
+        </form>
+
+        <div style="text-align:center;margin-top:1rem">
+            <a href="#" class="link" onclick="goToStep(1)">← Voltar</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 1;
+    function goToStep(n) {
+        document.getElementById('setupStep' + currentStep).classList.remove('active');
+        document.getElementById('dot' + currentStep).classList.remove('active');
+        document.getElementById('dot' + currentStep).classList.add('done');
+        currentStep = n;
+        document.getElementById('setupStep' + n).classList.add('active');
+        document.getElementById('dot' + n).classList.add('active');
+        if (n === 2) document.getElementById('confirmCode').focus();
+    }
+    function copySecret(el) {
+        navigator.clipboard.writeText(el.textContent.trim())
+            .then(() => {
+                const orig = el.style.borderColor;
+                el.style.borderColor = '#10B981';
+                el.title = 'Copiado!';
+                setTimeout(() => el.style.borderColor = orig, 1500);
+            });
+    }
+</script>
+</body>
+</html>

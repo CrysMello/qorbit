@@ -1,10 +1,14 @@
 package com.qorbit.engine.controller;
 
+import com.qorbit.engine.auth.model.QorbitUser;
+import com.qorbit.engine.auth.repository.QorbitUserRepository;
 import com.qorbit.engine.model.CasoDeTeste;
 import com.qorbit.engine.model.StepTeste;
 import com.qorbit.engine.repository.CasoDeTesteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +20,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CasoDeTesteController {
 
     @Autowired private CasoDeTesteRepository casoRepo;
+    @Autowired private QorbitUserRepository userRepo;
+
+    /**
+     * Obtém o usuário autenticado do contexto de segurança
+     */
+    private QorbitUser getUsuarioAutenticado() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            String email = auth.getName();
+            return userRepo.findByEmailIgnoreCase(email).orElse(null);
+        }
+        return null;
+    }
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -23,13 +40,18 @@ public class CasoDeTesteController {
             @RequestParam(required = false) String busca,
             @RequestParam(required = false) String modulo) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+
             List<CasoDeTeste> casos;
             if (busca != null && !busca.isBlank())
-                casos = casoRepo.findByNomeContainingIgnoreCase(busca);
+                casos = casoRepo.findByUsuarioAndNomeContainingIgnoreCase(usuario, busca);
             else if (modulo != null && !modulo.isBlank())
-                casos = casoRepo.findByModuloIgnoreCase(modulo);
+                casos = casoRepo.findByUsuarioAndModuloIgnoreCase(usuario, modulo);
             else
-                casos = casoRepo.findAll();
+                casos = casoRepo.findByUsuario(usuario);
 
             List<Map<String, Object>> resultado = new ArrayList<>();
             for (CasoDeTeste c : casos) {
@@ -47,7 +69,13 @@ public class CasoDeTesteController {
     @Transactional(readOnly = true)
     public ResponseEntity<?> buscar(@PathVariable Long id) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+
             return casoRepo.findById(id)
+                .filter(c -> c.getUsuario() != null && c.getUsuario().getId().equals(usuario.getId()))
                 .map(c -> ResponseEntity.ok(toMap(c)))
                 .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
@@ -60,12 +88,18 @@ public class CasoDeTesteController {
     @PostMapping
     public ResponseEntity<?> criar(@RequestBody CasoDeTeste caso) {
         try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+
             if (caso.getNome() == null || caso.getNome().isBlank())
                 return ResponseEntity.badRequest().body(Map.of("erro", "Nome é obrigatório"));
 
             long total = casoRepo.count();
             caso.setCodigo("CT-" + String.format("%02d", total + 1));
             caso.setStatus("ATIVO");
+            caso.setUsuario(usuario);
 
             if (caso.getSteps() != null) {
                 AtomicInteger num = new AtomicInteger(1);
@@ -89,7 +123,15 @@ public class CasoDeTesteController {
     @PutMapping("/{id}")
     public ResponseEntity<?> atualizar(@PathVariable Long id, @RequestBody CasoDeTeste dados) {
         try {
-            return casoRepo.findById(id).map(caso -> {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).body(Map.of("erro", "Não autenticado"));
+            }
+
+            return casoRepo.findById(id).flatMap(caso -> {
+                if (!caso.getUsuario().getId().equals(usuario.getId())) {
+                    return java.util.Optional.empty();
+                }
                 if (dados.getNome() != null)      caso.setNome(dados.getNome());
                 if (dados.getModulo() != null)    caso.setModulo(dados.getModulo());
                 if (dados.getDescricao() != null) caso.setDescricao(dados.getDescricao());
@@ -107,7 +149,7 @@ public class CasoDeTesteController {
                         caso.getSteps().add(s);
                     });
                 }
-                return ResponseEntity.ok(toMap(casoRepo.save(caso)));
+                return java.util.Optional.of(ResponseEntity.ok(toMap(casoRepo.save(caso))));
             }).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             System.err.println("Erro ao atualizar caso " + id + ": " + e.getMessage());
@@ -118,15 +160,34 @@ public class CasoDeTesteController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        if (!casoRepo.existsById(id)) return ResponseEntity.notFound().build();
-        casoRepo.deleteById(id);
-        return ResponseEntity.noContent().build();
+        try {
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return ResponseEntity.status(401).build();
+            }
+
+            return casoRepo.findById(id).map(caso -> {
+                if (!caso.getUsuario().getId().equals(usuario.getId())) {
+                    return ResponseEntity.status(403).<Void>build();
+                }
+                casoRepo.deleteById(id);
+                return ResponseEntity.noContent().<Void>build();
+            }).orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            System.err.println("Erro ao deletar caso " + id + ": " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/modulos")
     public List<String> listarModulos() {
         try {
-            return casoRepo.findAll().stream()
+            QorbitUser usuario = getUsuarioAutenticado();
+            if (usuario == null) {
+                return new ArrayList<>();
+            }
+
+            return casoRepo.findByUsuario(usuario).stream()
                 .map(CasoDeTeste::getModulo)
                 .filter(m -> m != null && !m.isBlank())
                 .distinct().sorted().toList();

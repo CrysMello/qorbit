@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity6">
+<body>
+
+<!--
+  Fragment: sidebar
+  Parâmetro: activeItem — nome da página ativa.
+  Valores: dashboard | nova-execucao | elementos | casos | suites |
+           gravar-teste | execucoes | evidencias | exportar-codigo |
+           ai-plugin | admin-usuarios
+-->
+<aside th:fragment="sidebar(activeItem)" class="sidebar">
+
+    <!-- Logo -->
+    <div class="sidebar-logo">
+        <img src="/images/Logo.jpg" alt="Qorbit Logo"
+             style="width:140px;height:auto;object-fit:contain;
+                    mix-blend-mode:screen;opacity:0.95;
+                    filter:brightness(1.1) contrast(1.05);"/>
+    </div>
+
+    <!-- Navegação -->
+    <nav>
+        <div class="nav-section">Principal</div>
+        <a href="/" class="nav-item" th:classappend="${activeItem == 'dashboard'} ? ' active'">
+            <span class="nav-icon">⊞</span> Dashboard
+        </a>
+        <a href="/nova-execucao" class="nav-item" th:classappend="${activeItem == 'nova-execucao'} ? ' active'">
+            <span class="nav-icon">▷</span> Nova execução
+        </a>
+
+        <div class="nav-section">Biblioteca</div>
+        <a href="/elementos" class="nav-item" th:classappend="${activeItem == 'elementos'} ? ' active'">
+            <span class="nav-icon">◈</span> Elementos (POM)
+        </a>
+        <a href="/casos" class="nav-item" th:classappend="${activeItem == 'casos'} ? ' active'">
+            <span class="nav-icon">≡</span> Casos de teste
+        </a>
+        <a href="/suites" class="nav-item" th:classappend="${activeItem == 'suites'} ? ' active'"
+           style="color: #A78BFA">
+            <span class="nav-icon">▪</span> Suites
+        </a>
+
+        <div class="nav-section">Gravar</div>
+        <a href="/gravar-teste" class="nav-item" th:classappend="${activeItem == 'gravar-teste'} ? ' active'">
+            <span class="nav-icon">◉</span> Gravar teste
+        </a>
+
+        <div class="nav-section">Resultados</div>
+        <a href="/execucoes" class="nav-item" th:classappend="${activeItem == 'execucoes'} ? ' active'">
+            <span class="nav-icon">◷</span> Execuções
+        </a>
+        <a href="/evidencias" class="nav-item" th:classappend="${activeItem == 'evidencias'} ? ' active'">
+            <span class="nav-icon">◻</span> Evidências
+        </a>
+        <a href="/exportar-codigo" class="nav-item" th:classappend="${activeItem == 'exportar-codigo'} ? ' active'">
+            <span class="nav-icon">&lt;/&gt;</span> Exportar código
+        </a>
+
+        <div class="nav-section">Inteligência</div>
+        <a href="/ai-plugin" class="nav-item" th:classappend="${activeItem == 'ai-plugin'} ? ' active'"
+           style="color: #A78BFA">
+            <span class="nav-icon">✦</span> Plugin IA
+        </a>
+
+        <!-- Administração: visível apenas para SUPER_ADMIN -->
+        <div sec:authorize="hasRole('SUPER_ADMIN')">
+            <div class="nav-section">Administração</div>
+            <a href="/admin/usuarios" class="nav-item" th:classappend="${activeItem == 'admin-usuarios'} ? ' active'">
+                <span class="nav-icon">⊛</span> Usuários
+            </a>
+        </div>
+    </nav>
+
+    <!-- Status Selenium -->
+    <div class="sidebar-status">
+        <span class="status-dot" id="seleniumStatus"></span>
+        <span id="seleniumLabel" style="font-size:10px">Verificando...</span>
+    </div>
+
+    <!-- Card do usuário logado + logout -->
+    <div class="sidebar-user">
+        <div class="user-avatar" th:text="${#authentication?.name?.substring(0,1)?.toUpperCase() ?: 'U'}">U</div>
+        <div class="user-info">
+            <span class="user-email" th:text="${#authentication?.name}">usuario@email.com</span>
+            <span class="user-role"
+                  th:with="role=${#authentication?.authorities?.iterator()?.next()?.authority?.replace('ROLE_','') ?: 'USER'}"
+                  th:text="${role}"
+                  th:classappend="${role == 'SUPER_ADMIN'} ? ' role-super-admin' : (${role == 'ADMIN'} ? ' role-admin' : ' role-user')">
+                USER
+            </span>
+        </div>
+        <form th:action="@{/auth/logout}" method="post" style="margin:0;flex-shrink:0">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            <button type="submit" title="Sair"
+                    style="background:none;border:none;cursor:pointer;padding:4px;
+                           color:var(--text-3);font-size:14px;line-height:1;border-radius:4px;
+                           transition:color .18s,background .18s"
+                    onmouseover="this.style.color='var(--red)';this.style.background='var(--red-bg)'"
+                    onmouseout="this.style.color='var(--text-3)';this.style.background='none'">
+                ⏻
+            </button>
+        </form>
+    </div>
+
+</aside>
+</body>
+</html>
