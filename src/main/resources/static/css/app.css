@@ -126,9 +126,9 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px 14px 10px;
+    padding: 0;
     border-bottom: 1px solid var(--border-light);
-    margin-bottom: 8px;
+    margin-bottom: 0;
     flex-shrink: 0;
 }
 .sidebar-logo img {
@@ -539,6 +539,14 @@ body::before {
     outline: none;
 }
 .input::placeholder { color: var(--text-4); }
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 30px rgba(8,16,34,0.90) inset !important;
+    box-shadow: 0 0 0 30px rgba(8,16,34,0.90) inset !important;
+    -webkit-text-fill-color: var(--text-1) !important;
+    caret-color: var(--text-1);
+}
 .input:focus, .select:focus {
     border-color: var(--blue);
     box-shadow: 0 0 0 3px rgba(59,130,246,.15);
@@ -741,6 +749,26 @@ input[type="checkbox"], input[type="radio"] {
     margin-bottom: 14px;
 }
 .filter-tabs { display: flex; gap: 6px; align-items: center; }
+
+/* Tabs de autenticação (Cookie / Usuário / Token) */
+.tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.tab {
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color .2s, border-color .2s;
+}
+.tab:hover { color: #fff; }
+.tab.active {
+    color: #fff;
+    background: transparent;
+    border-bottom: 2px solid #fff;
+}
 
 /* Form row / grid */
 .form-row {

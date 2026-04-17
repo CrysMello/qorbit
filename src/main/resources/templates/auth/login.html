@@ -190,7 +190,7 @@
         .form-input {
             width: 100%;
             padding: .7rem .875rem .7rem 2.65rem;
-            background: var(--surface);
+            background: transparent;
             border: 1px solid rgba(71,85,105,.5);
             border-radius: 10px;
             color: var(--text-1);
@@ -383,46 +383,20 @@
 <div class="nebula nebula-2"></div>
 <div class="nebula nebula-3"></div>
 
-<div class="page-wrapper">
+<!-- Logo fora do page-wrapper → fica no stacking context raiz, funde com o canvas da galáxia -->
+<div class="brand" style="margin-bottom:1.5rem">
+    <img src="/images/Logo.jpg" alt="Qorbit Logo"
+         style="width:240px;height:auto;object-fit:contain;
+                mix-blend-mode:screen;opacity:0.97;
+                filter:brightness(1.25) contrast(1.1) saturate(1.15)
+                       drop-shadow(0 0 22px rgba(96,165,250,0.6));
+                -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%,
+                    black 30%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.4) 68%, transparent 85%);
+                mask-image: radial-gradient(ellipse 85% 75% at 50% 50%,
+                    black 30%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.4) 68%, transparent 85%);"/>
+</div>
 
-    <!-- Logo -->
-    <div class="brand">
-        <div class="brand-icon">
-            <!-- Ícone orbital SVG -->
-            <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Órbita externa -->
-                <ellipse cx="30" cy="30" rx="27" ry="11"
-                         stroke="#3B82F6" stroke-width="1.5" opacity=".7"
-                         transform="rotate(-30 30 30)"/>
-                <!-- Órbita interna -->
-                <ellipse cx="30" cy="30" rx="27" ry="11"
-                         stroke="#60A5FA" stroke-width="1.5" opacity=".55"
-                         transform="rotate(30 30 30)"/>
-                <!-- Anel equatorial -->
-                <ellipse cx="30" cy="30" rx="27" ry="5"
-                         stroke="#93C5FD" stroke-width="1" opacity=".35"/>
-                <!-- Núcleo -->
-                <circle cx="30" cy="30" r="5"
-                        fill="url(#coreGrad)"
-                        filter="url(#glow)"/>
-                <!-- Satélite na órbita externa -->
-                <circle cx="49" cy="24.5" r="2.2"
-                        fill="#60A5FA" opacity=".9"
-                        filter="url(#glow)"/>
-                <defs>
-                    <radialGradient id="coreGrad" cx="35%" cy="35%">
-                        <stop offset="0%" stop-color="#93C5FD"/>
-                        <stop offset="100%" stop-color="#1D4ED8"/>
-                    </radialGradient>
-                    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="2.5" result="blur"/>
-                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                    </filter>
-                </defs>
-            </svg>
-        </div>
-        <div class="brand-name">Q<span>orbit</span></div>
-    </div>
+<div class="page-wrapper">
 
     <!-- Card -->
     <div class="card" id="authCard">
