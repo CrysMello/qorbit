@@ -190,11 +190,12 @@ public ResponseEntity<?> gerar(@RequestBody Map<String, Object> body) {
         return ResponseEntity.badRequest().body(Map.of("erro", "Selecione os casos de teste"));
 
     boolean includeCiCd = Boolean.TRUE.equals(body.get("includeCiCd"));
+    String formato = body.getOrDefault("formato", "CUCUMBER").toString();
 
     List<Long> ids = idsCasos.stream().map(Integer::longValue).toList();
     List<CasoDeTeste> casos = casoRepo.findAllById(ids);
     try {
-        byte[] zip = geradorService.gerarZip(casos, includeCiCd);
+        byte[] zip = geradorService.gerarZip(casos, includeCiCd, formato);
         return ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"scanner-tests-export.zip\"")
