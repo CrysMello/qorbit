@@ -14,7 +14,31 @@ function escapeHtml(str) {
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarStatus();
+    mascaraApiKey();
 });
+
+// ── Mascaramento da API Key (sem type="password" para não acionar o gerenciador de senhas) ──
+
+let apiKeyVisivel = false;
+
+function mascaraApiKey() {
+    const input = document.getElementById('inputApiKey');
+    if (!input) return;
+    // Aplica máscara visual via CSS: círculos como senha
+    input.style.webkitTextSecurity = 'disc';
+    input.style.textSecurity = 'disc';
+}
+
+function toggleApiKeyVisibility() {
+    const input = document.getElementById('inputApiKey');
+    const btn   = document.getElementById('btnToggleApiKey');
+    if (!input) return;
+    apiKeyVisivel = !apiKeyVisivel;
+    input.style.webkitTextSecurity = apiKeyVisivel ? 'none' : 'disc';
+    input.style.textSecurity       = apiKeyVisivel ? 'none' : 'disc';
+    btn.textContent = apiKeyVisivel ? '🙈' : '👁';
+    btn.title = apiKeyVisivel ? 'Ocultar' : 'Mostrar';
+}
 
 function carregarStatus() {
     fetch('/api/ai/status')
@@ -40,40 +64,68 @@ function trocarAuth() {
 }
 
 function testarConexao() {
-    const msg = document.getElementById('msgTeste');
-    if (msg) { msg.style.display = 'block'; msg.style.background = '#FEF3C7'; msg.style.color = '#D97706'; msg.textContent = 'A testar ligação...'; }
+    const emConfiguracao = document.getElementById('screen-config').style.display !== 'none';
 
-    const ep = document.getElementById('inputEndpoint') ? document.getElementById('inputEndpoint').value : '';
-    const mod = document.getElementById('inputModelo') ? document.getElementById('inputModelo').value : '';
-    const auth = document.getElementById('inputAuthTipo') ? document.getElementById('inputAuthTipo').value : 'bearer';
-    const key = document.getElementById('inputApiKey') ? document.getElementById('inputApiKey').value : '';
+    if (emConfiguracao) {
+        // ── Tela de configuração: salva campos e mostra msgTeste ──
+        const msg = document.getElementById('msgTeste');
+        msg.style.display = 'block';
+        msg.style.background = '#FEF3C7'; msg.style.color = '#D97706';
+        msg.textContent = 'A testar ligação...';
 
-    if (ep) {
+        const ep   = document.getElementById('inputEndpoint').value.trim();
+        const mod  = document.getElementById('inputModelo').value.trim();
+        const auth = document.getElementById('inputAuthTipo').value;
+        const key  = document.getElementById('inputApiKey')?.value || '';
+
+        if (!ep) {
+            msg.style.background = '#FEE2E2'; msg.style.color = '#DC2626';
+            msg.textContent = 'Preencha o endpoint antes de testar.';
+            return;
+        }
+
         fetch('/api/ai/configurar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ endpoint: ep, modelo: mod, authTipo: auth, apiKey: key })
-        }).then(() => {
-            fetch('/api/ai/testar')
-                .then(r => r.json())
-                .then(data => {
-                    if (msg) {
-                        if (data.ok) {
-                            msg.style.background = '#DCFCE7'; msg.style.color = '#166534';
-                            msg.textContent = 'Ligação OK — ' + data.mensagem;
-                        } else {
-                            msg.style.background = '#FEE2E2'; msg.style.color = '#DC2626';
-                            msg.textContent = data.erro || 'Falha na ligação.';
-                        }
-                    }
-                })
-                .catch(() => { if (msg) { msg.style.background = '#FEE2E2'; msg.style.color = '#DC2626'; msg.textContent = 'Erro ao testar.'; } });
+        }).then(() =>
+            fetch('/api/ai/testar').then(r => r.json())
+        ).then(data => {
+            if (data.ok) {
+                msg.style.background = '#DCFCE7'; msg.style.color = '#166534';
+                msg.textContent = '✓ Ligação OK — ' + escapeHtml(data.mensagem);
+            } else {
+                msg.style.background = '#FEE2E2'; msg.style.color = '#DC2626';
+                msg.textContent = '✗ ' + escapeHtml(data.erro || 'Falha na ligação.');
+            }
+        }).catch(() => {
+            msg.style.background = '#FEE2E2'; msg.style.color = '#DC2626';
+            msg.textContent = '✗ Erro ao testar. Verifique o endpoint e a API Key.';
         });
+
     } else {
+        // ── Tela ativa (botão do topbar): feedback via toast + log ──
+        const btn = document.getElementById('btnTestar');
+        if (btn) { btn.disabled = true; btn.textContent = 'Testando...'; }
+        addLog('info', 'A testar ligação com a IA...');
+
         fetch('/api/ai/testar')
             .then(r => r.json())
             .then(data => {
-                addLog(data.ok ? 'ok' : 'err', data.ok ? 'Ligação OK' : (data.erro || 'Falha'));
+                if (data.ok) {
+                    addLog('ok', '✓ Ligação OK — ' + escapeHtml(data.mensagem || ''));
+                    if (typeof toast === 'function') toast('Ligação com a IA OK!', 'success');
+                } else {
+                    addLog('err', '✗ ' + escapeHtml(data.erro || 'Falha na ligação.'));
+                    if (typeof toast === 'function') toast(data.erro || 'Falha na ligação.', 'danger');
+                }
+            })
+            .catch(() => {
+                addLog('err', '✗ Erro ao testar ligação.');
+                if (typeof toast === 'function') toast('Erro ao testar ligação.', 'danger');
+            })
+            .finally(() => {
+                if (btn) { btn.disabled = false; btn.textContent = 'Testar ligação'; }
             });
     }
 }
