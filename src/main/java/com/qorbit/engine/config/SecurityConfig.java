@@ -3,6 +3,7 @@ package com.qorbit.engine.config;
 import com.qorbit.engine.auth.service.QorbitAuthSuccessHandler;
 import com.qorbit.engine.auth.service.QorbitUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +25,9 @@ public class SecurityConfig {
 
     @Autowired
     private QorbitAuthSuccessHandler authSuccessHandler;
+
+    @Value("${qorbit.remember-me.key}")
+    private String rememberMeKey;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -58,8 +62,10 @@ public class SecurityConfig {
             // não depende de cookie no response. Evita o problema de buffer commit
             // que ocorria com CookieCsrfTokenRepository quando o CSS inline (~22KB)
             // esgotava o buffer do Tomcat antes de th:action ser processado.
+            // /auth/logout é ignorado: quando a sessão expira o token CSRF some,
+            // causando 403 no clique de logout. Forçar logout via CSRF é risco baixo.
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**")
+                .ignoringRequestMatchers("/api/**", "/auth/logout")
             )
 
             // ── Form login ────────────────────────────────────────────────────
@@ -96,7 +102,7 @@ public class SecurityConfig {
             .rememberMe(rm -> rm
                 .userDetailsService(userDetailsService)
                 .tokenValiditySeconds(30 * 24 * 60 * 60)
-                .key("qorbit-remember-me-key-change-in-production")
+                .key(rememberMeKey)
                 .rememberMeParameter("rememberMe")
             )
 
