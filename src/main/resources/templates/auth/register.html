@@ -6,192 +6,532 @@
     <title>Criar conta — Qorbit</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --blue:        #3B82F6;
+            --blue-dark:   #1D4ED8;
+            --blue-light:  #60A5FA;
+            --blue-glow:   rgba(59, 130, 246, 0.45);
+            --glass-bg:    rgba(6, 12, 30, 0.72);
+            --glass-border:rgba(59, 130, 246, 0.22);
+            --surface:     rgba(12, 20, 45, 0.85);
+            --text-1:      #EFF6FF;
+            --text-2:      #93C5FD;
+            --text-3:      #64748B;
+            --red:         #F87171;
+            --green:       #34D399;
+            --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+        }
+
+        html, body { min-height: 100vh; overflow-x: hidden; }
+
         body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #0A0E1A 0%, #0D1B2A 50%, #0A1628 100%);
-            display: flex; align-items: center; justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 1rem;
+            font-family: var(--font);
+            background: #020817;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+            position: relative;
         }
-        body::before {
-            content: ''; position: fixed; inset: 0;
-            background-image: radial-gradient(circle at 20% 20%, rgba(99,102,241,0.08) 0%, transparent 50%);
+
+        /* ── Canvas starfield ── */
+        #starCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        /* ── Nebula overlays ── */
+        .nebula {
+            position: fixed;
+            border-radius: 50%;
             pointer-events: none;
+            z-index: 1;
+            filter: blur(80px);
         }
+        .nebula-1 {
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(29,78,216,.18) 0%, transparent 70%);
+            top: -200px; left: -200px;
+            animation: pulse 9s ease-in-out infinite;
+        }
+        .nebula-2 {
+            width: 550px; height: 550px;
+            background: radial-gradient(circle, rgba(109,40,217,.12) 0%, transparent 70%);
+            bottom: -150px; right: -150px;
+            animation: pulse 11s ease-in-out infinite 2s reverse;
+        }
+        .nebula-3 {
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(59,130,246,.10) 0%, transparent 70%);
+            top: 40%; right: 10%;
+            animation: pulse 13s ease-in-out infinite 5s;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: .7; transform: scale(1); }
+            50%       { opacity: 1; transform: scale(1.08); }
+        }
+
+        /* ── Layout ── */
+        .page-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.75rem;
+        }
+
+        /* ── Card ── */
         .card {
-            width: 100%; max-width: 440px;
-            background: rgba(17,24,39,0.95);
-            border: 1px solid rgba(99,102,241,0.2);
-            border-radius: 16px; padding: 2.5rem 2rem;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            position: relative; z-index: 1;
+            width: 100%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2.25rem 2rem 2rem;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow:
+                0 0 0 1px rgba(59,130,246,.08),
+                0 30px 60px rgba(0,0,0,.55),
+                inset 0 1px 0 rgba(255,255,255,.04);
+            animation: cardIn .5s cubic-bezier(.22,.68,0,1.2) both;
         }
-        .logo { text-align: center; margin-bottom: 1.5rem; }
-        .logo-icon {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 48px; height: 48px;
-            background: linear-gradient(135deg, #6366F1, #818CF8);
-            border-radius: 12px; margin-bottom: 0.6rem;
-            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px) scale(.98); }
+            to   { opacity: 1; transform: none; }
         }
-        .logo-icon svg { width: 26px; height: 26px; fill: white; }
-        .logo-name { font-size: 1.4rem; font-weight: 700; color: #F9FAFB; }
-        .logo-name span { color: #6366F1; }
-        .heading { text-align: center; margin-bottom: 1.5rem; }
-        .heading h1 { font-size: 1.2rem; font-weight: 600; color: #F9FAFB; margin-bottom: 0.25rem; }
-        .heading p { font-size: 0.875rem; color: #6B7280; }
-        .alert { padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1rem; }
-        .alert-error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #FCA5A5; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label { display: block; font-size: 0.8125rem; font-weight: 500; color: #9CA3AF; margin-bottom: 0.35rem; }
+
+        /* ── Card heading ── */
+        .card-heading { text-align: center; margin-bottom: 1.75rem; }
+        .card-heading h1 {
+            font-size: 1.375rem;
+            font-weight: 700;
+            color: var(--text-1);
+            margin-bottom: .3rem;
+            letter-spacing: -.02em;
+        }
+        .card-heading p {
+            font-size: .875rem;
+            color: var(--text-3);
+        }
+
+        /* ── Alerts ── */
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+            padding: .75rem 1rem;
+            border-radius: 10px;
+            font-size: .8375rem;
+            margin-bottom: 1.25rem;
+            line-height: 1.45;
+        }
+        .alert svg { flex-shrink: 0; margin-top: .1rem; }
+        .alert-error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.28); color: #FCA5A5; }
+
+        /* ── Form ── */
+        .form-group { margin-bottom: 1.1rem; }
+        .form-label {
+            display: block;
+            font-size: .8rem;
+            font-weight: 500;
+            color: var(--text-2);
+            margin-bottom: .45rem;
+            letter-spacing: .01em;
+        }
+
+        .input-wrap { position: relative; }
+        .input-icon {
+            position: absolute;
+            left: .9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-3);
+            pointer-events: none;
+            transition: color .2s;
+        }
+        .input-wrap:focus-within .input-icon { color: var(--blue-light); }
+
         .form-input {
-            width: 100%; padding: 0.65rem 0.875rem;
-            background: #1F2937; border: 1px solid #374151;
-            border-radius: 8px; color: #F9FAFB; font-size: 0.9375rem;
-            transition: border-color 0.15s, box-shadow 0.15s; outline: none;
+            width: 100%;
+            padding: .7rem .875rem .7rem 2.65rem;
+            background: transparent;
+            border: 1px solid rgba(71,85,105,.5);
+            border-radius: 10px;
+            color: var(--text-1);
+            font-size: .9375rem;
+            font-family: var(--font);
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
         }
-        .form-input:focus { border-color: #6366F1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-        .form-input::placeholder { color: #4B5563; }
-        .input-wrapper { position: relative; }
+        .form-input::placeholder { color: var(--text-3); }
+        .form-input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(59,130,246,.18), 0 0 12px rgba(59,130,246,.12);
+        }
+        .form-input.has-toggle { padding-right: 2.75rem; }
+
+        /* Toggle senha */
         .toggle-password {
-            position: absolute; right: 0.875rem; top: 50%;
-            transform: translateY(-50%); background: none; border: none;
-            color: #6B7280; cursor: pointer; padding: 0;
+            position: absolute;
+            right: .875rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color .2s;
         }
-        .toggle-password:hover { color: #9CA3AF; }
-        .password-strength { margin-top: 0.4rem; }
-        .strength-bar { height: 3px; border-radius: 2px; background: #374151; overflow: hidden; }
-        .strength-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; width: 0; }
-        .strength-text { font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem; }
+        .toggle-password:hover { color: var(--blue-light); }
+
+        /* ── Força da senha ── */
+        .strength-wrap { margin-top: .45rem; }
+        .strength-bar {
+            height: 3px;
+            border-radius: 2px;
+            background: rgba(71,85,105,.4);
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width .3s, background .3s;
+            width: 0;
+        }
+        .strength-text {
+            font-size: .72rem;
+            color: var(--text-3);
+            margin-top: .25rem;
+        }
+
+        /* ── Honeypot ── */
         .honeypot { display: none !important; }
+
+        /* ── Botão principal ── */
         .btn-primary {
-            width: 100%; padding: 0.75rem;
-            background: linear-gradient(135deg, #6366F1, #4F46E5);
-            color: white; border: none; border-radius: 8px;
-            font-size: 0.9375rem; font-weight: 600; cursor: pointer;
-            transition: opacity 0.15s; box-shadow: 0 4px 14px rgba(99,102,241,0.35);
-            position: relative; margin-top: 0.5rem;
+            width: 100%;
+            padding: .78rem;
+            background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 60%, var(--blue-light) 100%);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: .9375rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow .25s, transform .1s;
+            box-shadow: 0 4px 18px rgba(59,130,246,.4), 0 0 0 1px rgba(59,130,246,.25);
+            letter-spacing: .01em;
+            margin-top: .5rem;
         }
-        .btn-primary:hover:not(:disabled) { opacity: 0.92; }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-primary.loading::after {
-            content: ''; position: absolute; width: 16px; height: 16px;
-            border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
-            border-radius: 50%; right: 1rem; top: 50%;
-            transform: translateY(-50%); animation: spin 0.6s linear infinite;
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,.12), transparent);
+            opacity: 0;
+            transition: opacity .25s;
         }
+        .btn-primary:hover:not(:disabled)::before { opacity: 1; }
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 6px 28px rgba(59,130,246,.6), 0 0 20px rgba(59,130,246,.3);
+            transform: translateY(-1px);
+        }
+        .btn-primary:active:not(:disabled) { transform: translateY(0) scale(.99); }
+        .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
+
+        .btn-primary .spinner {
+            display: none;
+            width: 16px; height: 16px;
+            border: 2px solid rgba(255,255,255,.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .btn-primary.loading .spinner { display: block; }
         @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
-        .card-footer { text-align: center; margin-top: 1.25rem; font-size: 0.8125rem; color: #6B7280; }
-        .link { color: #6366F1; text-decoration: none; }
-        .link:hover { color: #818CF8; text-decoration: underline; }
-        .terms { font-size: 0.75rem; color: #6B7280; text-align: center; margin-top: 0.75rem; }
+
+        /* ── Rodapé do card ── */
+        .card-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: .8125rem;
+            color: var(--text-3);
+        }
+        .link {
+            font-size: .8125rem;
+            color: var(--blue-light);
+            text-decoration: none;
+            transition: color .2s, text-shadow .2s;
+        }
+        .link:hover {
+            color: #fff;
+            text-shadow: 0 0 8px var(--blue-glow);
+        }
+
+        /* ── Responsivo ── */
+        @media (max-width: 480px) {
+            .card { padding: 1.75rem 1.25rem 1.5rem; border-radius: 16px; }
+        }
     </style>
 </head>
 <body>
-<div class="card">
-    <div class="logo">
-        <div class="logo-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        </div>
-        <div class="logo-name">Q<span>orbit</span></div>
-    </div>
-    <div class="heading">
-        <h1>Criar conta</h1>
-        <p>Comece a automatizar seus testes hoje</p>
-    </div>
 
-    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+<!-- Fundo espacial -->
+<canvas id="starCanvas"></canvas>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<div class="nebula nebula-3"></div>
 
-    <form th:action="@{/auth/register}" method="post" th:object="${registerRequest}"
-          onsubmit="handleSubmit(this)">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+<!-- Logo -->
+<div style="position:relative;z-index:10;margin-bottom:1.5rem">
+    <img src="/images/Logo.jpg" alt="Qorbit Logo"
+         style="width:240px;height:auto;object-fit:contain;
+                mix-blend-mode:screen;opacity:0.97;
+                filter:brightness(1.25) contrast(1.1) saturate(1.15)
+                       drop-shadow(0 0 22px rgba(96,165,250,0.6));
+                -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 50%,
+                    black 30%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.4) 68%, transparent 85%);
+                mask-image: radial-gradient(ellipse 85% 75% at 50% 50%,
+                    black 30%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.4) 68%, transparent 85%);"/>
+</div>
 
-        <div class="form-group">
-            <label class="form-label">Nome completo</label>
-            <input type="text" class="form-input" th:field="*{fullName}"
-                   placeholder="Seu nome" autofocus autocomplete="name" required/>
+<div class="page-wrapper">
+    <div class="card">
+
+        <div class="card-heading">
+            <h1>Criar conta</h1>
+            <p>Comece a automatizar seus testes hoje</p>
         </div>
-        <div class="form-group">
-            <label class="form-label">E-mail</label>
-            <input type="email" class="form-input" th:field="*{email}"
-                   placeholder="seu@email.com" autocomplete="email" required/>
+
+        <div th:if="${error}" class="alert alert-error">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span th:text="${error}"></span>
         </div>
-        <div class="form-group">
-            <label class="form-label">Senha</label>
-            <div class="input-wrapper">
-                <input id="pwd" type="password" class="form-input" th:field="*{password}"
-                       placeholder="Mínimo 8 caracteres" autocomplete="new-password"
-                       oninput="checkStrength(this.value)" required style="padding-right:2.75rem"/>
-                <button type="button" class="toggle-password"
-                        onclick="togglePassword('pwd', this)" tabindex="-1">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+
+        <form th:action="@{/auth/register}" method="post" th:object="${registerRequest}"
+              onsubmit="handleSubmit(this)">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+
+            <!-- Nome -->
+            <div class="form-group">
+                <label class="form-label" for="fullName">Nome completo</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
+                    <input id="fullName" type="text" class="form-input" th:field="*{fullName}"
+                           placeholder="Seu nome completo"
+                           autofocus autocomplete="name" required/>
+                </div>
             </div>
-            <div class="password-strength">
-                <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
-                <div class="strength-text" id="strengthText"></div>
+
+            <!-- E-mail -->
+            <div class="form-group">
+                <label class="form-label" for="email">E-mail</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                            <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                    </span>
+                    <input id="email" type="email" class="form-input" th:field="*{email}"
+                           placeholder="seuemail@dominio.com"
+                           autocomplete="email" required/>
+                </div>
             </div>
-        </div>
-        <div class="form-group">
-            <label class="form-label">Confirmar senha</label>
-            <div class="input-wrapper">
-                <input id="pwd2" type="password" class="form-input" th:field="*{passwordConfirm}"
-                       placeholder="Repita a senha" autocomplete="new-password"
-                       required style="padding-right:2.75rem"/>
-                <button type="button" class="toggle-password"
-                        onclick="togglePassword('pwd2', this)" tabindex="-1">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
+
+            <!-- Senha -->
+            <div class="form-group">
+                <label class="form-label" for="pwd">Senha</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </span>
+                    <input id="pwd" type="password" class="form-input has-toggle" th:field="*{password}"
+                           placeholder="Mínimo 8 caracteres"
+                           autocomplete="new-password"
+                           oninput="checkStrength(this.value)" required/>
+                    <button type="button" class="toggle-password"
+                            onclick="togglePassword('pwd', this)" tabindex="-1"
+                            aria-label="Mostrar/ocultar senha">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="strength-wrap">
+                    <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+                    <div class="strength-text" id="strengthText"></div>
+                </div>
             </div>
+
+            <!-- Confirmar senha -->
+            <div class="form-group">
+                <label class="form-label" for="pwd2">Confirmar senha</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </span>
+                    <input id="pwd2" type="password" class="form-input has-toggle" th:field="*{passwordConfirm}"
+                           placeholder="Repita a senha"
+                           autocomplete="new-password" required/>
+                    <button type="button" class="toggle-password"
+                            onclick="togglePassword('pwd2', this)" tabindex="-1"
+                            aria-label="Mostrar/ocultar confirmação de senha">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Honeypot anti-bot -->
+            <div class="honeypot" aria-hidden="true">
+                <input type="text" th:field="*{honeypot}" tabindex="-1" autocomplete="off"/>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                Criar conta
+                <span class="spinner"></span>
+            </button>
+        </form>
+
+        <div class="card-footer">
+            Já tem conta?&nbsp;<a th:href="@{/auth/login}" class="link">Entrar</a>
         </div>
 
-        <!-- Honeypot anti-bot (invisível) -->
-        <div class="honeypot" aria-hidden="true">
-            <input type="text" th:field="*{honeypot}" tabindex="-1" autocomplete="off"/>
-        </div>
-
-        <button type="submit" class="btn-primary">Criar conta</button>
-        <div class="terms">Ao criar conta você concorda com os Termos de Uso do Qorbit.</div>
-    </form>
-
-    <div class="card-footer">
-        Já tem conta? <a href="/auth/login" class="link">Entrar</a>
     </div>
 </div>
 
 <script>
-    function handleSubmit(form) {
-        const btn = form.querySelector('.btn-primary');
-        if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+/* ── Starfield ── */
+(function () {
+    const canvas = document.getElementById('starCanvas');
+    const ctx    = canvas.getContext('2d');
+    let W, H, stars;
+
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+        initStars();
     }
-    function togglePassword(id, btn) {
-        const f = document.getElementById(id);
-        f.type = f.type === 'text' ? 'password' : 'text';
+
+    function rand(min, max) { return Math.random() * (max - min) + min; }
+
+    function initStars() {
+        const count = Math.floor((W * H) / 3200);
+        stars = Array.from({ length: count }, () => ({
+            x:  rand(0, W),
+            y:  rand(0, H),
+            r:  rand(.3, 1.6),
+            a:  rand(.2, 1),
+            da: rand(.0003, .0012) * (Math.random() < .5 ? 1 : -1),
+            vx: rand(-.04, .04),
+            vy: rand(-.04, .04),
+        }));
     }
-    function checkStrength(val) {
-        const fill = document.getElementById('strengthFill');
-        const text = document.getElementById('strengthText');
-        if (!fill || !text) return;
-        let score = 0;
-        if (val.length >= 8) score++;
-        if (val.length >= 12) score++;
-        if (/[A-Z]/.test(val)) score++;
-        if (/[0-9]/.test(val)) score++;
-        if (/[^A-Za-z0-9]/.test(val)) score++;
-        const levels = [
-            { pct: '20%', color: '#EF4444', label: 'Muito fraca' },
-            { pct: '40%', color: '#F97316', label: 'Fraca' },
-            { pct: '60%', color: '#EAB308', label: 'Razoável' },
-            { pct: '80%', color: '#22C55E', label: 'Forte' },
-            { pct: '100%', color: '#10B981', label: 'Muito forte' }
-        ];
-        const lvl = levels[Math.min(score, 4)];
-        fill.style.width = val ? lvl.pct : '0';
-        fill.style.background = lvl.color;
-        text.textContent = val ? lvl.label : '';
-        text.style.color = lvl.color;
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        for (const s of stars) {
+            s.a += s.da;
+            if (s.a <= .15 || s.a >= 1) s.da = -s.da;
+            s.x += s.vx;
+            s.y += s.vy;
+            if (s.x < 0) s.x = W;
+            if (s.x > W) s.x = 0;
+            if (s.y < 0) s.y = H;
+            if (s.y > H) s.y = 0;
+
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(200,220,255,${s.a})`;
+            ctx.fill();
+        }
+        requestAnimationFrame(draw);
     }
+
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+})();
+
+/* ── Submit com loading ── */
+function handleSubmit(form) {
+    const btn = form.querySelector('.btn-primary');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('loading');
+    }
+}
+
+/* ── Toggle show/hide senha ── */
+const EYE_OPEN  = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_CLOSE = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+
+function togglePassword(id, btn) {
+    const field = document.getElementById(id);
+    if (!field) return;
+    const show = field.type === 'password';
+    field.type    = show ? 'text' : 'password';
+    btn.innerHTML = show ? EYE_CLOSE : EYE_OPEN;
+    btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+}
+
+/* ── Força da senha ── */
+function checkStrength(val) {
+    const fill = document.getElementById('strengthFill');
+    const text = document.getElementById('strengthText');
+    if (!fill || !text) return;
+    let score = 0;
+    if (val.length >= 8)          score++;
+    if (val.length >= 12)         score++;
+    if (/[A-Z]/.test(val))        score++;
+    if (/[0-9]/.test(val))        score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const levels = [
+        { pct: '20%', color: '#F87171', label: 'Muito fraca' },
+        { pct: '40%', color: '#FB923C', label: 'Fraca' },
+        { pct: '60%', color: '#FBBF24', label: 'Razoável' },
+        { pct: '80%', color: '#34D399', label: 'Forte' },
+        { pct: '100%', color: '#10B981', label: 'Muito forte' },
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    fill.style.width      = val ? lvl.pct   : '0';
+    fill.style.background = val ? lvl.color : '';
+    text.textContent      = val ? lvl.label : '';
+    text.style.color      = val ? lvl.color : '';
+}
 </script>
 </body>
 </html>
