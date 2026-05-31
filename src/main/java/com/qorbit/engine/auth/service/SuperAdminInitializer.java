@@ -60,19 +60,28 @@ public class SuperAdminInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+            log.warn("Super-admin email/senha não configurados — provisionamento automático ignorado.");
+            return;
+        }
+
+        // Remove usuários fantasma (SUPER_ADMIN com email vazio) criados por bug anterior
+        userRepo.findAll().stream()
+            .filter(u -> (u.getRole() == UserRole.SUPER_ADMIN || u.getRole() == UserRole.OWNER)
+                      && (u.getEmail() == null || u.getEmail().isBlank()))
+            .forEach(userRepo::delete);
+
         String targetEmail = adminEmail.toLowerCase().trim();
 
-        // Verifica se o e-mail configurado já existe como SUPER_ADMIN ou OWNER
+        // Se o email configurado já existe como SUPER_ADMIN ou OWNER, não recria
         boolean alreadyExists = userRepo.findByEmailIgnoreCase(targetEmail)
             .map(u -> u.getRole() == UserRole.SUPER_ADMIN || u.getRole() == UserRole.OWNER)
             .orElse(false);
 
         if (alreadyExists) {
-            return; // Usuário correto já existe
+            return;
         }
 
-        // Se existir outro e-mail como SUPER_ADMIN (bootstrap anterior com e-mail padrão),
-        // cria/atualiza para o e-mail configurado agora.
         QorbitUser admin = userRepo.findByEmailIgnoreCase(targetEmail)
             .orElse(new QorbitUser());
 
