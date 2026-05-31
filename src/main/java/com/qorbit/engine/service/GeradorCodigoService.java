@@ -23,10 +23,22 @@ public class GeradorCodigoService {
     @Autowired private NormalizadorNomes normalizador;
 
     public byte[] gerarZip(List<CasoDeTeste> casos) throws IOException {
-        return gerarZip(casos, false);
+        return gerarZip(casos, false, "CUCUMBER");
     }
 
     public byte[] gerarZip(List<CasoDeTeste> casos, boolean includeCiCd) throws IOException {
+        return gerarZip(casos, includeCiCd, "CUCUMBER");
+    }
+
+    public byte[] gerarZip(List<CasoDeTeste> casos, boolean includeCiCd, String formato) throws IOException {
+        return switch (formato == null ? "CUCUMBER" : formato.toUpperCase(Locale.ROOT)) {
+            case "SELENIUM" -> gerarZipSeleniumPuro(casos, includeCiCd);
+            case "TESTNG"   -> gerarZipTestNG(casos, includeCiCd);
+            default         -> gerarZipCucumber(casos, includeCiCd);
+        };
+    }
+
+    private byte[] gerarZipCucumber(List<CasoDeTeste> casos, boolean includeCiCd) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         List<Elemento> todosElementos = elementoRepo.findAll();
 
@@ -78,6 +90,1629 @@ public class GeradorCodigoService {
         }
 
         return baos.toByteArray();
+    }
+
+    // ─── Selenium puro (JUnit 4) ─────────────────────────────────────────────
+
+    // ─── Selenium puro — JUnit 5 — Arquitetura Profissional ──────────────────
+
+    private byte[] gerarZipSeleniumPuro(List<CasoDeTeste> casos, boolean includeCiCd) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        List<Elemento> todosElementos = elementoRepo.findAll();
+        Map<String, Elemento> elementosPorNome = todosElementos.stream()
+                .filter(e -> e.getNomeLogico() != null && !e.getNomeLogico().isBlank())
+                .collect(Collectors.toMap(
+                        e -> e.getNomeLogico().trim().toLowerCase(Locale.ROOT),
+                        e -> e, this::priorizarElemento, LinkedHashMap::new));
+        Map<String, PageObjectSpec> pages = construirPages(todosElementos);
+
+        // URL base: extrai do primeiro step NAVEGAR encontrado nos casos
+        String urlBase = casos.stream()
+                .flatMap(c -> orderedSteps(c).stream())
+                .filter(s -> "NAVEGAR".equalsIgnoreCase(s.getAcao()))
+                .map(s -> Optional.ofNullable(s.getValorEntrada()).orElse("https://app.suaempresa.com.br"))
+                .findFirst().orElse("https://app.suaempresa.com.br");
+
+        try (ZipOutputStream zip = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
+            // ── Infraestrutura ──
+            adicionarArquivo(zip, "pom.xml",                                                 pro5Pom());
+            adicionarArquivo(zip, "src/main/java/config/ConfigReader.java",                  pro5ConfigReader());
+            adicionarArquivo(zip, "src/test/java/driver/DriverFactory.java",                 pro5DriverFactory(includeCiCd));
+            adicionarArquivo(zip, "src/test/java/base/BaseTest.java",                        pro5BaseTest());
+            adicionarArquivo(zip, "src/test/java/pages/BasePage.java",                       pro5BasePage());
+            adicionarArquivo(zip, "src/test/java/utils/WaitUtils.java",                      pro5WaitUtils());
+            adicionarArquivo(zip, "src/test/java/utils/ElementUtils.java",                   pro5ElementUtils());
+            adicionarArquivo(zip, "src/test/java/utils/ScreenshotUtils.java",                pro5ScreenshotUtils());
+            adicionarArquivo(zip, "src/test/java/utils/JsonDataReader.java",                 pro5JsonDataReader());
+            adicionarArquivo(zip, "src/test/java/listeners/TestListener.java",               pro5TestListener());
+            adicionarArquivo(zip, "src/test/java/models/UsuarioTeste.java",                  pro5UsuarioTeste());
+            adicionarArquivo(zip, "src/test/resources/config.properties",                    pro5ConfigProperties(urlBase));
+            adicionarArquivo(zip, "src/test/resources/testdata/usuarios.json",               pro5UsuariosJson());
+
+            // ── Page Objects ──
+            for (PageObjectSpec page : pages.values())
+                adicionarArquivo(zip, "src/test/java/pages/" + page.className + ".java",
+                        pro5PageObject(page));
+
+            // ── Testes ──
+            for (CasoDeTeste caso : casos) {
+                String nomeClasse = normalizador.normalizarClasse(caso.getNome(), "CasoGerado");
+                adicionarArquivo(zip, "src/test/java/tests/" + nomeClasse + "Test.java",
+                        pro5TesteJUnit5(caso, pages, elementosPorNome));
+            }
+
+            adicionarArquivo(zip, "README.md", pro5Readme());
+            adicionarArquivo(zip, "executar-testes.bat", gerarExecutarTestesBat());
+            adicionarArquivo(zip, "executar-testes.sh", gerarExecutarTestesSh());
+            if (includeCiCd)
+                adicionarArquivo(zip, ".github/workflows/testes.yml", gerarGithubActionsWorkflow());
+        }
+        return baos.toByteArray();
+    }
+
+    // ── pom.xml ───────────────────────────────────────────────────────────────
+
+    private String pro5Pom() {
+        return """
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.qorbit.automation</groupId>
+    <artifactId>qorbit-tests-export</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <selenium.version>4.18.1</selenium.version>
+        <junit.version>5.10.2</junit.version>
+        <wdm.version>5.7.0</wdm.version>
+        <jackson.version>2.17.0</jackson.version>
+        <surefire.version>3.2.5</surefire.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- Selenium -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <!-- WebDriverManager -->
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>${wdm.version}</version>
+        </dependency>
+
+        <!-- JUnit 5 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <version>1.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Jackson — leitura de dados de teste em JSON -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>17</release>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
+                <configuration>
+                    <includes>
+                        <include>**/tests/**/*Test.java</include>
+                    </includes>
+                    <systemPropertyVariables>
+                        <headless>${headless}</headless>
+                        <file.encoding>UTF-8</file.encoding>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
+""";
+    }
+
+    // ── ConfigReader.java ─────────────────────────────────────────────────────
+
+    private String pro5ConfigReader() {
+        return """
+package config;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+/**
+ * Leitor centralizado de configuracoes do arquivo config.properties.
+ * Implementado como singleton para evitar multiplas leituras do classpath.
+ */
+public final class ConfigReader {
+
+    private static volatile ConfigReader instance;
+    private final Properties props = new Properties();
+
+    private ConfigReader() {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("config.properties")) {
+            if (is == null) {
+                throw new IllegalStateException("config.properties nao encontrado no classpath");
+            }
+            props.load(is);
+        } catch (IOException e) {
+            throw new IllegalStateException("Falha ao carregar config.properties", e);
+        }
+    }
+
+    public static ConfigReader getInstance() {
+        if (instance == null) {
+            synchronized (ConfigReader.class) {
+                if (instance == null) instance = new ConfigReader();
+            }
+        }
+        return instance;
+    }
+
+    public String getBaseUrl() {
+        return getRequired("base.url");
+    }
+
+    public String getBrowser() {
+        return props.getProperty("browser", "chrome").trim().toLowerCase();
+    }
+
+    public int getTimeoutSeconds() {
+        return Integer.parseInt(props.getProperty("timeout.seconds", "10"));
+    }
+
+    public boolean isHeadless() {
+        // Prioridade: system property > config.properties
+        String sysProp = System.getProperty("headless");
+        if (sysProp != null) return Boolean.parseBoolean(sysProp);
+        return Boolean.parseBoolean(props.getProperty("headless", "false"));
+    }
+
+    public String getScreenshotsDir() {
+        return props.getProperty("screenshots.dir", "target/screenshots");
+    }
+
+    private String getRequired(String key) {
+        String value = props.getProperty(key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("Propriedade obrigatoria ausente: " + key);
+        }
+        return value.trim();
+    }
+}
+""";
+    }
+
+    // ── DriverFactory.java ────────────────────────────────────────────────────
+
+    private String pro5DriverFactory(boolean ciCd) {
+        return "package driver;\n\n"
+            + "import config.ConfigReader;\n"
+            + "import io.github.bonigarcia.wdm.WebDriverManager;\n"
+            + "import org.openqa.selenium.WebDriver;\n"
+            + "import org.openqa.selenium.chrome.ChromeDriver;\n"
+            + "import org.openqa.selenium.chrome.ChromeOptions;\n"
+            + "import org.openqa.selenium.edge.EdgeDriver;\n"
+            + "import org.openqa.selenium.edge.EdgeOptions;\n"
+            + "import org.openqa.selenium.firefox.FirefoxDriver;\n"
+            + "import org.openqa.selenium.firefox.FirefoxOptions;\n\n"
+            + "/**\n"
+            + " * Responsavel exclusivamente pela criacao do WebDriver.\n"
+            + " * Suporta Chrome, Firefox e Edge. Expande adicionando novos cases.\n"
+            + " */\n"
+            + "public final class DriverFactory {\n\n"
+            + "    private DriverFactory() {}\n\n"
+            + "    public static WebDriver create() {\n"
+            + "        ConfigReader cfg = ConfigReader.getInstance();\n"
+            + "        boolean headless = cfg.isHeadless();\n"
+            + "        return switch (cfg.getBrowser()) {\n"
+            + "            case \"firefox\" -> createFirefox(headless);\n"
+            + "            case \"edge\"    -> createEdge(headless);\n"
+            + "            default         -> createChrome(headless);\n"
+            + "        };\n"
+            + "    }\n\n"
+            + "    private static WebDriver createChrome(boolean headless) {\n"
+            + "        WebDriverManager.chromedriver().setup();\n"
+            + "        ChromeOptions options = new ChromeOptions();\n"
+            + "        options.addArguments(\"--disable-notifications\");\n"
+            + "        options.addArguments(\"--disable-popup-blocking\");\n"
+            + "        options.addArguments(\"--disable-extensions\");\n"
+            + (ciCd ? "        options.addArguments(\"--headless=new\");\n"
+                    + "        options.addArguments(\"--no-sandbox\");\n"
+                    + "        options.addArguments(\"--disable-dev-shm-usage\");\n"
+                    + "        options.addArguments(\"--window-size=1920,1080\");\n"
+                : "        if (headless) {\n"
+                    + "            options.addArguments(\"--headless=new\");\n"
+                    + "            options.addArguments(\"--no-sandbox\");\n"
+                    + "            options.addArguments(\"--disable-dev-shm-usage\");\n"
+                    + "            options.addArguments(\"--window-size=1920,1080\");\n"
+                    + "        }\n")
+            + "        ChromeDriver driver = new ChromeDriver(options);\n"
+            + "        if (!headless) driver.manage().window().maximize();\n"
+            + "        return driver;\n"
+            + "    }\n\n"
+            + "    private static WebDriver createFirefox(boolean headless) {\n"
+            + "        WebDriverManager.firefoxdriver().setup();\n"
+            + "        FirefoxOptions options = new FirefoxOptions();\n"
+            + "        if (headless) options.addArguments(\"-headless\");\n"
+            + "        return new FirefoxDriver(options);\n"
+            + "    }\n\n"
+            + "    private static WebDriver createEdge(boolean headless) {\n"
+            + "        WebDriverManager.edgedriver().setup();\n"
+            + "        EdgeOptions options = new EdgeOptions();\n"
+            + "        if (headless) options.addArguments(\"--headless=new\");\n"
+            + "        return new EdgeDriver(options);\n"
+            + "    }\n"
+            + "}\n";
+    }
+
+    // ── BaseTest.java ─────────────────────────────────────────────────────────
+
+    private String pro5BaseTest() {
+        return """
+package base;
+
+import config.ConfigReader;
+import driver.DriverFactory;
+import listeners.TestListener;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.openqa.selenium.WebDriver;
+
+import java.time.Duration;
+
+/**
+ * Classe base para todos os testes.
+ * Gerencia o ciclo de vida do WebDriver e expoe driver e config para os testes filhos.
+ *
+ * Uso: todas as classes de teste devem herdar de BaseTest.
+ */
+@ExtendWith(TestListener.class)
+public abstract class BaseTest {
+
+    protected WebDriver driver;
+    protected ConfigReader config;
+
+    @BeforeEach
+    void setUp() {
+        config = ConfigReader.getInstance();
+        driver = DriverFactory.create();
+        // Usando explicit waits — implicit wait desativado intencionalmente
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(0));
+    }
+
+    @AfterEach
+    void tearDown() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
+    }
+}
+""";
+    }
+
+    // ── BasePage.java ─────────────────────────────────────────────────────────
+
+    private String pro5BasePage() {
+        return """
+package pages;
+
+import config.ConfigReader;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import utils.ElementUtils;
+import utils.WaitUtils;
+
+/**
+ * Classe base para todos os Page Objects.
+ * Centraliza a criacao de WaitUtils e ElementUtils,
+ * evitando duplicacao e garantindo consistencia entre paginas.
+ */
+public abstract class BasePage {
+
+    protected final WebDriver driver;
+    protected final WaitUtils waitUtils;
+    protected final ElementUtils elementUtils;
+    protected final ConfigReader config;
+
+    protected BasePage(WebDriver driver) {
+        this.driver        = driver;
+        this.config        = ConfigReader.getInstance();
+        this.waitUtils     = new WaitUtils(driver, config.getTimeoutSeconds());
+        this.elementUtils  = new ElementUtils(driver, waitUtils);
+    }
+
+    /**
+     * Navega para a URL informada e aguarda o carregamento da pagina.
+     */
+    public void abrir(String url) {
+        driver.get(url);
+        aguardarCarregamento();
+    }
+
+    /**
+     * Aguarda o documento estar pronto e sem indicadores de loading visiveis.
+     */
+    public void aguardarCarregamento() {
+        try {
+            waitUtils.waitForCondition(d -> {
+                String state = String.valueOf(
+                    ((JavascriptExecutor) d).executeScript("return document.readyState"));
+                Boolean busy = (Boolean) ((JavascriptExecutor) d).executeScript(
+                    "return !!document.querySelector('[aria-busy=true], .loading, .loader, .spinner')");
+                return ("complete".equals(state) || "interactive".equals(state))
+                       && !Boolean.TRUE.equals(busy);
+            });
+        } catch (Exception ignored) { }
+    }
+
+    public String obterTitulo() {
+        return driver.getTitle();
+    }
+
+    public String obterUrlAtual() {
+        return driver.getCurrentUrl();
+    }
+}
+""";
+    }
+
+    // ── WaitUtils.java ────────────────────────────────────────────────────────
+
+    private String pro5WaitUtils() {
+        return """
+package utils;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
+
+/**
+ * Centralizador de esperas explicitas.
+ * Nenhuma classe de teste ou page object deve chamar Thread.sleep diretamente.
+ */
+public class WaitUtils {
+
+    private final WebDriverWait wait;
+    private final WebDriverWait shortWait;
+
+    public WaitUtils(WebDriver driver, int timeoutSeconds) {
+        this.wait      = new WebDriverWait(driver, Duration.ofSeconds(timeoutSeconds));
+        this.shortWait = new WebDriverWait(driver, Duration.ofSeconds(3));
+    }
+
+    public WebElement waitForVisible(By locator) {
+        return wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+
+    public WebElement waitForClickable(By locator) {
+        return wait.until(ExpectedConditions.elementToBeClickable(locator));
+    }
+
+    public WebElement waitForPresence(By locator) {
+        return wait.until(ExpectedConditions.presenceOfElementLocated(locator));
+    }
+
+    public void waitForInvisibility(By locator) {
+        wait.until(ExpectedConditions.invisibilityOfElementLocated(locator));
+    }
+
+    public void waitForTextPresent(By locator, String text) {
+        wait.until(ExpectedConditions.textToBePresentInElementLocated(locator, text));
+    }
+
+    public <T> T waitForCondition(ExpectedCondition<T> condition) {
+        return wait.until(condition);
+    }
+
+    /**
+     * Retorna true se o elemento ficar visivel dentro do timeout curto.
+     * Nao lanca excecao em caso de timeout.
+     */
+    public boolean isVisible(By locator) {
+        try {
+            return shortWait.until(ExpectedConditions.visibilityOfElementLocated(locator)) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Retorna true se o elemento estiver presente no DOM.
+     */
+    public boolean isPresent(By locator) {
+        try {
+            return shortWait.until(ExpectedConditions.presenceOfElementLocated(locator)) != null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+""";
+    }
+
+    // ── ElementUtils.java ─────────────────────────────────────────────────────
+
+    private String pro5ElementUtils() {
+        return """
+package utils;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.Select;
+
+/**
+ * Utilitario de interacao com elementos.
+ * Encapsula operacoes Selenium para manter os Page Objects limpos e sem duplicacao.
+ */
+public class ElementUtils {
+
+    private final WebDriver driver;
+    private final WaitUtils wait;
+
+    public ElementUtils(WebDriver driver, WaitUtils wait) {
+        this.driver = driver;
+        this.wait   = wait;
+    }
+
+    /** Clica em um elemento apos aguardar que esteja clicavel. */
+    public void click(By locator) {
+        wait.waitForClickable(locator).click();
+    }
+
+    /** Clica via JavaScript — util para elementos bloqueados por overlay. */
+    public void clickJs(By locator) {
+        WebElement el = wait.waitForPresence(locator);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", el);
+    }
+
+    /** Limpa o campo e digita o texto informado. */
+    public void type(By locator, String text) {
+        WebElement el = wait.waitForVisible(locator);
+        el.clear();
+        el.sendKeys(text);
+    }
+
+    /** Retorna o texto visivel do elemento. */
+    public String getText(By locator) {
+        return wait.waitForVisible(locator).getText().trim();
+    }
+
+    /** Retorna o valor do atributo 'value' (campos de formulario). */
+    public String getValue(By locator) {
+        return wait.waitForVisible(locator).getAttribute("value");
+    }
+
+    /** Verifica se o elemento esta visivel na tela. */
+    public boolean isDisplayed(By locator) {
+        return wait.isVisible(locator);
+    }
+
+    /** Faz scroll ate o elemento. */
+    public void scrollTo(By locator) {
+        WebElement el = wait.waitForPresence(locator);
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", el);
+    }
+
+    /** Seleciona opcao de dropdown pelo texto visivel. */
+    public void selectByText(By locator, String text) {
+        new Select(wait.waitForVisible(locator)).selectByVisibleText(text);
+    }
+
+    /** Seleciona opcao de dropdown pelo valor (atributo value). */
+    public void selectByValue(By locator, String value) {
+        new Select(wait.waitForVisible(locator)).selectByValue(value);
+    }
+
+    /** Move o mouse sobre o elemento (hover). */
+    public void hover(By locator) {
+        new Actions(driver).moveToElement(wait.waitForVisible(locator)).perform();
+    }
+
+    /** Retorna o texto de um atributo arbitrario do elemento. */
+    public String getAttribute(By locator, String attribute) {
+        return wait.waitForPresence(locator).getAttribute(attribute);
+    }
+}
+""";
+    }
+
+    // ── ScreenshotUtils.java ──────────────────────────────────────────────────
+
+    private String pro5ScreenshotUtils() {
+        return """
+package utils;
+
+import config.ConfigReader;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+/**
+ * Utilitario para captura de screenshots.
+ * Salva evidencias em target/screenshots com nome identificavel pelo teste.
+ */
+public final class ScreenshotUtils {
+
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+
+    private ScreenshotUtils() {}
+
+    /**
+     * Captura screenshot e salva no diretorio configurado.
+     *
+     * @param driver   WebDriver ativo
+     * @param testName nome do teste (usado no nome do arquivo)
+     * @return Path do arquivo salvo, ou null em caso de falha
+     */
+    public static Path capture(WebDriver driver, String testName) {
+        String dir = ConfigReader.getInstance().getScreenshotsDir();
+        try {
+            Path dirPath = Paths.get(dir);
+            Files.createDirectories(dirPath);
+
+            String sanitized  = testName.replaceAll("[^a-zA-Z0-9_\\\\-]", "_");
+            String timestamp  = LocalDateTime.now().format(FMT);
+            Path   dest       = dirPath.resolve(sanitized + "_" + timestamp + ".png");
+
+            byte[] bytes = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+            Files.write(dest, bytes);
+            System.out.println("[Screenshot] Evidencia salva: " + dest.toAbsolutePath());
+            return dest;
+
+        } catch (IOException e) {
+            System.err.println("[Screenshot] Falha ao salvar evidencia: " + e.getMessage());
+            return null;
+        }
+    }
+}
+""";
+    }
+
+    // ── JsonDataReader.java ───────────────────────────────────────────────────
+
+    private String pro5JsonDataReader() {
+        return """
+package utils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import models.UsuarioTeste;
+
+import java.io.InputStream;
+
+/**
+ * Leitor de dados de teste externalizados em JSON.
+ * Evita hardcode de dados sensiveis ou variaveis diretamente no codigo de teste.
+ */
+public final class JsonDataReader {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private JsonDataReader() {}
+
+    /**
+     * Le um usuario de teste do arquivo testdata/usuarios.json.
+     *
+     * @param tipo chave do JSON (ex: "valido", "invalido", "admin")
+     * @return UsuarioTeste preenchido
+     */
+    public static UsuarioTeste lerUsuario(String tipo) {
+        try (InputStream is = JsonDataReader.class
+                .getClassLoader()
+                .getResourceAsStream("testdata/usuarios.json")) {
+
+            if (is == null) {
+                throw new IllegalStateException("testdata/usuarios.json nao encontrado no classpath");
+            }
+
+            JsonNode root = MAPPER.readTree(is);
+            JsonNode node = root.get(tipo);
+
+            if (node == null) {
+                throw new IllegalArgumentException(
+                    "Entrada '" + tipo + "' nao encontrada em testdata/usuarios.json");
+            }
+
+            return MAPPER.treeToValue(node, UsuarioTeste.class);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao ler dados de teste: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Le qualquer node JSON e converte para a classe informada.
+     */
+    public static <T> T lerDados(String arquivo, String chave, Class<T> tipo) {
+        try (InputStream is = JsonDataReader.class
+                .getClassLoader()
+                .getResourceAsStream("testdata/" + arquivo)) {
+
+            if (is == null) {
+                throw new IllegalStateException("testdata/" + arquivo + " nao encontrado");
+            }
+            JsonNode node = MAPPER.readTree(is).get(chave);
+            if (node == null) throw new IllegalArgumentException("Chave '" + chave + "' nao encontrada");
+            return MAPPER.treeToValue(node, tipo);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao ler " + arquivo + "[" + chave + "]: " + e.getMessage(), e);
+        }
+    }
+}
+""";
+    }
+
+    // ── TestListener.java ─────────────────────────────────────────────────────
+
+    private String pro5TestListener() {
+        return """
+package listeners;
+
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
+import org.openqa.selenium.WebDriver;
+import utils.ScreenshotUtils;
+
+import java.lang.reflect.Field;
+import java.util.Optional;
+
+/**
+ * Listener JUnit 5 que captura screenshot automaticamente quando um teste falha.
+ * Registrado via @ExtendWith(TestListener.class) em BaseTest.
+ */
+public class TestListener implements TestWatcher {
+
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+        context.getTestInstance().ifPresent(instance -> {
+            WebDriver driver = extrairDriver(instance);
+            if (driver != null) {
+                String testName = context.getDisplayName()
+                    .replaceAll("[^a-zA-Z0-9_\\\\-]", "_");
+                ScreenshotUtils.capture(driver, testName);
+            }
+        });
+    }
+
+    @Override
+    public void testSuccessful(ExtensionContext context) {
+        // Extensao: adicionar log ou metricas de sucesso aqui se necessario
+    }
+
+    @Override
+    public void testDisabled(ExtensionContext context, Optional<String> reason) {
+        System.out.println("[TestListener] Teste desativado: "
+            + context.getDisplayName()
+            + reason.map(r -> " — " + r).orElse(""));
+    }
+
+    private WebDriver extrairDriver(Object instance) {
+        Class<?> clazz = instance.getClass();
+        while (clazz != null) {
+            try {
+                Field f = clazz.getDeclaredField("driver");
+                f.setAccessible(true);
+                Object val = f.get(instance);
+                if (val instanceof WebDriver wd) return wd;
+            } catch (NoSuchFieldException ignored) {
+                clazz = clazz.getSuperclass();
+            } catch (Exception e) {
+                System.err.println("[TestListener] Erro ao acessar driver: " + e.getMessage());
+                return null;
+            }
+        }
+        return null;
+    }
+}
+""";
+    }
+
+    // ── UsuarioTeste.java ─────────────────────────────────────────────────────
+
+    private String pro5UsuarioTeste() {
+        return """
+package models;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+/**
+ * Model de dados para usuario de teste.
+ * Lido a partir de testdata/usuarios.json via JsonDataReader.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class UsuarioTeste {
+
+    private String email;
+    private String senha;
+    private String nome;
+    private String perfil;
+
+    public UsuarioTeste() {}
+
+    public UsuarioTeste(String email, String senha, String nome, String perfil) {
+        this.email  = email;
+        this.senha  = senha;
+        this.nome   = nome;
+        this.perfil = perfil;
+    }
+
+    public String getEmail()  { return email; }
+    public String getSenha()  { return senha; }
+    public String getNome()   { return nome; }
+    public String getPerfil() { return perfil; }
+
+    public void setEmail(String email)   { this.email  = email; }
+    public void setSenha(String senha)   { this.senha  = senha; }
+    public void setNome(String nome)     { this.nome   = nome; }
+    public void setPerfil(String perfil) { this.perfil = perfil; }
+
+    @Override
+    public String toString() {
+        return "UsuarioTeste{email='" + email + "', perfil='" + perfil + "'}";
+    }
+}
+""";
+    }
+
+    // ── config.properties ─────────────────────────────────────────────────────
+
+    private String pro5ConfigProperties(String urlBase) {
+        return "# ============================================================\n"
+             + "# Configuracoes do framework de automacao — Qorbit Export\n"
+             + "# ============================================================\n\n"
+             + "# URL base da aplicacao testada\n"
+             + "base.url=" + urlBase + "\n\n"
+             + "# Navegador: chrome | firefox | edge\n"
+             + "browser=chrome\n\n"
+             + "# Timeout padrao para esperas explicitas (segundos)\n"
+             + "timeout.seconds=10\n\n"
+             + "# Executar em modo headless: true | false\n"
+             + "# Pode ser sobrescrito via -Dheadless=true no mvn test\n"
+             + "headless=false\n\n"
+             + "# Diretorio para salvar screenshots de falha\n"
+             + "screenshots.dir=target/screenshots\n";
+    }
+
+    // ── testdata/usuarios.json ────────────────────────────────────────────────
+
+    private String pro5UsuariosJson() {
+        return "{\n"
+             + "  \"valido\": {\n"
+             + "    \"email\":  \"usuario@suaempresa.com.br\",\n"
+             + "    \"senha\":  \"SenhaValida@123\",\n"
+             + "    \"nome\":   \"Usuario Valido\",\n"
+             + "    \"perfil\": \"USUARIO\"\n"
+             + "  },\n"
+             + "  \"admin\": {\n"
+             + "    \"email\":  \"admin@suaempresa.com.br\",\n"
+             + "    \"senha\":  \"AdminSenha@456\",\n"
+             + "    \"nome\":   \"Administrador\",\n"
+             + "    \"perfil\": \"ADMIN\"\n"
+             + "  },\n"
+             + "  \"invalido\": {\n"
+             + "    \"email\":  \"invalido@suaempresa.com.br\",\n"
+             + "    \"senha\":  \"SenhaErrada\",\n"
+             + "    \"nome\":   \"Usuario Invalido\",\n"
+             + "    \"perfil\": \"USUARIO\"\n"
+             + "  }\n"
+             + "}\n";
+    }
+
+    // ── Page Object profissional ──────────────────────────────────────────────
+
+    private String pro5PageObject(PageObjectSpec page) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("package pages;\n\n");
+        sb.append("import org.openqa.selenium.By;\n");
+        sb.append("import org.openqa.selenium.WebDriver;\n\n");
+        sb.append("/**\n");
+        sb.append(" * Page Object — ").append(page.rawPageName).append("\n");
+        sb.append(" * Encapsula locators e acoes da pagina.\n");
+        sb.append(" * Assertions ficam nos testes — esta classe expoe apenas comportamento.\n");
+        sb.append(" */\n");
+        sb.append("public class ").append(page.className).append(" extends BasePage {\n\n");
+
+        // Locators
+        if (!page.elementos.isEmpty()) {
+            sb.append("    // ── Locators ────────────────────────────────────────────────────\n\n");
+            for (ElementSpec el : page.elementos) {
+                String byExpr = pro5ByExpression(el.locator());
+                sb.append("    private final By ").append(el.methodName())
+                  .append(" = ").append(byExpr).append(";\n");
+            }
+        } else {
+            sb.append("    // Nenhum elemento capturado para esta pagina\n");
+            sb.append("    // Adicione seus locators aqui:\n");
+            sb.append("    // private final By meuElemento = By.cssSelector(\"#seuSeletor\");\n");
+        }
+
+        sb.append("\n");
+        sb.append("    public ").append(page.className).append("(WebDriver driver) {\n");
+        sb.append("        super(driver);\n");
+        sb.append("    }\n\n");
+
+        if (!page.elementos.isEmpty()) {
+            sb.append("    // ── Acoes ────────────────────────────────────────────────────────\n\n");
+            for (ElementSpec el : page.elementos) {
+                String name = el.methodName();
+                String cap  = Character.toUpperCase(name.charAt(0)) + name.substring(1);
+
+                // preencher
+                sb.append("    /** Preenche o campo ").append(name).append(" com o valor informado. */\n");
+                sb.append("    public void preencher").append(cap).append("(String valor) {\n");
+                sb.append("        elementUtils.type(").append(name).append(", valor);\n");
+                sb.append("    }\n\n");
+
+                // clicar
+                sb.append("    /** Clica no elemento ").append(name).append(". */\n");
+                sb.append("    public void clicar").append(cap).append("() {\n");
+                sb.append("        elementUtils.click(").append(name).append(");\n");
+                sb.append("    }\n\n");
+
+                // visibilidade
+                sb.append("    /** Retorna true se ").append(name).append(" estiver visivel. */\n");
+                sb.append("    public boolean is").append(cap).append("Visivel() {\n");
+                sb.append("        return elementUtils.isDisplayed(").append(name).append(");\n");
+                sb.append("    }\n\n");
+
+                // texto
+                sb.append("    /** Retorna o texto visivel de ").append(name).append(". */\n");
+                sb.append("    public String obterTexto").append(cap).append("() {\n");
+                sb.append("        return elementUtils.getText(").append(name).append(");\n");
+                sb.append("    }\n\n");
+            }
+        } else {
+            sb.append("    // Adicione metodos de acao aqui seguindo o padrao:\n");
+            sb.append("    // public void preencherCampo(String valor) { elementUtils.type(campo, valor); }\n");
+            sb.append("    // public void clicarBotao() { elementUtils.click(botao); }\n");
+            sb.append("    // public boolean isBotaoVisivel() { return elementUtils.isDisplayed(botao); }\n\n");
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    private String pro5ByExpression(LocatorSpec loc) {
+        if (loc == null) return "By.cssSelector(\"[data-testid=\\\"elemento\\\"]\")";;
+        String v = normalizador.literalJava(loc.valor());
+        return switch (loc.tipo().toUpperCase(Locale.ROOT)) {
+            case "XPATH"      -> "By.xpath(\"" + v + "\")";
+            case "ID"         -> "By.id(\"" + v + "\")";
+            case "NAME"       -> "By.name(\"" + v + "\")";
+            case "LINK_TEXT"  -> "By.linkText(\"" + v + "\")";
+            case "TAG"        -> "By.tagName(\"" + v + "\")";
+            default           -> "By.cssSelector(\"" + v + "\")";
+        };
+    }
+
+    // ── Classe de teste JUnit 5 ───────────────────────────────────────────────
+
+    private String pro5TesteJUnit5(CasoDeTeste caso, Map<String, PageObjectSpec> pages,
+                                   Map<String, Elemento> elementosPorNome) {
+        String nomeClasse = normalizador.normalizarClasse(caso.getNome(), "CasoGerado");
+        String codigo     = Optional.ofNullable(caso.getCodigo()).orElse("CT");
+        StringBuilder sb  = new StringBuilder();
+
+        // Imports
+        sb.append("package tests;\n\n");
+        sb.append("import base.BaseTest;\n");
+        sb.append("import org.junit.jupiter.api.DisplayName;\n");
+        sb.append("import org.junit.jupiter.api.Test;\n");
+        sb.append("import static org.junit.jupiter.api.Assertions.*;\n\n");
+
+        LinkedHashMap<String, String> pageVars = new LinkedHashMap<>();
+        List<ResolvedStep> resolvedSteps = resolverSteps(caso, pages, elementosPorNome);
+        for (ResolvedStep rs : resolvedSteps) {
+            if (rs.pageClassName() != null && !pageVars.containsKey(rs.pageClassName())) {
+                pageVars.put(rs.pageClassName(), lowerFirst(rs.pageClassName()));
+                sb.append("import pages.").append(rs.pageClassName()).append(";\n");
+            }
+        }
+        if (pageVars.isEmpty() && !pages.isEmpty()) {
+            String fallback = pages.keySet().iterator().next();
+            pageVars.put(fallback, lowerFirst(fallback));
+            sb.append("import pages.").append(fallback).append(";\n");
+        }
+
+        sb.append("\n/**\n");
+        sb.append(" * Teste gerado automaticamente pelo Qorbit.\n");
+        sb.append(" * Caso: ").append(safe(caso.getNome())).append("\n");
+        sb.append(" *\n");
+        sb.append(" * Herda de BaseTest — driver e config sao inicializados automaticamente.\n");
+        sb.append(" */\n");
+        sb.append("@DisplayName(\"").append(codigo).append(": ").append(safe(caso.getNome())).append("\")\n");
+        sb.append("public class ").append(nomeClasse).append("Test extends BaseTest {\n\n");
+
+        sb.append("    @Test\n");
+        sb.append("    @DisplayName(\"Executar fluxo: ").append(safe(caso.getNome())).append("\")\n");
+        sb.append("    void executar").append(nomeClasse).append("() {\n");
+
+        // Inicializa page objects dentro do metodo de teste
+        sb.append("        // ── Page Objects ────────────────────────────────────────────────\n");
+        for (Map.Entry<String, String> e : pageVars.entrySet())
+            sb.append("        ").append(e.getKey()).append(" ").append(e.getValue())
+              .append(" = new ").append(e.getKey()).append("(driver);\n");
+        sb.append("\n");
+
+        sb.append("        // ── Fluxo ────────────────────────────────────────────────────────\n");
+        List<StepTeste> ordered = orderedSteps(caso);
+        for (int i = 0; i < ordered.size(); i++) {
+            StepTeste step   = ordered.get(i);
+            ResolvedStep res = i < resolvedSteps.size() ? resolvedSteps.get(i) : null;
+            pro5CorpoStep(sb, step, res, pageVars);
+        }
+
+        sb.append("    }\n}\n");
+        return sb.toString();
+    }
+
+    private void pro5CorpoStep(StringBuilder sb, StepTeste step, ResolvedStep resolved,
+                                Map<String, String> pageVars) {
+        String acao   = Optional.ofNullable(step.getAcao()).orElse("").toUpperCase(Locale.ROOT);
+        String pageVar = (resolved != null && resolved.pageClassName() != null)
+                ? pageVars.getOrDefault(resolved.pageClassName(), pageVars.values().iterator().next())
+                : pageVars.isEmpty() ? "page" : pageVars.values().iterator().next();
+        String valor   = normalizador.literalJava(Optional.ofNullable(step.getValorEntrada()).orElse(""));
+        String methRaw = resolved != null ? resolved.methodName() : null;
+        String cap     = methRaw != null
+                ? Character.toUpperCase(methRaw.charAt(0)) + methRaw.substring(1)
+                : null;
+
+        switch (acao) {
+            case "NAVEGAR" ->
+                sb.append("        ").append(pageVar).append(".abrir(\"").append(valor).append("\");\n");
+            case "PREENCHER" -> {
+                if (cap != null)
+                    sb.append("        ").append(pageVar).append(".preencher").append(cap)
+                      .append("(\"").append(valor).append("\");\n");
+                else
+                    sb.append("        // TODO: preencher elemento nao resolvido — valor: \"")
+                      .append(valor).append("\"\n");
+            }
+            case "CLICAR" -> {
+                if (cap != null)
+                    sb.append("        ").append(pageVar).append(".clicar").append(cap).append("();\n");
+                else
+                    sb.append("        // TODO: clicar em elemento nao resolvido\n");
+            }
+            case "VALIDAR" -> {
+                if (cap != null)
+                    sb.append("        assertTrue(").append(pageVar).append(".is").append(cap)
+                      .append("Visivel(), \"Elemento '").append(methRaw).append("' deve estar visivel\");\n");
+                else
+                    sb.append("        // TODO: validar elemento nao resolvido\n");
+            }
+            default ->
+                sb.append("        // Step: ").append(acao).append(" — ")
+                  .append(descricaoStep(step)).append("\n");
+        }
+    }
+
+    // ── README.md ─────────────────────────────────────────────────────────────
+
+    private String pro5Readme() {
+        return """
+# Qorbit — Projeto Exportado (Selenium + JUnit 5)
+
+Arquitetura profissional de automacao UI: Java 17 + Selenium 4 + JUnit 5 + Maven.
+
+## Estrutura
+
+```
+src
+├── main/java/config/
+│   └── ConfigReader.java           — leitura de config.properties
+└── test/
+    ├── java/
+    │   ├── base/BaseTest.java       — ciclo de vida do driver (@BeforeEach/@AfterEach)
+    │   ├── driver/DriverFactory.java — criacao do WebDriver (Chrome, Firefox, Edge)
+    │   ├── pages/
+    │   │   ├── BasePage.java        — base com WaitUtils e ElementUtils
+    │   │   └── *Page.java           — page objects gerados
+    │   ├── utils/
+    │   │   ├── WaitUtils.java       — esperas explicitas centralizadas
+    │   │   ├── ElementUtils.java    — operacoes reutilizaveis de interacao
+    │   │   ├── ScreenshotUtils.java — captura de evidencias
+    │   │   └── JsonDataReader.java  — leitura de dados de teste em JSON
+    │   ├── listeners/TestListener.java — screenshot automatico em falha
+    │   ├── models/UsuarioTeste.java — model de dados de teste
+    │   └── tests/*Test.java         — testes gerados
+    └── resources/
+        ├── config.properties        — configuracoes do ambiente
+        └── testdata/usuarios.json   — dados externos de teste
+```
+
+## Como executar
+
+```bash
+# Execucao padrao (visivel)
+mvn test
+
+# Modo headless (para CI/CD)
+mvn test -Dheadless=true
+
+# Navegador especifico
+mvn test -Dbrowser=firefox
+```
+
+## Como adicionar uma nova pagina
+
+1. Crie `src/test/java/pages/NovaPagina.java` estendendo `BasePage`
+2. Declare os locators como `private final By campo = By.cssSelector("...")`
+3. Adicione metodos de acao usando `elementUtils` e `waitUtils`
+
+## Como criar um novo teste
+
+1. Crie `src/test/java/tests/NovaCenarioTest.java` estendendo `BaseTest`
+2. Adicione `@Test` nos metodos de teste
+3. Instancie os Page Objects usando `driver` (herdado de `BaseTest`)
+4. Use `Assertions.assertTrue/assertEquals/assertNotNull` para validacoes
+
+## Como trocar de navegador
+
+Edite `src/test/resources/config.properties`:
+```properties
+browser=firefox   # ou chrome, edge
+```
+
+Ou passe via linha de comando:
+```bash
+mvn test -Dbrowser=edge
+```
+
+## Capturas de evidencia
+
+Screenshots de falha sao salvas automaticamente em `target/screenshots/`.
+Configuravel em `config.properties` via `screenshots.dir`.
+
+## Importante
+
+Nao use `mvn spring-boot:run` — este projeto nao possui aplicacao Spring Boot.
+""";
+    }
+
+    // ─── Selenium + TestNG — Arquitetura Profissional ────────────────────────
+
+    private byte[] gerarZipTestNG(List<CasoDeTeste> casos, boolean includeCiCd) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        List<Elemento> todosElementos = elementoRepo.findAll();
+        Map<String, Elemento> elementosPorNome = todosElementos.stream()
+                .filter(e -> e.getNomeLogico() != null && !e.getNomeLogico().isBlank())
+                .collect(Collectors.toMap(
+                        e -> e.getNomeLogico().trim().toLowerCase(Locale.ROOT),
+                        e -> e, this::priorizarElemento, LinkedHashMap::new));
+        Map<String, PageObjectSpec> pages = construirPages(todosElementos);
+
+        String urlBase = casos.stream()
+                .flatMap(c -> orderedSteps(c).stream())
+                .filter(s -> "NAVEGAR".equalsIgnoreCase(s.getAcao()))
+                .map(s -> Optional.ofNullable(s.getValorEntrada()).orElse("https://app.suaempresa.com.br"))
+                .findFirst().orElse("https://app.suaempresa.com.br");
+
+        List<String> classesTng = new ArrayList<>();
+        try (ZipOutputStream zip = new ZipOutputStream(baos, StandardCharsets.UTF_8)) {
+            // ── Infraestrutura (reaproveitada do JUnit 5 onde possivel) ──
+            adicionarArquivo(zip, "pom.xml",                                                  tngPom());
+            adicionarArquivo(zip, "src/main/java/config/ConfigReader.java",                   pro5ConfigReader());
+            adicionarArquivo(zip, "src/test/java/driver/DriverFactory.java",                  pro5DriverFactory(includeCiCd));
+            adicionarArquivo(zip, "src/test/java/base/BaseTest.java",                         tngBaseTest());
+            adicionarArquivo(zip, "src/test/java/pages/BasePage.java",                        pro5BasePage());
+            adicionarArquivo(zip, "src/test/java/utils/WaitUtils.java",                       pro5WaitUtils());
+            adicionarArquivo(zip, "src/test/java/utils/ElementUtils.java",                    pro5ElementUtils());
+            adicionarArquivo(zip, "src/test/java/utils/ScreenshotUtils.java",                 pro5ScreenshotUtils());
+            adicionarArquivo(zip, "src/test/java/utils/JsonDataReader.java",                  pro5JsonDataReader());
+            adicionarArquivo(zip, "src/test/java/listeners/TestListener.java",                tngTestListener());
+            adicionarArquivo(zip, "src/test/java/models/UsuarioTeste.java",                   pro5UsuarioTeste());
+            adicionarArquivo(zip, "src/test/resources/config.properties",                     pro5ConfigProperties(urlBase));
+            adicionarArquivo(zip, "src/test/resources/testdata/usuarios.json",                pro5UsuariosJson());
+
+            // ── Page Objects ──
+            for (PageObjectSpec page : pages.values())
+                adicionarArquivo(zip, "src/test/java/pages/" + page.className + ".java",
+                        pro5PageObject(page));
+
+            // ── Testes ──
+            for (CasoDeTeste caso : casos) {
+                String nomeClasse = normalizador.normalizarClasse(caso.getNome(), "CasoGerado");
+                adicionarArquivo(zip, "src/test/java/tests/" + nomeClasse + "Test.java",
+                        tngTeste(caso, pages, elementosPorNome));
+                classesTng.add("tests." + nomeClasse + "Test");
+            }
+
+            adicionarArquivo(zip, "testng.xml",   tngXml(classesTng));
+            adicionarArquivo(zip, "README.md",     tngReadme());
+            adicionarArquivo(zip, "executar-testes.bat", gerarExecutarTestesBat());
+            adicionarArquivo(zip, "executar-testes.sh",  gerarExecutarTestesSh());
+            if (includeCiCd)
+                adicionarArquivo(zip, ".github/workflows/testes.yml", gerarGithubActionsWorkflow());
+        }
+        return baos.toByteArray();
+    }
+
+    // ── pom.xml TestNG ────────────────────────────────────────────────────────
+
+    private String tngPom() {
+        return """
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.qorbit.automation</groupId>
+    <artifactId>qorbit-tests-export</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <selenium.version>4.18.1</selenium.version>
+        <testng.version>7.9.0</testng.version>
+        <wdm.version>5.7.0</wdm.version>
+        <jackson.version>2.17.0</jackson.version>
+        <surefire.version>3.2.5</surefire.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- Selenium -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <!-- WebDriverManager -->
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>${wdm.version}</version>
+        </dependency>
+
+        <!-- TestNG -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>${testng.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Jackson — leitura de dados de teste em JSON -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <release>17</release>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
+                <configuration>
+                    <!-- TestNG suite -->
+                    <suiteXmlFiles>
+                        <suiteXmlFile>testng.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                    <systemPropertyVariables>
+                        <headless>${headless}</headless>
+                        <file.encoding>UTF-8</file.encoding>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
+""";
+    }
+
+    // ── BaseTest.java TestNG ──────────────────────────────────────────────────
+
+    private String tngBaseTest() {
+        return """
+package base;
+
+import config.ConfigReader;
+import driver.DriverFactory;
+import listeners.TestListener;
+import org.openqa.selenium.WebDriver;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Listeners;
+
+import java.time.Duration;
+
+/**
+ * Classe base para todos os testes TestNG.
+ * Gerencia o ciclo de vida do WebDriver e expoe driver e config para subclasses.
+ *
+ * Uso: todas as classes de teste devem herdar de BaseTest.
+ */
+@Listeners(TestListener.class)
+public abstract class BaseTest {
+
+    protected WebDriver driver;
+    protected ConfigReader config;
+
+    @BeforeMethod(alwaysRun = true)
+    public void setUp() {
+        config = ConfigReader.getInstance();
+        driver = DriverFactory.create();
+        // Usando explicit waits — implicit wait desativado intencionalmente
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(0));
+    }
+
+    @AfterMethod(alwaysRun = true)
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
+        }
+    }
+}
+""";
+    }
+
+    // ── TestListener.java TestNG ──────────────────────────────────────────────
+
+    private String tngTestListener() {
+        return """
+package listeners;
+
+import org.openqa.selenium.WebDriver;
+import org.testng.ITestListener;
+import org.testng.ITestResult;
+import utils.ScreenshotUtils;
+
+import java.lang.reflect.Field;
+
+/**
+ * Listener TestNG que captura screenshot automaticamente quando um teste falha.
+ * Registrado via @Listeners(TestListener.class) em BaseTest.
+ */
+public class TestListener implements ITestListener {
+
+    @Override
+    public void onTestFailure(ITestResult result) {
+        WebDriver driver = extrairDriver(result.getInstance());
+        if (driver != null) {
+            String testName = result.getTestClass().getName()
+                + "_" + result.getName();
+            ScreenshotUtils.capture(driver, testName);
+        }
+        System.err.println("[FALHOU] " + result.getName()
+            + (result.getThrowable() != null ? " — " + result.getThrowable().getMessage() : ""));
+    }
+
+    @Override
+    public void onTestSuccess(ITestResult result) {
+        System.out.println("[OK] " + result.getName());
+    }
+
+    @Override
+    public void onTestSkipped(ITestResult result) {
+        System.out.println("[IGNORADO] " + result.getName());
+    }
+
+    @Override
+    public void onTestStart(ITestResult result) {
+        System.out.println("[INICIANDO] " + result.getTestClass().getSimpleName()
+            + " :: " + result.getName());
+    }
+
+    private WebDriver extrairDriver(Object instance) {
+        if (instance == null) return null;
+        Class<?> clazz = instance.getClass();
+        while (clazz != null) {
+            try {
+                Field f = clazz.getDeclaredField("driver");
+                f.setAccessible(true);
+                Object val = f.get(instance);
+                if (val instanceof WebDriver wd) return wd;
+            } catch (NoSuchFieldException ignored) {
+                clazz = clazz.getSuperclass();
+            } catch (Exception e) {
+                System.err.println("[TestListener] Erro ao acessar driver: " + e.getMessage());
+                return null;
+            }
+        }
+        return null;
+    }
+}
+""";
+    }
+
+    // ── Classe de teste TestNG ────────────────────────────────────────────────
+
+    private String tngTeste(CasoDeTeste caso, Map<String, PageObjectSpec> pages,
+                            Map<String, Elemento> elementosPorNome) {
+        String nomeClasse = normalizador.normalizarClasse(caso.getNome(), "CasoGerado");
+        String codigo     = Optional.ofNullable(caso.getCodigo()).orElse("CT");
+        StringBuilder sb  = new StringBuilder();
+
+        sb.append("package tests;\n\n");
+        sb.append("import base.BaseTest;\n");
+        sb.append("import org.testng.Assert;\n");
+        sb.append("import org.testng.annotations.Test;\n\n");
+
+        LinkedHashMap<String, String> pageVars = new LinkedHashMap<>();
+        List<ResolvedStep> resolvedSteps = resolverSteps(caso, pages, elementosPorNome);
+        for (ResolvedStep rs : resolvedSteps) {
+            if (rs.pageClassName() != null && !pageVars.containsKey(rs.pageClassName())) {
+                pageVars.put(rs.pageClassName(), lowerFirst(rs.pageClassName()));
+                sb.append("import pages.").append(rs.pageClassName()).append(";\n");
+            }
+        }
+        if (pageVars.isEmpty() && !pages.isEmpty()) {
+            String fallback = pages.keySet().iterator().next();
+            pageVars.put(fallback, lowerFirst(fallback));
+            sb.append("import pages.").append(fallback).append(";\n");
+        }
+
+        sb.append("\n/**\n");
+        sb.append(" * Teste gerado automaticamente pelo Qorbit.\n");
+        sb.append(" * Caso: ").append(safe(caso.getNome())).append("\n");
+        sb.append(" *\n");
+        sb.append(" * Herda de BaseTest — driver e config sao inicializados automaticamente.\n");
+        sb.append(" */\n");
+        sb.append("public class ").append(nomeClasse).append("Test extends BaseTest {\n\n");
+
+        sb.append("    @Test(description = \"").append(codigo).append(": ").append(safe(caso.getNome())).append("\")\n");
+        sb.append("    public void executar").append(nomeClasse).append("() {\n");
+
+        sb.append("        // ── Page Objects ────────────────────────────────────────────────\n");
+        for (Map.Entry<String, String> e : pageVars.entrySet())
+            sb.append("        ").append(e.getKey()).append(" ").append(e.getValue())
+              .append(" = new ").append(e.getKey()).append("(driver);\n");
+        sb.append("\n");
+
+        sb.append("        // ── Fluxo ────────────────────────────────────────────────────────\n");
+        List<StepTeste> ordered = orderedSteps(caso);
+        for (int i = 0; i < ordered.size(); i++) {
+            StepTeste step   = ordered.get(i);
+            ResolvedStep res = i < resolvedSteps.size() ? resolvedSteps.get(i) : null;
+            tngCorpoStep(sb, step, res, pageVars);
+        }
+
+        sb.append("    }\n}\n");
+        return sb.toString();
+    }
+
+    private void tngCorpoStep(StringBuilder sb, StepTeste step, ResolvedStep resolved,
+                               Map<String, String> pageVars) {
+        String acao    = Optional.ofNullable(step.getAcao()).orElse("").toUpperCase(Locale.ROOT);
+        String pageVar = (resolved != null && resolved.pageClassName() != null)
+                ? pageVars.getOrDefault(resolved.pageClassName(), pageVars.values().iterator().next())
+                : pageVars.isEmpty() ? "page" : pageVars.values().iterator().next();
+        String valor   = normalizador.literalJava(Optional.ofNullable(step.getValorEntrada()).orElse(""));
+        String methRaw = resolved != null ? resolved.methodName() : null;
+        String cap     = methRaw != null
+                ? Character.toUpperCase(methRaw.charAt(0)) + methRaw.substring(1)
+                : null;
+
+        switch (acao) {
+            case "NAVEGAR" ->
+                sb.append("        ").append(pageVar).append(".abrir(\"").append(valor).append("\");\n");
+            case "PREENCHER" -> {
+                if (cap != null)
+                    sb.append("        ").append(pageVar).append(".preencher").append(cap)
+                      .append("(\"").append(valor).append("\");\n");
+                else
+                    sb.append("        // TODO: preencher elemento nao resolvido — valor: \"")
+                      .append(valor).append("\"\n");
+            }
+            case "CLICAR" -> {
+                if (cap != null)
+                    sb.append("        ").append(pageVar).append(".clicar").append(cap).append("();\n");
+                else
+                    sb.append("        // TODO: clicar em elemento nao resolvido\n");
+            }
+            case "VALIDAR" -> {
+                if (cap != null)
+                    sb.append("        Assert.assertTrue(").append(pageVar).append(".is").append(cap)
+                      .append("Visivel(), \"Elemento '").append(methRaw).append("' deve estar visivel\");\n");
+                else
+                    sb.append("        // TODO: validar elemento nao resolvido\n");
+            }
+            default ->
+                sb.append("        // Step: ").append(acao).append(" — ")
+                  .append(descricaoStep(step)).append("\n");
+        }
+    }
+
+    // ── testng.xml ────────────────────────────────────────────────────────────
+
+    private String tngXml(List<String> classes) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<!DOCTYPE suite SYSTEM \"https://testng.org/testng-1.0.dtd\">\n\n");
+        sb.append("<!--\n");
+        sb.append("  Suite de testes gerada pelo Qorbit.\n");
+        sb.append("  Para executar: mvn test\n");
+        sb.append("  Para headless: mvn test -Dheadless=true\n");
+        sb.append("-->\n");
+        sb.append("<suite name=\"Qorbit Test Suite\" verbose=\"1\" parallel=\"none\">\n\n");
+        sb.append("    <listeners>\n");
+        sb.append("        <listener class-name=\"listeners.TestListener\"/>\n");
+        sb.append("    </listeners>\n\n");
+        sb.append("    <test name=\"Testes Automatizados\" preserve-order=\"true\">\n");
+        sb.append("        <classes>\n");
+        for (String cls : classes)
+            sb.append("            <class name=\"").append(cls).append("\"/>\n");
+        sb.append("        </classes>\n");
+        sb.append("    </test>\n\n");
+        sb.append("</suite>\n");
+        return sb.toString();
+    }
+
+    // ── README.md TestNG ──────────────────────────────────────────────────────
+
+    private String tngReadme() {
+        return """
+# Qorbit — Projeto Exportado (Selenium + TestNG)
+
+Arquitetura profissional de automacao UI: Java 17 + Selenium 4 + TestNG + Maven.
+
+## Estrutura
+
+```
+src
+├── main/java/config/
+│   └── ConfigReader.java              — leitura de config.properties
+└── test/
+    ├── java/
+    │   ├── base/BaseTest.java          — ciclo de vida do driver (@BeforeMethod/@AfterMethod)
+    │   ├── driver/DriverFactory.java   — criacao do WebDriver (Chrome, Firefox, Edge)
+    │   ├── pages/
+    │   │   ├── BasePage.java           — base com WaitUtils e ElementUtils
+    │   │   └── *Page.java              — page objects gerados
+    │   ├── utils/
+    │   │   ├── WaitUtils.java          — esperas explicitas centralizadas
+    │   │   ├── ElementUtils.java       — operacoes reutilizaveis de interacao
+    │   │   ├── ScreenshotUtils.java    — captura de evidencias em falha
+    │   │   └── JsonDataReader.java     — leitura de dados de teste em JSON
+    │   ├── listeners/TestListener.java — screenshot automatico (ITestListener)
+    │   ├── models/UsuarioTeste.java    — model de dados de teste
+    │   └── tests/*Test.java            — testes gerados
+    └── resources/
+        ├── config.properties           — configuracoes do ambiente
+        ├── testng.xml                  — suite TestNG
+        └── testdata/usuarios.json      — dados externos de teste
+```
+
+## Como executar
+
+```bash
+# Execucao padrao (visivel)
+mvn test
+
+# Modo headless (para CI/CD)
+mvn test -Dheadless=true
+
+# Navegador especifico
+mvn test -Dbrowser=firefox
+```
+
+## Como adicionar uma nova pagina
+
+1. Crie `src/test/java/pages/NovaPagina.java` estendendo `BasePage`
+2. Declare locators como `private final By campo = By.cssSelector("...")`
+3. Adicione metodos de acao usando `elementUtils` e `waitUtils`
+
+## Como criar um novo teste
+
+1. Crie `src/test/java/tests/NovaCenarioTest.java` estendendo `BaseTest`
+2. Anote o metodo com `@Test`
+3. Instancie Page Objects usando `driver` (herdado de `BaseTest`)
+4. Use `Assert.assertTrue/assertEquals` do TestNG para validacoes
+
+## Como registrar o novo teste na suite
+
+Adicione em `testng.xml`:
+```xml
+<class name="tests.NovaCenarioTest"/>
+```
+
+## Como trocar de navegador
+
+Edite `src/test/resources/config.properties`:
+```properties
+browser=firefox   # ou chrome, edge
+```
+
+Ou passe via linha de comando:
+```bash
+mvn test -Dbrowser=edge
+```
+
+## Capturas de evidencia
+
+Screenshots de falha sao salvas automaticamente em `target/screenshots/`.
+Configuravel em `config.properties` via `screenshots.dir`.
+
+## Importante
+
+Nao use `mvn spring-boot:run` — este projeto nao possui aplicacao Spring Boot.
+""";
     }
 
     private String gerarDriverFactoryCiCd() {

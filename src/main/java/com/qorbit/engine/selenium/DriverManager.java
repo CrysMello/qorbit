@@ -43,7 +43,8 @@ public class DriverManager {
                     driver = new FirefoxDriver(ffOpts);
                 }
                 case "edge" -> {
-                    WebDriverManager.edgedriver().setup();
+                    // Selenium Manager (embutido no Selenium 4.6+) gerencia o msedgedriver
+                    // automaticamente sem precisar de acesso à rede externa
                     EdgeOptions edgeOpts = new EdgeOptions();
                     if (headless) edgeOpts.addArguments("--headless=new");
                     edgeOpts.addArguments("--start-maximized");

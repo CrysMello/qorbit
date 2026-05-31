@@ -134,7 +134,7 @@ async function limparAguardando() {
     initWebSocket();
     checkSeleniumStatus();
     const params = new URLSearchParams(window.location.search);
-    const execucaoId = params.get('execucaoId');
+    const execucaoId = params.get('execucaoId') || localStorage.getItem('qorbit_execucaoId');
     if (execucaoId) mostrarExecucaoEmAndamento(execucaoId);
     refreshExecucoesViews();
     setInterval(refreshExecucoesViews, 3000);

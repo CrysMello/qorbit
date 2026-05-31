@@ -73,12 +73,15 @@ async function gerarDownload() {
 
     toast('Gerando projeto... aguarde', 'info');
     try {
+        const formato = document.getElementById('formatoCodigo')?.value || 'CUCUMBER';
+
         const res = await fetch('/api/codigo/gerar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 idsCasos: Array.from(selecionados),
-                includeCiCd: includeCiCd
+                includeCiCd: includeCiCd,
+                formato: formato
             })
         });
 

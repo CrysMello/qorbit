@@ -150,6 +150,10 @@ function mostrarExecucaoEmAndamento(execucaoId) {
     ultimoStepRenderizado = null;
     ultimoEventoFinal = null;
 
+    // Persiste execucaoId para sobreviver à navegação entre páginas
+    localStorage.setItem('qorbit_execucaoId', execucaoId);
+    mostrarBarraGlobal();
+
     consultarStatusExecucao(execucaoId, false);
     iniciarPollingExecucao(execucaoId);
     refreshExecucoesViews();
@@ -158,6 +162,80 @@ function mostrarExecucaoEmAndamento(execucaoId) {
         aplicarEventoExecucao(data);
         refreshExecucoesViews();
     });
+}
+
+function mostrarBarraGlobal() {
+    const bar = document.getElementById('globalExecBar');
+    if (bar) bar.style.display = 'block';
+}
+
+function ocultarBarraGlobal() {
+    const bar = document.getElementById('globalExecBar');
+    if (bar) bar.style.display = 'none';
+    localStorage.removeItem('qorbit_execucaoId');
+}
+
+function atualizarBarraGlobal(pct, passou, falhou, concluidos, status) {
+    const progress = document.getElementById('globalExecProgress');
+    const label    = document.getElementById('globalExecLabel');
+    const badge    = document.getElementById('globalExecStatus');
+    if (progress) progress.style.width = Math.max(0, Math.min(100, pct || 0)) + '%';
+    if (label) label.textContent = `${concluidos || 0} steps — ${passou || 0} passou · ${falhou || 0} falhou`;
+    if (badge) {
+        if (status === 'CONCLUIDO') {
+            badge.textContent = '✓ Concluído';
+            badge.style.color = 'var(--green)';
+            if (progress) progress.style.background = 'var(--green)';
+        } else if (status === 'ERRO') {
+            badge.textContent = '✗ Erro';
+            badge.style.color = 'var(--red)';
+            if (progress) progress.style.background = 'var(--red)';
+        } else {
+            badge.textContent = '● Rodando';
+            badge.style.color = 'var(--blue-light)';
+            if (progress) progress.style.background = 'var(--blue)';
+        }
+    }
+}
+
+// Retoma acompanhamento de execução ativa ao navegar para outra página
+async function retormarExecucaoAtiva() {
+    const execucaoId = localStorage.getItem('qorbit_execucaoId');
+    if (!execucaoId) return;
+
+    try {
+        const data = await fetch('/api/execucoes/' + execucaoId).then(r => r.json());
+        const status = (data.status || '').toUpperCase();
+
+        if (status === 'RODANDO' || status === 'PENDENTE') {
+            mostrarBarraGlobal();
+            const pct = data.percentualSucesso ?? (data.totalSteps > 0 ? Math.round((data.stepsConcluidos / data.totalSteps) * 100) : 0);
+            atualizarBarraGlobal(pct, data.stepsPAssou, data.stepsFalhou, data.stepsConcluidos, status);
+            iniciarPollingExecucaoGlobal(execucaoId);
+        } else {
+            // Execução já terminou — limpa
+            ocultarBarraGlobal();
+        }
+    } catch (_) {
+        ocultarBarraGlobal();
+    }
+}
+
+function iniciarPollingExecucaoGlobal(execucaoId) {
+    if (pollingExecucao) clearInterval(pollingExecucao);
+    pollingExecucao = setInterval(async () => {
+        try {
+            const data = await fetch('/api/execucoes/' + execucaoId).then(r => r.json());
+            const status = (data.status || '').toUpperCase();
+            const pct = data.percentualSucesso ?? (data.totalSteps > 0 ? Math.round((data.stepsConcluidos / data.totalSteps) * 100) : 0);
+            atualizarBarraGlobal(pct, data.stepsPAssou, data.stepsFalhou, data.stepsConcluidos, status);
+            if (status !== 'RODANDO' && status !== 'PENDENTE') {
+                clearInterval(pollingExecucao);
+                pollingExecucao = null;
+                setTimeout(() => ocultarBarraGlobal(), 2500);
+            }
+        } catch (_) {}
+    }, 2000);
 }
 
 function iniciarPollingExecucao(execucaoId) {
@@ -243,6 +321,8 @@ function atualizarCabecalhoExecucao(status, pct, passou, falhou, concluidos) {
     if (progressLabel) {
         progressLabel.textContent = `Executados ${concluidos || 0} steps — ${passou || 0} passou · ${falhou || 0} falhou`;
     }
+
+    atualizarBarraGlobal(pct, passou, falhou, concluidos, status);
 }
 
 function finalizarAcompanhamento(status, detalhe) {
@@ -266,6 +346,7 @@ function finalizarAcompanhamento(status, detalhe) {
     setTimeout(() => {
         refreshExecucoesViews();
         ocultarCardExecucao();
+        ocultarBarraGlobal();
         location.reload();
     }, 1800);
 }
@@ -408,3 +489,6 @@ function ocultarCardExecucao() {
     const card = document.getElementById('execucaoCard');
     if (card) card.style.display = 'none';
 }
+
+// Ao carregar qualquer página, retoma exibição se houver execução ativa
+document.addEventListener('DOMContentLoaded', () => retormarExecucaoAtiva());

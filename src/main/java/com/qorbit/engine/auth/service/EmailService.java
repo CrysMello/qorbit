@@ -23,8 +23,13 @@ public class EmailService {
     @Value("${qorbit.mail.enabled:false}")
     private boolean mailEnabled;
 
-    @Value("${qorbit.mail.from:noreply@qorbit.local}")
+    // Remetente: usa o username SMTP quando disponível (obrigatório para Gmail)
+    @Value("${qorbit.mail.from:${spring.mail.username:noreply@qorbit.local}}")
     private String from;
+
+    // Username SMTP — se configurado, habilita envio mesmo sem qorbit.mail.enabled=true
+    @Value("${spring.mail.username:}")
+    private String smtpUsername;
 
     @Value("${qorbit.app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -65,19 +70,21 @@ public class EmailService {
     }
 
     private void send(String to, String subject, String body) {
-        if (!mailEnabled) {
+        boolean smtpConfigured = smtpUsername != null && !smtpUsername.isBlank();
+        if (!mailEnabled && !smtpConfigured) {
             log.info("[Email DEV] Para: {} | Assunto: {} | Corpo: {}", to, subject, body);
             return;
         }
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
-            msg.setFrom(from);
+            msg.setFrom(smtpConfigured ? smtpUsername : from);
             msg.setTo(to);
             msg.setSubject(subject);
             msg.setText(body);
             mailSender.send(msg);
+            log.info("[Email] Enviado para: {}", to);
         } catch (Exception e) {
-            log.error("[Email] Falha ao enviar e-mail para {}: {}", to, e.getMessage());
+            log.error("[Email] Falha ao enviar para {}: {}", to, e.getMessage(), e);
         }
     }
 }

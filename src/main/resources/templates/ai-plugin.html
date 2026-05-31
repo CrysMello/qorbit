@@ -88,6 +88,9 @@
                             <div class="step-desc">URL completa do endpoint de chat completions da sua IA.</div>
                             <div class="form-group" style="margin-bottom:4px">
                                 <input class="input" id="inputEndpoint" placeholder="https://api.deepseek.com/v1/chat/completions"
+                                       autocomplete="off"
+                                       data-lpignore="true"
+                                       data-form-type="other"
                                        oninput="validarFormulario()"/>
                             </div>
                             <span class="helper-text">Exemplos: DeepSeek · Mistral · IA interna · qualquer API compatível com OpenAI Chat</span>
@@ -100,7 +103,10 @@
                             <div class="step-title">Nome do modelo</div>
                             <div class="step-desc">Nome exacto do modelo conforme documentação da API.</div>
                             <input class="input" id="inputModelo" placeholder="deepseek-chat"
-                                   autocomplete="off" oninput="validarFormulario()"/>
+                                   autocomplete="off"
+                                   data-lpignore="true"
+                                   data-form-type="other"
+                                   oninput="validarFormulario()"/>
                             <span class="helper-text" style="margin-top:4px;display:block">Exemplos: deepseek-chat · mistral-large · gpt-4o · llama-3</span>
                         </div>
                     </div>
@@ -121,7 +127,19 @@
                                 </div>
                                 <div class="form-group" id="groupApiKey">
                                     <label>API Key</label>
-                                    <input class="input" id="inputApiKey" type="password" placeholder="sk-..."/>
+                                    <div style="position:relative">
+                                        <input class="input" id="inputApiKey" type="text" placeholder="sk-..."
+                                               autocomplete="off"
+                                               data-lpignore="true"
+                                               data-form-type="other"
+                                               style="font-family:monospace;letter-spacing:0.08em;padding-right:2.2rem"/>
+                                        <button type="button" id="btnToggleApiKey"
+                                                onclick="toggleApiKeyVisibility()"
+                                                title="Mostrar/ocultar"
+                                                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);
+                                                       background:none;border:none;cursor:pointer;padding:2px;
+                                                       color:var(--text-3);font-size:13px;line-height:1">👁</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

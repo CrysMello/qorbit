@@ -368,10 +368,159 @@
             margin-top: .875rem;
         }
 
+        /* ── Terms checkbox ── */
+        .terms-row { margin-bottom: 1.1rem; }
+        .terms-label {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .45rem;
+            font-size: .8125rem;
+            color: var(--text-3);
+            cursor: pointer;
+            user-select: none;
+            line-height: 1.5;
+        }
+        .terms-label input[type="checkbox"] {
+            width: 15px; height: 15px;
+            accent-color: var(--blue);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .terms-link { font-size: .8125rem; }
+
+        /* ── Beta footer ── */
+        .beta-footer {
+            text-align: center;
+            margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid rgba(71,85,105,.2);
+            font-size: .72rem;
+            color: var(--text-3);
+            letter-spacing: .03em;
+        }
+        .beta-footer a { font-size: .72rem; }
+
+        /* ── Modal overlay ──
+           Opacidade baixa SEM backdrop-filter no overlay:
+           blur sobre fundo #020817 resulta em tela preta sólida.
+           O login permanece visível; o card usa seu próprio blur. ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9000;
+            background: rgba(0, 0, 0, 0.28);
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            pointer-events: all;
+            animation: overlayIn .22s ease both;
+        }
+        .modal-overlay.open { display: flex; }
+        @keyframes overlayIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        /* ── Modal card ── */
+        .modal-card {
+            width: 100%;
+            max-width: 520px;
+            max-height: 85vh;
+            background: rgba(8, 16, 42, 0.98);
+            border: 1px solid rgba(96, 165, 250, 0.55);
+            border-radius: 20px;
+            backdrop-filter: blur(48px);
+            -webkit-backdrop-filter: blur(48px);
+            box-shadow:
+                0 0 0 1px rgba(96,165,250,.18),
+                0 0 80px rgba(59,130,246,.22),
+                0 32px 80px rgba(0,0,0,.7),
+                inset 0 1px 0 rgba(255,255,255,.08);
+            display: flex;
+            flex-direction: column;
+            animation: modalIn .3s cubic-bezier(.22,.68,0,1.15) both;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(.95) translateY(16px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 1.75rem 1rem;
+            border-bottom: 1px solid rgba(59,130,246,.15);
+            flex-shrink: 0;
+        }
+        .modal-header h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-1);
+            letter-spacing: -.02em;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-3);
+            cursor: pointer;
+            padding: .3rem;
+            line-height: 1;
+            border-radius: 6px;
+            transition: color .2s, background .2s;
+            display: flex;
+            align-items: center;
+        }
+        .modal-close:hover { color: var(--text-1); background: rgba(255,255,255,.06); }
+
+        .modal-body {
+            padding: 1.5rem 1.75rem;
+            overflow-y: auto;
+            flex: 1;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59,130,246,.3) transparent;
+        }
+        .modal-body::-webkit-scrollbar { width: 4px; }
+        .modal-body::-webkit-scrollbar-track { background: transparent; }
+        .modal-body::-webkit-scrollbar-thumb { background: rgba(59,130,246,.35); border-radius: 2px; }
+
+        .modal-section { margin-bottom: 1.35rem; }
+        .modal-section h3 {
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--blue-light);
+            margin-bottom: .5rem;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+        .modal-section p {
+            font-size: .875rem;
+            color: rgba(148,163,184,.85);
+            line-height: 1.7;
+        }
+
+        .modal-footer-content {
+            padding: 1rem 1.75rem 1.5rem;
+            border-top: 1px solid rgba(59,130,246,.15);
+            flex-shrink: 0;
+        }
+        .modal-footer-note {
+            font-size: .75rem;
+            color: var(--text-3);
+            text-align: center;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
         /* ── Responsivo ── */
         @media (max-width: 480px) {
             .card { padding: 1.75rem 1.25rem 1.5rem; border-radius: 16px; }
             .brand-name { font-size: 1.4rem; }
+            .modal-card { border-radius: 14px; }
+            .modal-header,
+            .modal-body,
+            .modal-footer-content { padding-left: 1.25rem; padding-right: 1.25rem; }
         }
     </style>
 </head>
@@ -488,8 +637,17 @@
                     <a th:href="@{/auth/forgot-password}" class="link">Esqueceu sua senha?</a>
                 </div>
 
+                <!-- Aceite dos termos -->
+                <div class="terms-row">
+                    <label class="checkbox-label terms-label">
+                        <input type="checkbox" id="termsCheckbox" onchange="toggleLoginBtn()"/>
+                        Concordo com os
+                        <a href="javascript:void(0)" class="link terms-link" onclick="openTerms(event)">Termos do Ambiente Beta</a>
+                    </label>
+                </div>
+
                 <!-- Botão entrar -->
-                <button type="submit" class="btn-primary" id="loginBtn">
+                <button type="submit" class="btn-primary" id="loginBtn" disabled>
                     Entrar
                     <span class="spinner"></span>
                 </button>
@@ -497,6 +655,10 @@
 
             <div class="card-footer">
                 Não tem uma conta?&nbsp;<a th:href="@{/auth/register}" class="link">Cadastre-se</a>
+            </div>
+
+            <div class="beta-footer">
+                Qorbit Beta&nbsp;•&nbsp;<a href="javascript:void(0)" class="link" onclick="openTerms(event)">Termos de Uso</a>
             </div>
 
         </div><!-- /step-login -->
@@ -551,7 +713,7 @@
 
                 <p class="mfa-hint">
                     Sem acesso ao app?
-                    <a href="#" class="link" onclick="useBackup(event)">Usar código de backup</a>
+                    <a href="javascript:void(0)" class="link" onclick="useBackup(event)">Usar código de backup</a>
                 </p>
             </form>
 
@@ -560,6 +722,44 @@
     </div><!-- /card -->
 
 </div><!-- /page-wrapper -->
+
+<!-- ── Modal: Termos do Ambiente Beta ── -->
+<div id="termsModal" class="modal-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+    <div class="modal-card">
+
+        <div class="modal-header">
+            <h2 id="termsModalTitle">Termos de Uso do Ambiente Beta</h2>
+            <button class="modal-close" onclick="closeTerms()" aria-label="Fechar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <div class="modal-section">
+                <h3>1. Ambiente Beta de Demonstração</h3>
+                <p>O Qorbit é uma plataforma em fase beta destinada exclusivamente para fins educacionais, demonstração técnica e portfólio.</p>
+            </div>
+            <div class="modal-section">
+                <h3>2. Responsabilidade do Usuário</h3>
+                <p>O usuário é integralmente responsável pelos dados inseridos na plataforma, comprometendo-se a não utilizar informações reais, sensíveis, confidenciais ou protegidas por legislação aplicável, incluindo dados pessoais de terceiros.</p>
+            </div>
+            <div class="modal-section">
+                <h3>3. Condições do Ambiente</h3>
+                <p>Ao utilizar a plataforma, o usuário concorda com estes termos e reconhece que o ambiente pode sofrer instabilidades, alterações ou indisponibilidades durante o período de testes.</p>
+            </div>
+        </div>
+
+        <div class="modal-footer-content">
+            <p class="modal-footer-note">Ao continuar utilizando o Qorbit, você concorda com os termos descritos acima.</p>
+            <button class="btn-primary" onclick="closeTerms()">Entendi</button>
+        </div>
+
+    </div>
+</div>
 
 <script>
 /* ── Starfield ── */
@@ -642,6 +842,24 @@ function togglePassword(id, btn) {
     field.type    = show ? 'text' : 'password';
     btn.innerHTML = show ? EYE_CLOSE : EYE_OPEN;
     btn.setAttribute('aria-label', show ? 'Ocultar senha' : 'Mostrar senha');
+}
+
+/* ── Termos Beta ── */
+function openTerms(e) {
+    if (e) e.preventDefault();
+    document.getElementById('termsModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeTerms() {
+    document.getElementById('termsModal').classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function toggleLoginBtn() {
+    const cb  = document.getElementById('termsCheckbox');
+    const btn = document.getElementById('loginBtn');
+    if (btn) btn.disabled = !cb.checked;
 }
 
 /* ── MFA backup ── */

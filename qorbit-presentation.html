@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qorbit Engine — Automação Web Inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-base:      #050A19;
+      --blue:         #2563EB;
+      --blue-dark:    #1D4ED8;
+      --blue-light:   #60A5FA;
+      --blue-glow:    rgba(37,99,235,0.4);
+      --purple:       #7C3AED;
+      --purple-light: #A78BFA;
+      --text-1:       #F8FAFC;
+      --text-2:       #D6DFEA;
+      --text-3:       #64748B;
+      --border:       rgba(37,99,235,0.2);
+      --card:         rgba(8,16,34,0.78);
+      --green:        #1F9D55;
+      --cyan:         #0891B2;
+      --font:         'Inter', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-base);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Estrelas animadas ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(37,99,235,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(124,58,237,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 80%, rgba(8,145,178,0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .stars span {
+      position: absolute;
+      border-radius: 50%;
+      background: #fff;
+      animation: twinkle var(--d, 3s) ease-in-out infinite alternate;
+      opacity: 0;
+    }
+    @keyframes twinkle {
+      from { opacity: 0; transform: scale(0.8); }
+      to   { opacity: var(--o, 0.7); transform: scale(1.2); }
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 64px;
+      background: rgba(5,10,25,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .nav-logo .orbit {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 0 12px var(--blue-glow);
+    }
+    .nav-links {
+      display: flex; gap: 32px;
+      list-style: none;
+      font-size: 13px;
+      color: var(--text-3);
+    }
+    .nav-links a { transition: color .15s; }
+    .nav-links a:hover { color: var(--text-1); }
+
+    .btn-nav {
+      padding: 8px 20px;
+      background: var(--blue);
+      border: none; border-radius: 8px;
+      color: #fff; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, box-shadow .15s;
+      text-decoration: none;
+    }
+    .btn-nav:hover {
+      background: var(--blue-dark);
+      box-shadow: 0 0 16px var(--blue-glow);
+    }
+
+    /* ── Seções ── */
+    section { position: relative; z-index: 1; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 99px;
+      border: 1px solid rgba(37,99,235,0.35);
+      background: rgba(37,99,235,0.08);
+      font-size: 12px;
+      color: var(--blue-light);
+      font-weight: 500;
+      margin-bottom: 28px;
+      letter-spacing: 0.3px;
+    }
+    .badge::before { content: '⬡'; font-size: 10px; }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      max-width: 800px;
+      margin-bottom: 24px;
+    }
+    .hero h1 span {
+      background: linear-gradient(90deg, var(--blue-light), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: var(--text-2);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      padding: 13px 30px;
+      background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+      border: none; border-radius: 10px;
+      color: #fff; font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 20px var(--blue-glow);
+      transition: transform .15s, box-shadow .15s;
+      text-decoration: none;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px var(--blue-glow); }
+
+    .btn-outline {
+      padding: 13px 30px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-2); font-size: 14px; font-weight: 500;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+      text-decoration: none;
+    }
+    .btn-outline:hover { border-color: var(--blue-light); color: var(--text-1); }
+
+    /* ── Pipeline visual ── */
+    .pipeline {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 64px;
+      padding: 0 24px;
+    }
+    .pipe-step {
+      padding: 6px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 11.5px;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+    .pipe-arrow { color: var(--blue); font-size: 12px; opacity: 0.6; }
+
+    /* ── Features grid ── */
+    .features {
+      padding: 100px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--blue-light);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      margin-bottom: 8px;
+    }
+    .section-sub {
+      font-size: 14px;
+      color: var(--text-3);
+      margin-bottom: 56px;
+      max-width: 480px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      transition: border-color .2s, transform .2s;
+    }
+    .card:hover {
+      border-color: rgba(37,99,235,0.4);
+      transform: translateY(-3px);
+    }
+    .card-icon {
+      width: 42px; height: 42px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .card p  { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+
+    .icon-blue   { background: rgba(37,99,235,0.12); }
+    .icon-purple { background: rgba(124,58,237,0.12); }
+    .icon-green  { background: rgba(31,157,85,0.12); }
+    .icon-cyan   { background: rgba(8,145,178,0.12); }
+    .icon-yellow { background: rgba(217,119,6,0.12); }
+    .icon-red    { background: rgba(194,65,65,0.12); }
+
+    /* ── Pipeline section ── */
+    .pipeline-section {
+      padding: 80px 48px;
+      background: rgba(8,16,34,0.5);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .pipeline-section .inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .pipeline-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .ps-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--text-2);
+    }
+    .ps-num {
+      min-width: 24px; height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+    }
+
+    .code-block {
+      background: rgba(3,7,18,0.9);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .code-block .kw  { color: var(--blue-light); }
+    .code-block .str { color: #86efac; }
+    .code-block .cmt { color: var(--text-3); }
+    .code-block .num { color: #f9a8d4; }
+    .code-block .cls { color: var(--purple-light); }
+
+    /* ── Segurança ── */
+    .security {
+      padding: 100px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-top: 40px;
+    }
+    .sec-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .sec-dot {
+      min-width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-top: 5px;
+    }
+    .sec-item h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .sec-item p  { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+
+    /* ── Componentes suportados ── */
+    .components {
+      padding: 80px 48px;
+      background: rgba(8,16,34,0.5);
+      border-top: 1px solid var(--border);
+    }
+    .components .inner { max-width: 1100px; margin: 0 auto; }
+    .comp-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 32px;
+    }
+    .chip {
+      padding: 8px 18px;
+      border-radius: 8px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      transition: border-color .15s;
+    }
+    .chip:hover { border-color: var(--blue-light); }
+    .chip-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ── CTA ── */
+    .cta {
+      padding: 100px 48px;
+      text-align: center;
+    }
+    .cta h2 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .cta p {
+      color: var(--text-3);
+      font-size: 15px;
+      margin-bottom: 36px;
+    }
+    .cta-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px 10px 18px;
+      background: rgba(8,16,34,0.8);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 32px;
+    }
+    .cta-box code {
+      font-family: monospace;
+      color: var(--blue-light);
+    }
+    .cta-box button {
+      padding: 5px 12px;
+      background: var(--blue);
+      border: none; border-radius: 6px;
+      color: #fff; font-size: 11px; cursor: pointer;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-3);
+    }
+    footer a { color: var(--text-3); transition: color .15s; }
+    footer a:hover { color: var(--text-1); }
+
+    /* ── Stats bar ── */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 64px;
+      padding: 48px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(8,16,34,0.4);
+      flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+      background: linear-gradient(90deg, var(--blue-light), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .features, .security, .pipeline-section, .cta { padding-left: 20px; padding-right: 20px; }
+      .pipeline-section .inner { grid-template-columns: 1fr; gap: 32px; }
+      footer { flex-direction: column; gap: 12px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Estrelas -->
+<div class="stars" id="stars"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">
+    <div class="orbit">⬡</div>
+    Qorbit
+  </div>
+  <ul class="nav-links">
+    <li><a href="#features">Recursos</a></li>
+    <li><a href="#pipeline">Pipeline</a></li>
+    <li><a href="#security">Segurança</a></li>
+    <li><a href="#components">Componentes</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="badge">Engine de Automação Web · v2.0</div>
+  <h1>Automação web com<br /><span>estratégia e inteligência</span></h1>
+  <p>
+    Qorbit é uma engine de automação orientada a estratégia, com auto-healing controlado,
+    aprendizado persistente em SQLite e plugin de IA integrado.
+  </p>
+  <div class="hero-actions">
+    <a href="#features" class="btn-primary">Ver recursos</a>
+    <a href="#pipeline" class="btn-outline">Como funciona</a>
+  </div>
+
+  <!-- Pipeline resumido -->
+  <div class="pipeline">
+    <span class="pipe-step">Step</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Resolver Elemento</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Classificar</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Assinatura</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Aprendizado</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Estratégia</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Executar</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Fallback</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Validar</span>
+    <span class="pipe-arrow">›</span>
+    <span class="pipe-step">Aprender</span>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">8+</div>
+    <div class="stat-label">Tipos de componentes</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">SQLite</div>
+    <div class="stat-label">Aprendizado persistente</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">MFA</div>
+    <div class="stat-label">Autenticação segura</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">RBAC</div>
+    <div class="stat-label">Controle de acesso</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">IA</div>
+    <div class="stat-label">Plugin inteligente</div>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="features" id="features">
+  <div class="section-label">Recursos</div>
+  <div class="section-title">Tudo que você precisa para automatizar</div>
+  <div class="section-sub">Uma engine completa, do elemento à execução, com fallback e aprendizado em cada passo.</div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-icon icon-blue">🧠</div>
+      <h3>Classificação Funcional</h3>
+      <p>Heurísticas inteligentes identificam automaticamente o tipo de cada componente — input, select, combobox, datepicker, checkbox, radio, button e link.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-purple">⚡</div>
+      <h3>Seleção de Estratégia</h3>
+      <p>Cada tipo de componente tem sua estratégia de execução otimizada. O fallback compatível garante resiliência quando a estratégia principal falha.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-green">💾</div>
+      <h3>Aprendizado Persistente</h3>
+      <p>O cache por assinatura de componente é armazenado em SQLite. Execuções futuras reutilizam o conhecimento acumulado para maior velocidade.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-cyan">🔧</div>
+      <h3>Auto-Healing Controlado</h3>
+      <p>Quando um elemento muda, o Qorbit tenta se adaptar automaticamente usando o histórico de sucesso e diagnóstico de falhas.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-yellow">🤖</div>
+      <h3>Plugin de IA</h3>
+      <p>Integração com qualquer endpoint de IA via variável de ambiente. Auto-naming, auto-diagnóstico e sugestões inteligentes habilitáveis por configuração.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon icon-red">📊</div>
+      <h3>Relatórios e Diagnóstico</h3>
+      <p>Estatísticas por tipo de componente e estratégia. Relatórios em texto ou JSON. Tradução de falhas técnicas em causa útil para o time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Pipeline detalhado -->
+<section class="pipeline-section" id="pipeline">
+  <div class="inner">
+    <div>
+      <div class="section-label">Pipeline</div>
+      <div class="section-title">Execução orientada a estratégia</div>
+      <p style="color:var(--text-3);font-size:13px;line-height:1.7;margin-top:12px">
+        Cada step passa por um pipeline completo: do elemento à validação, com aprendizado em cada etapa.
+        A arquitetura deixou de ser linear para ser modular e extensível.
+      </p>
+      <div class="pipeline-steps">
+        <div class="ps-item"><span class="ps-num">1</span> Resolver Elemento no DOM</div>
+        <div class="ps-item"><span class="ps-num">2</span> Classificar Componente</div>
+        <div class="ps-item"><span class="ps-num">3</span> Gerar Assinatura Estável</div>
+        <div class="ps-item"><span class="ps-num">4</span> Consultar Aprendizado</div>
+        <div class="ps-item"><span class="ps-num">5</span> Escolher Estratégia</div>
+        <div class="ps-item"><span class="ps-num">6</span> Executar</div>
+        <div class="ps-item"><span class="ps-num">7</span> Aplicar Fallback Compatível</div>
+        <div class="ps-item"><span class="ps-num">8</span> Validar Resultado</div>
+        <div class="ps-item"><span class="ps-num">9</span> Atualizar Diagnóstico e Aprendizado</div>
+      </div>
+    </div>
+    <div>
+      <div class="code-block">
+<span class="cmt"># Configuração via variáveis de ambiente</span>
+
+<span class="kw">export</span> <span class="cls">QORBIT_AI_ENABLED</span>=<span class="str">true</span>
+<span class="kw">export</span> <span class="cls">QORBIT_AI_ENDPOINT</span>=<span class="str">"https://api.exemplo.com"</span>
+<span class="kw">export</span> <span class="cls">QORBIT_AI_MODEL</span>=<span class="str">"seu-modelo"</span>
+<span class="kw">export</span> <span class="cls">QORBIT_AI_API_KEY</span>=<span class="str">"sua-chave"</span>
+
+<span class="cmt"># Super Admin</span>
+<span class="kw">export</span> <span class="cls">QORBIT_SUPER_ADMIN_EMAIL</span>=<span class="str">"admin@empresa.com"</span>
+<span class="kw">export</span> <span class="cls">QORBIT_SUPER_ADMIN_PASSWORD</span>=<span class="str">"SenhaForte!"</span>
+
+<span class="cmt"># Banco de dados personalizado</span>
+<span class="kw">export</span> <span class="cls">QORBIT_DB_PATH</span>=<span class="str">"/data/qorbit.db"</span>
+
+<span class="cmt"># Produção: cookie seguro</span>
+<span class="kw">export</span> <span class="cls">SESSION_COOKIE_SECURE</span>=<span class="str">true</span>
+
+<span class="cmt"># Iniciar</span>
+<span class="kw">java</span> -jar qorbit-engine.jar
+
+<span class="cmt"># Relatório de aprendizado</span>
+<span class="kw">java</span> -jar qorbit-engine.jar --report --json
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Componentes suportados -->
+<section class="components" id="components">
+  <div class="inner">
+    <div class="section-label">Componentes</div>
+    <div class="section-title">Suporte nativo a todos os elementos web</div>
+    <div class="comp-chips">
+      <div class="chip"><span class="chip-dot" style="background:#2563EB"></span>Input</div>
+      <div class="chip"><span class="chip-dot" style="background:#7C3AED"></span>Textarea</div>
+      <div class="chip"><span class="chip-dot" style="background:#0891B2"></span>Select Nativo</div>
+      <div class="chip"><span class="chip-dot" style="background:#1F9D55"></span>Custom Combobox</div>
+      <div class="chip"><span class="chip-dot" style="background:#D97706"></span>Datepicker</div>
+      <div class="chip"><span class="chip-dot" style="background:#C24141"></span>Checkbox</div>
+      <div class="chip"><span class="chip-dot" style="background:#A78BFA"></span>Radio</div>
+      <div class="chip"><span class="chip-dot" style="background:#60A5FA"></span>Button</div>
+      <div class="chip"><span class="chip-dot" style="background:#86efac"></span>Link</div>
+    </div>
+  </div>
+</section>
+
+<!-- Segurança -->
+<section class="security" id="security">
+  <div class="section-label">Segurança</div>
+  <div class="section-title">Segurança em todas as camadas</div>
+  <div class="section-sub">Autenticação robusta com MFA, RBAC, rate limiting e auditoria completa.</div>
+
+  <div class="security-grid">
+    <div class="sec-item">
+      <span class="sec-dot" style="background:#2563EB;margin-top:5px"></span>
+      <div>
+        <h4>MFA (TOTP)</h4>
+        <p>Autenticação em dois fatores com códigos de backup e compatibilidade com Google Authenticator.</p>
+      </div>
+    </div>
+    <div class="sec-item">
+      <span class="sec-dot" style="background:#7C3AED;margin-top:5px"></span>
+      <div>
+        <h4>RBAC</h4>
+        <p>Controle de acesso por papel: SUPER_ADMIN, ADMIN e USER com restrições em nível de rota e método.</p>
+      </div>
+    </div>
+    <div class="sec-item">
+      <span class="sec-dot" style="background:#0891B2;margin-top:5px"></span>
+      <div>
+        <h4>Rate Limiting</h4>
+        <p>Bloqueio automático após 5 tentativas de login falhas. Lockout configurável por variável de ambiente.</p>
+      </div>
+    </div>
+    <div class="sec-item">
+      <span class="sec-dot" style="background:#1F9D55;margin-top:5px"></span>
+      <div>
+        <h4>BCrypt 12 rounds</h4>
+        <p>Senhas armazenadas com BCrypt de custo 12. Histórico de senhas para evitar reutilização.</p>
+      </div>
+    </div>
+    <div class="sec-item">
+      <span class="sec-dot" style="background:#D97706;margin-top:5px"></span>
+      <div>
+        <h4>Headers de Segurança</h4>
+        <p>CSP, HSTS, X-Content-Type-Options, Referrer-Policy e Frame-Ancestors configurados por padrão.</p>
+      </div>
+    </div>
+    <div class="sec-item">
+      <span class="sec-dot" style="background:#C24141;margin-top:5px"></span>
+      <div>
+        <h4>Auditoria</h4>
+        <p>Log de auditoria com retenção de 90 dias. Rastreamento de logins, ações críticas e eventos de segurança.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Pronto para automatizar?</h2>
+  <p>Inicie o Qorbit localmente e acesse em segundos.</p>
+  <div>
+    <div class="cta-box">
+      <code>java -jar qorbit-engine.jar</code>
+      <button onclick="navigator.clipboard.writeText('java -jar qorbit-engine.jar')">copiar</button>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div style="display:flex;align-items:center;gap:8px;font-weight:600">
+    <span style="color:var(--blue)">⬡</span> Qorbit Engine
+  </div>
+  <div style="display:flex;gap:24px">
+    <a href="README.md">Docs</a>
+    <a href="PRIVACY.md">Privacidade</a>
+    <a href="TERMS.md">Termos</a>
+  </div>
+  <div>© 2026 Qorbit · Automação Web Inteligente</div>
+</footer>
+
+<script>
+  // Gera estrelas animadas
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('span');
+    const size = Math.random() * 2 + 0.5;
+    s.style.cssText = `
+      width:${size}px; height:${size}px;
+      top:${Math.random()*100}%;
+      left:${Math.random()*100}%;
+      --d:${(Math.random()*4+2).toFixed(1)}s;
+      --o:${(Math.random()*0.6+0.2).toFixed(2)};
+      animation-delay:${(Math.random()*5).toFixed(1)}s;
+    `;
+    container.appendChild(s);
+  }
+</script>
+</body>
+</html>
