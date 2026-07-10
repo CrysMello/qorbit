@@ -1,0 +1,15 @@
+[Unit]
+Description=Qorbit Engine
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/qorbit/current
+Environment=SPRING_PROFILES_ACTIVE=prod
+ExecStart=/usr/bin/java -jar /opt/qorbit/current/qorbit-engine.jar --server.port=8080
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

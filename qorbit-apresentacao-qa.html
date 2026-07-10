@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Qorbit — Apresentação QA Pleno</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --blue:    #2563EB;
+    --blue-d:  #1D4ED8;
+    --blue-l:  #60A5FA;
+    --purple:  #7C3AED;
+    --purple-l:#A78BFA;
+    --dark:    #050A19;
+    --dark2:   #0C1630;
+    --text:    #F8FAFC;
+    --text2:   #D6DFEA;
+    --text3:   #94A3B8;
+    --green:   #1F9D55;
+    --cyan:    #0891B2;
+    --yellow:  #D97706;
+    --red:     #DC2626;
+    --border:  rgba(37,99,235,0.22);
+    --card:    rgba(12,22,48,0.85);
+    --font:    'Inter', system-ui, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box; margin: 0; padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    font-family: var(--font);
+    background: #1a1a2e;
+    color: var(--text);
+  }
+
+  /* ── Botão imprimir ── */
+  .print-btn {
+    position: fixed;
+    top: 16px; right: 16px;
+    z-index: 999;
+    padding: 10px 22px;
+    background: var(--blue);
+    color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    transition: background .15s;
+  }
+  .print-btn:hover { background: var(--blue-d); }
+
+  /* ── Slide base ── */
+  .slide {
+    width: 297mm;
+    min-height: 210mm;
+    margin: 0 auto 12px;
+    background: var(--dark);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    page-break-after: always;
+  }
+
+  /* Fundo nebulosa */
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 40%, rgba(37,99,235,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 15%, rgba(124,58,237,0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 85%, rgba(8,145,178,0.07) 0%, transparent 45%);
+    pointer-events: none;
+  }
+
+  /* ── Slide 1 — Capa ── */
+  .slide-cover {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20mm 30mm;
+  }
+  .cover-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 16px;
+    border: 1px solid rgba(37,99,235,0.4);
+    background: rgba(37,99,235,0.08);
+    border-radius: 99px;
+    font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--blue-l);
+    margin-bottom: 20px;
+  }
+  .cover-logo {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-bottom: 16px;
+  }
+  .logo-hex {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 32px rgba(37,99,235,0.5);
+  }
+  .cover-title {
+    font-size: 52px; font-weight: 800; letter-spacing: -2px;
+    background: linear-gradient(90deg, #fff, var(--blue-l));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover-sub {
+    font-size: 17px; color: var(--text2); margin-bottom: 10px; font-weight: 500;
+  }
+  .cover-desc {
+    font-size: 13px; color: var(--text3); max-width: 420px;
+    line-height: 1.7; margin: 0 auto 32px;
+  }
+  .cover-pills {
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  }
+  .pill {
+    padding: 6px 16px;
+    border-radius: 99px;
+    font-size: 11.5px; font-weight: 600;
+    border: 1px solid;
+  }
+  .pill-blue   { background: rgba(37,99,235,0.12);  border-color: rgba(37,99,235,0.35);  color: var(--blue-l); }
+  .pill-purple { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.35); color: var(--purple-l); }
+  .pill-green  { background: rgba(31,157,85,0.12);  border-color: rgba(31,157,85,0.35);  color: #4ade80; }
+  .pill-cyan   { background: rgba(8,145,178,0.12);  border-color: rgba(8,145,178,0.35);  color: #22d3ee; }
+
+  .cover-footer {
+    position: absolute; bottom: 12mm; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    padding: 0 16mm;
+    font-size: 10px; color: var(--text3);
+  }
+
+  /* ── Header padrão dos slides ── */
+  .slide-header {
+    padding: 10mm 14mm 6mm;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 1;
+  }
+  .slide-header .sh-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--blue-l);
+  }
+  .slide-header .sh-title {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+    margin-top: 3px;
+  }
+  .slide-header .sh-num {
+    font-size: 11px; color: var(--text3); font-weight: 500;
+  }
+  .slide-header .sh-logo {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; color: var(--text3);
+  }
+  .slide-header .sh-logo span {
+    color: var(--blue);
+  }
+
+  /* ── Conteúdo dos slides ── */
+  .slide-body {
+    flex: 1;
+    padding: 8mm 14mm 10mm;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Grid utilitários ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* ── Card base ── */
+  .c {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .c-title { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .c-body  { font-size: 11px; color: var(--text3); line-height: 1.65; }
+  .c-icon  { font-size: 20px; margin-bottom: 8px; }
+
+  /* ── Linha de item com check ── */
+  .check-list { display: flex; flex-direction: column; gap: 7px; margin-top: 8px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 11px; color: var(--text2); line-height: 1.5;
+  }
+  .check-dot {
+    min-width: 16px; height: 16px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700;
+    margin-top: 1px;
+  }
+  .dot-green  { background: rgba(31,157,85,0.2);  color: #4ade80; }
+  .dot-blue   { background: rgba(37,99,235,0.2);  color: var(--blue-l); }
+  .dot-purple { background: rgba(124,58,237,0.2); color: var(--purple-l); }
+  .dot-yellow { background: rgba(217,119,6,0.2);  color: #fbbf24; }
+  .dot-cyan   { background: rgba(8,145,178,0.2);  color: #22d3ee; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 10px; font-weight: 600; border: 1px solid;
+  }
+  .badge-green  { background: rgba(31,157,85,0.12);  border-color: rgba(31,157,85,0.4);  color: #4ade80; }
+  .badge-blue   { background: rgba(37,99,235,0.12);  border-color: rgba(37,99,235,0.4);  color: var(--blue-l); }
+  .badge-red    { background: rgba(220,38,38,0.12);  border-color: rgba(220,38,38,0.4);  color: #f87171; }
+  .badge-yellow { background: rgba(217,119,6,0.12);  border-color: rgba(217,119,6,0.4);  color: #fbbf24; }
+  .badge-purple { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.4); color: var(--purple-l); }
+
+  /* ── Pipeline flow ── */
+  .flow {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 4px; margin: 10px 0;
+  }
+  .flow-step {
+    padding: 5px 11px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 99px; font-size: 10px; color: var(--text3);
+    white-space: nowrap;
+  }
+  .flow-arrow { color: var(--blue); font-size: 11px; opacity: 0.7; }
+
+  /* ── Tabela comparativa ── */
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th {
+    background: rgba(37,99,235,0.12);
+    border: 1px solid var(--border);
+    padding: 8px 12px; text-align: left;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--blue-l);
+  }
+  td {
+    border: 1px solid var(--border);
+    padding: 8px 12px; color: var(--text2);
+    vertical-align: middle;
+  }
+  tr:nth-child(even) td { background: rgba(12,22,48,0.4); }
+
+  /* ── Stat grande ── */
+  .big-stat { text-align: center; padding: 12px 8px; }
+  .big-num {
+    font-size: 32px; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(90deg, var(--blue-l), var(--purple-l));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .big-label { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* ── Highlight box ── */
+  .hl {
+    border-left: 3px solid var(--blue);
+    background: rgba(37,99,235,0.06);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    font-size: 11.5px; color: var(--text2); line-height: 1.6;
+    margin: 8px 0;
+  }
+  .hl-green  { border-color: var(--green);  background: rgba(31,157,85,0.06); }
+  .hl-purple { border-color: var(--purple); background: rgba(124,58,237,0.06); }
+  .hl-yellow { border-color: var(--yellow); background: rgba(217,119,6,0.06); }
+
+  /* ── Footer slide ── */
+  .slide-footer {
+    padding: 4mm 14mm;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 9px; color: var(--text3);
+    position: relative; z-index: 1;
+  }
+
+  /* ── Número do slide canto ── */
+  .slide-num {
+    position: absolute; bottom: 8mm; right: 10mm;
+    font-size: 9px; color: var(--text3); z-index: 2;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    .print-btn { display: none; }
+    body { background: #050A19 !important; }
+    .slide {
+      margin: 0;
+      page-break-after: always;
+      break-after: page;
+      background: #050A19 !important;
+    }
+    .c { background: rgba(12,22,48,0.85) !important; }
+  }
+
+  @media screen {
+    body { padding: 20px 0 40px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">⬇ Salvar como PDF</button>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 1 — CAPA
+══════════════════════════════════════════ -->
+<div class="slide slide-cover">
+  <div class="cover-tag">⬡ Portfólio · QA Pleno</div>
+  <div class="cover-logo">
+    <div class="logo-hex">⬡</div>
+    <div class="cover-title">Qorbit</div>
+  </div>
+  <div class="cover-sub">Engine de Automação Web com Estratégia e Inteligência</div>
+  <div class="cover-desc">
+    Uma plataforma de automação de testes construída do zero, com pipeline orientado a estratégia,
+    auto-healing, aprendizado persistente e plugin de IA integrado.
+  </div>
+  <div class="cover-pills">
+    <span class="pill pill-blue">Java · Spring Boot</span>
+    <span class="pill pill-purple">Selenium · WebDriver</span>
+    <span class="pill pill-green">SQLite · Aprendizado</span>
+    <span class="pill pill-cyan">IA · Auto-Healing</span>
+  </div>
+  <div class="cover-footer">
+    <span>Crystiane Mello · QA Pleno</span>
+    <span>2026</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 2 — O PROBLEMA QUE O QORBIT RESOLVE
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Contexto</div>
+      <div class="sh-title">O problema que o Qorbit resolve</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px; height:100%">
+      <div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+          Automações de teste tradicionais são frágeis. Qualquer mudança de seletor quebra a suite inteira,
+          exige manutenção constante e gera falsos negativos que corroem a confiança no processo de QA.
+        </p>
+        <div class="c" style="border-color:rgba(220,38,38,0.3);margin-bottom:10px">
+          <div class="c-title" style="color:#f87171">❌ Dores comuns em automação</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue" style="background:rgba(220,38,38,0.15);color:#f87171">✕</span> Seletores frágeis que quebram a cada deploy</div>
+            <div class="check-item"><span class="check-dot dot-blue" style="background:rgba(220,38,38,0.15);color:#f87171">✕</span> Manutenção manual e retrabalho constante</div>
+            <div class="check-item"><span class="check-dot dot-blue" style="background:rgba(220,38,38,0.15);color:#f87171">✕</span> Sem estratégia diferente para cada tipo de elemento</div>
+            <div class="check-item"><span class="check-dot dot-blue" style="background:rgba(220,38,38,0.15);color:#f87171">✕</span> Falhas técnicas sem diagnóstico útil para o time</div>
+            <div class="check-item"><span class="check-dot dot-blue" style="background:rgba(220,38,38,0.15);color:#f87171">✕</span> Zero aprendizado entre execuções</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="c" style="border-color:rgba(31,157,85,0.3);margin-bottom:10px">
+          <div class="c-title" style="color:#4ade80">✅ O que o Qorbit entrega</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Auto-healing: se adapta quando elementos mudam</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Estratégia específica por tipo de componente</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Aprendizado persistente entre execuções</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Diagnóstico que traduz falha técnica em causa útil</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Fallback automático quando a estratégia principal falha</div>
+          </div>
+        </div>
+        <div class="hl hl-green">
+          <strong>Resultado:</strong> Menos falsos negativos, menos manutenção, mais confiança na suite de automação.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>2 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 3 — ARQUITETURA / PIPELINE
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Arquitetura</div>
+      <div class="sh-title">Pipeline orientado a estratégia</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+      Cada ação de teste percorre um pipeline completo — não é execução linear e cega. Cada etapa tem responsabilidade isolada e contribui para o aprendizado do sistema.
+    </p>
+    <div class="flow" style="margin-bottom:14px">
+      <span class="flow-step">Step</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Resolver Elemento</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Classificar</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Assinatura</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Consultar Aprendizado</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Escolher Estratégia</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Executar</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Fallback</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Validar</span><span class="flow-arrow">›</span>
+      <span class="flow-step">Aprender</span>
+    </div>
+    <div class="g3">
+      <div class="c">
+        <div class="c-icon">🎯</div>
+        <div class="c-title">Resolução Inteligente</div>
+        <div class="c-body">Localiza elementos por múltiplas estratégias de seletor antes de falhar. Prioriza os que já funcionaram no passado.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">🧠</div>
+        <div class="c-title">Classificação Funcional</div>
+        <div class="c-body">Identifica o tipo real do componente — input, select, combobox, datepicker, checkbox — para aplicar a estratégia correta.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">💾</div>
+        <div class="c-title">Aprendizado Persistente</div>
+        <div class="c-body">Cada execução bem-sucedida é armazenada em SQLite. A próxima execução começa sabendo o que funcionou.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">⚡</div>
+        <div class="c-title">Estratégia por Componente</div>
+        <div class="c-body">Cada tipo de elemento tem sua própria estratégia de interação. Não há uma abordagem genérica única para tudo.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">🔧</div>
+        <div class="c-title">Fallback Compatível</div>
+        <div class="c-body">Se a estratégia principal falha, o sistema tenta automaticamente alternativas compatíveis com o tipo do componente.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">🔍</div>
+        <div class="c-title">Diagnóstico Útil</div>
+        <div class="c-body">Falhas técnicas são traduzidas em causa compreensível — "elemento fora do viewport", "select bloqueado por overlay".</div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>3 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 4 — COMPONENTES SUPORTADOS
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Cobertura</div>
+      <div class="sh-title">Componentes web suportados</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11.5px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+      O Qorbit classifica e interage com todos os tipos de elemento que aparecem em aplicações web modernas — incluindo os mais problemáticos para automação.
+    </p>
+    <table style="margin-bottom:14px">
+      <tr>
+        <th>Componente</th>
+        <th>Estratégia principal</th>
+        <th>Fallback</th>
+        <th>Desafio</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td><strong>Input / Textarea</strong></td>
+        <td>sendKeys direto</td>
+        <td>JavaScript setValue</td>
+        <td>Mascaras e validação assíncrona</td>
+        <td><span class="badge badge-green">✓ Suportado</span></td>
+      </tr>
+      <tr>
+        <td><strong>Select Nativo</strong></td>
+        <td>Select por texto visível</td>
+        <td>Select por valor</td>
+        <td>Options dinâmicos via AJAX</td>
+        <td><span class="badge badge-green">✓ Suportado</span></td>
+      </tr>
+      <tr>
+        <td><strong>Custom Combobox</strong></td>
+        <td>Click + digitar + selecionar</td>
+        <td>Click forçado + JS</td>
+        <td>Estrutura DOM não padronizada</td>
+        <td><span class="badge badge-green">✓ Suportado</span></td>
+      </tr>
+      <tr>
+        <td><strong>Datepicker</strong></td>
+        <td>Preenchimento direto</td>
+        <td>Navegação por calendário</td>
+        <td>Formatos e locales variados</td>
+        <td><span class="badge badge-green">✓ Suportado</span></td>
+      </tr>
+      <tr>
+        <td><strong>Checkbox / Radio</strong></td>
+        <td>Click com validação de estado</td>
+        <td>JavaScript click</td>
+        <td>Elementos custom sobrepostos</td>
+        <td><span class="badge badge-green">✓ Suportado</span></td>
+      </tr>
+      <tr>
+        <td><strong>Button / Link</strong></td>
+        <td>Click direto</td>
+        <td>JavaScript click + scroll</td>
+        <td>Overlays e elementos fora do viewport</td>
+        <td><span class="badge badge-green">✓ Suportado</span></td>
+      </tr>
+    </table>
+    <div class="hl hl-purple">
+      <strong>Diferencial:</strong> O Qorbit não usa um approach genérico para todos os elementos. Cada tipo tem sua própria classe de estratégia com heurísticas específicas — o mesmo princípio que QAs experientes usam manualmente.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>4 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 5 — AUTO-HEALING E APRENDIZADO
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Inteligência</div>
+      <div class="sh-title">Auto-Healing e Aprendizado Persistente</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px; border-color:rgba(37,99,235,0.35)">
+          <div class="c-icon">🔧</div>
+          <div class="c-title">Auto-Healing Controlado</div>
+          <div class="c-body" style="margin-bottom:10px">
+            Quando um elemento muda de seletor ou posição, o Qorbit não falha imediatamente. Ele tenta alternativas baseadas no histórico de sucesso do componente.
+          </div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Gera uma assinatura estável do componente (não depende só do seletor)</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Tenta seletores alternativos conhecidos</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Registra a recuperação para uso futuro</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Sinaliza a mudança no relatório de diagnóstico</div>
+          </div>
+        </div>
+        <div class="hl">
+          <strong>Impacto prático:</strong> Menos quebras de suite após deploys. O time de QA recebe alertas de mudança em vez de falhas genéricas.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px; border-color:rgba(31,157,85,0.35)">
+          <div class="c-icon">💾</div>
+          <div class="c-title">Aprendizado em SQLite</div>
+          <div class="c-body" style="margin-bottom:10px">
+            Cada execução bem-sucedida é persistida. O banco evolui com o uso — a engine fica mais rápida e precisa com o tempo.
+          </div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Cache por assinatura de componente</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Estatísticas por tipo e estratégia</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Taxa de sucesso por seletor</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Histórico de falhas e recuperações</div>
+          </div>
+        </div>
+        <div class="c">
+          <div class="c-title">🤖 Plugin de IA Integrado</div>
+          <div class="c-body">
+            Auto-naming de elementos, auto-diagnóstico de falhas e sugestões inteligentes — configurável via variável de ambiente. Funciona com qualquer endpoint compatível.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>5 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 6 — SEGURANÇA E QUALIDADE
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Qualidade de Software</div>
+      <div class="sh-title">Segurança e boas práticas aplicadas</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+      Qualidade não é só cobertura de testes — é também a robustez do produto em si. O Qorbit foi construído com segurança em todas as camadas.
+    </p>
+    <div class="g3" style="margin-bottom:12px">
+      <div class="c">
+        <div class="c-icon">🔐</div>
+        <div class="c-title">MFA (TOTP)</div>
+        <div class="c-body">Autenticação em dois fatores com Google Authenticator e 8 códigos de backup criptografados.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">👥</div>
+        <div class="c-title">RBAC</div>
+        <div class="c-body">Controle de acesso por papel: SUPER_ADMIN, ADMIN e USER com restrições em nível de rota e método.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">🛡️</div>
+        <div class="c-title">Rate Limiting</div>
+        <div class="c-body">Bloqueio automático após 5 tentativas falhas de login. Lockout de 15 minutos configurável.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">🔒</div>
+        <div class="c-title">BCrypt 12 rounds</div>
+        <div class="c-body">Senhas com hash BCrypt de custo 12. Histórico de senhas anteriores para evitar reutilização.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">📋</div>
+        <div class="c-title">Auditoria Completa</div>
+        <div class="c-body">Log de auditoria com retenção de 90 dias. Rastreamento de logins, ações críticas e eventos de segurança.</div>
+      </div>
+      <div class="c">
+        <div class="c-icon">🌐</div>
+        <div class="c-title">Headers de Segurança</div>
+        <div class="c-body">CSP, HSTS, X-Content-Type-Options, Referrer-Policy e Frame-Ancestors configurados por padrão.</div>
+      </div>
+    </div>
+    <div class="hl hl-yellow">
+      <strong>Visão de QA:</strong> Segurança é um requisito não-funcional crítico. O Qorbit trata autenticação, autorização e auditoria com o mesmo rigor aplicado à funcionalidade principal.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>6 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 7 — RELATÓRIOS E MÉTRICAS
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Observabilidade</div>
+      <div class="sh-title">Relatórios, métricas e diagnóstico</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+          Uma suite de automação sem visibilidade é uma caixa-preta. O Qorbit expõe métricas acionáveis em múltiplos formatos.
+        </p>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📊 O que o relatório inclui</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Estatísticas por tipo de componente</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Taxa de sucesso por estratégia</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Histórico de falhas e recuperações via auto-healing</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Diagnóstico: causa real de cada falha</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Evidências capturadas por step</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Exportação em texto, JSON e HTML</div>
+          </div>
+        </div>
+        <div class="hl hl-green">
+          <strong>Para o gestor:</strong> Relatórios em HTML prontos para apresentação. Para o desenvolvedor: JSON integrável com CI/CD.
+        </div>
+      </div>
+      <div>
+        <div class="g2" style="gap:8px;margin-bottom:10px">
+          <div class="c big-stat">
+            <div class="big-num">3</div>
+            <div class="big-label">formatos de exportação</div>
+          </div>
+          <div class="c big-stat">
+            <div class="big-num">90d</div>
+            <div class="big-label">retenção de auditoria</div>
+          </div>
+          <div class="c big-stat">
+            <div class="big-num">8+</div>
+            <div class="big-label">tipos de componente</div>
+          </div>
+          <div class="c big-stat">
+            <div class="big-num">∞</div>
+            <div class="big-label">aprendizado acumulado</div>
+          </div>
+        </div>
+        <div class="c">
+          <div class="c-title">🔍 Diagnóstico inteligente</div>
+          <div class="c-body">
+            Em vez de "ElementNotFoundException", o relatório mostra:<br/><br/>
+            <em style="color:var(--blue-l)">"Elemento fora do viewport — scroll necessário antes da interação"</em><br/><br/>
+            Isso reduz o tempo de triagem de falhas em horas.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>7 / 8</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 8 — ENCERRAMENTO / COMPETÊNCIAS
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">Conclusão</div>
+      <div class="sh-title">Competências demonstradas pelo projeto</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+          O Qorbit foi desenvolvido integralmente como projeto de portfólio, demonstrando domínio técnico e visão de qualidade além da execução de scripts.
+        </p>
+        <table>
+          <tr>
+            <th>Competência QA</th>
+            <th>Como o Qorbit aplica</th>
+          </tr>
+          <tr>
+            <td>Arquitetura de automação</td>
+            <td>Pipeline modular com responsabilidades isoladas</td>
+          </tr>
+          <tr>
+            <td>Estratégia de testes</td>
+            <td>Estratégia específica por tipo de componente</td>
+          </tr>
+          <tr>
+            <td>Manutenibilidade</td>
+            <td>Auto-healing reduz retrabalho após mudanças</td>
+          </tr>
+          <tr>
+            <td>Observabilidade</td>
+            <td>Relatórios, métricas e diagnóstico em múltiplos formatos</td>
+          </tr>
+          <tr>
+            <td>Segurança</td>
+            <td>MFA, RBAC, auditoria e headers de segurança</td>
+          </tr>
+          <tr>
+            <td>Integração com IA</td>
+            <td>Plugin configurável para auto-naming e diagnóstico</td>
+          </tr>
+        </table>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="hl hl-green">
+          <strong>Stack técnico:</strong> Java · Spring Boot · Selenium · SQLite · Thymeleaf · Spring Security · WebSocket
+        </div>
+        <div class="hl hl-purple">
+          <strong>Conceitos de QA:</strong> Test strategy · Fallback · Auto-healing · Observabilidade · Diagnóstico · Relatórios executivos
+        </div>
+        <div class="hl">
+          <strong>Diferenciais:</strong> Projeto construído do zero, com foco em problemas reais de QA, não apenas execução de scripts — mas inteligência e resiliência no processo de automação.
+        </div>
+        <div class="c" style="text-align:center;margin-top:4px">
+          <div style="font-size:13px;font-weight:700;margin-bottom:4px">Crystiane Mello</div>
+          <div style="font-size:11px;color:var(--text3)">QA Pleno · Automação · Qualidade de Software</div>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <span class="badge badge-blue">github.com/CrysMello</span>
+            <span class="badge badge-green">Qorbit Engine</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Apresentação QA Pleno</span>
+    <span>8 / 8</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,67 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Run tests and package
+        run: mvn -B clean verify
+
+      - name: Copy artifact to server
+        uses: appleboy/scp-action@v0.1.10
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          source: "target/*.jar"
+          target: "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
+
+      - name: Copy deployment script
+        uses: appleboy/scp-action@v0.1.10
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          source: ".github/scripts/deploy-production.sh"
+          target: "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
+
+      - name: Deploy and restart application
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || 22 }}
+          envs: PROD_DEPLOY_PATH,APP_NAME,APP_PORT,APP_SERVICE,SPRING_PROFILES_ACTIVE,APP_URL,SESSION_COOKIE_SECURE
+          script: |
+            set -e
+            RELEASE_DIR="${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
+            chmod +x "$RELEASE_DIR/deploy-production.sh"
+            bash "$RELEASE_DIR/deploy-production.sh" \
+              "$RELEASE_DIR" \
+              "${{ secrets.PROD_DEPLOY_PATH }}" \
+              "${{ vars.APP_NAME || 'qorbit-engine' }}" \
+              "${{ vars.APP_PORT || '8080' }}" \
+              "${{ vars.APP_SERVICE || 'qorbit' }}"

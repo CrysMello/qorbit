@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Qorbit — Manual do Usuário</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --blue:    #2563EB;
+    --blue-d:  #1D4ED8;
+    --blue-l:  #60A5FA;
+    --purple:  #7C3AED;
+    --purple-l:#A78BFA;
+    --dark:    #050A19;
+    --dark2:   #0C1630;
+    --text:    #F8FAFC;
+    --text2:   #D6DFEA;
+    --text3:   #94A3B8;
+    --green:   #1F9D55;
+    --cyan:    #0891B2;
+    --yellow:  #D97706;
+    --red:     #DC2626;
+    --border:  rgba(37,99,235,0.22);
+    --card:    rgba(12,22,48,0.85);
+    --font:    'Inter', system-ui, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box; margin: 0; padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    font-family: var(--font);
+    background: #1a1a2e;
+    color: var(--text);
+  }
+
+  .print-btn {
+    position: fixed;
+    top: 16px; right: 16px;
+    z-index: 999;
+    padding: 10px 22px;
+    background: var(--blue);
+    color: #fff;
+    border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    transition: background .15s;
+  }
+  .print-btn:hover { background: var(--blue-d); }
+
+  /* ── Slide base ── */
+  .slide {
+    width: 297mm;
+    min-height: 210mm;
+    margin: 0 auto 12px;
+    background: var(--dark);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    page-break-after: always;
+  }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 15% 40%, rgba(37,99,235,0.12) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 15%, rgba(124,58,237,0.10) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 85%, rgba(8,145,178,0.07) 0%, transparent 45%);
+    pointer-events: none;
+  }
+
+  /* ── Capa ── */
+  .slide-cover {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20mm 30mm;
+  }
+  .cover-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 16px;
+    border: 1px solid rgba(37,99,235,0.4);
+    background: rgba(37,99,235,0.08);
+    border-radius: 99px;
+    font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--blue-l);
+    margin-bottom: 20px;
+  }
+  .cover-logo {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-bottom: 16px;
+  }
+  .logo-hex {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 0 32px rgba(37,99,235,0.5);
+  }
+  .cover-title {
+    font-size: 52px; font-weight: 800; letter-spacing: -2px;
+    background: linear-gradient(90deg, #fff, var(--blue-l));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover-sub {
+    font-size: 16px; color: var(--text2); margin-bottom: 10px; font-weight: 600;
+  }
+  .cover-desc {
+    font-size: 12.5px; color: var(--text3); max-width: 480px;
+    line-height: 1.8; margin: 0 auto 32px;
+  }
+  .cover-pills {
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .pill {
+    padding: 6px 16px;
+    border-radius: 99px;
+    font-size: 11.5px; font-weight: 600;
+    border: 1px solid;
+  }
+  .pill-blue   { background: rgba(37,99,235,0.12);  border-color: rgba(37,99,235,0.35);  color: var(--blue-l); }
+  .pill-purple { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.35); color: var(--purple-l); }
+  .pill-green  { background: rgba(31,157,85,0.12);  border-color: rgba(31,157,85,0.35);  color: #4ade80; }
+  .pill-cyan   { background: rgba(8,145,178,0.12);  border-color: rgba(8,145,178,0.35);  color: #22d3ee; }
+  .pill-yellow { background: rgba(217,119,6,0.12);  border-color: rgba(217,119,6,0.35);  color: #fbbf24; }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    text-align: left;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .toc-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: rgba(37,99,235,0.07);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px; color: var(--text2);
+  }
+  .toc-num {
+    font-size: 10px; font-weight: 700; color: var(--blue-l);
+    min-width: 18px;
+  }
+
+  .cover-footer {
+    position: absolute; bottom: 12mm; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    padding: 0 16mm;
+    font-size: 10px; color: var(--text3);
+  }
+
+  /* ── Header padrão ── */
+  .slide-header {
+    padding: 9mm 14mm 5mm;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; z-index: 1;
+  }
+  .sh-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--blue-l);
+  }
+  .sh-title {
+    font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+    margin-top: 3px;
+  }
+  .sh-num { font-size: 11px; color: var(--text3); font-weight: 500; }
+  .sh-logo {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; color: var(--text3);
+  }
+  .sh-logo span { color: var(--blue); }
+
+  /* ── Body ── */
+  .slide-body {
+    flex: 1;
+    padding: 7mm 14mm 8mm;
+    position: relative; z-index: 1;
+  }
+
+  /* ── Grids ── */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+
+  /* ── Card ── */
+  .c {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .c-title { font-size: 11.5px; font-weight: 700; margin-bottom: 6px; }
+  .c-body  { font-size: 10.5px; color: var(--text3); line-height: 1.65; }
+  .c-icon  { font-size: 18px; margin-bottom: 6px; }
+
+  /* ── Steps numerados ── */
+  .steps { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .step {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 11px; color: var(--text2); line-height: 1.55;
+  }
+  .step-num {
+    min-width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+
+  /* ── Check list ── */
+  .check-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 10.5px; color: var(--text2); line-height: 1.5;
+  }
+  .check-dot {
+    min-width: 15px; height: 15px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700;
+    margin-top: 2px; flex-shrink: 0;
+  }
+  .dot-green  { background: rgba(31,157,85,0.2);  color: #4ade80; }
+  .dot-blue   { background: rgba(37,99,235,0.2);  color: var(--blue-l); }
+  .dot-purple { background: rgba(124,58,237,0.2); color: var(--purple-l); }
+  .dot-yellow { background: rgba(217,119,6,0.2);  color: #fbbf24; }
+  .dot-cyan   { background: rgba(8,145,178,0.2);  color: #22d3ee; }
+  .dot-red    { background: rgba(220,38,38,0.2);  color: #f87171; }
+
+  /* ── Badge ── */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 9px; border-radius: 99px;
+    font-size: 9.5px; font-weight: 600; border: 1px solid;
+  }
+  .badge-green  { background: rgba(31,157,85,0.12);  border-color: rgba(31,157,85,0.4);  color: #4ade80; }
+  .badge-blue   { background: rgba(37,99,235,0.12);  border-color: rgba(37,99,235,0.4);  color: var(--blue-l); }
+  .badge-red    { background: rgba(220,38,38,0.12);  border-color: rgba(220,38,38,0.4);  color: #f87171; }
+  .badge-yellow { background: rgba(217,119,6,0.12);  border-color: rgba(217,119,6,0.4);  color: #fbbf24; }
+  .badge-purple { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.4); color: var(--purple-l); }
+  .badge-cyan   { background: rgba(8,145,178,0.12);  border-color: rgba(8,145,178,0.4);  color: #22d3ee; }
+
+  /* ── Tabela ── */
+  table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+  th {
+    background: rgba(37,99,235,0.12);
+    border: 1px solid var(--border);
+    padding: 7px 10px; text-align: left;
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--blue-l);
+  }
+  td {
+    border: 1px solid var(--border);
+    padding: 7px 10px; color: var(--text2);
+    vertical-align: middle;
+  }
+  tr:nth-child(even) td { background: rgba(12,22,48,0.4); }
+
+  /* ── Highlight box ── */
+  .hl {
+    border-left: 3px solid var(--blue);
+    background: rgba(37,99,235,0.06);
+    border-radius: 0 8px 8px 0;
+    padding: 9px 12px;
+    font-size: 11px; color: var(--text2); line-height: 1.6;
+    margin: 8px 0;
+  }
+  .hl-green  { border-color: #4ade80;  background: rgba(31,157,85,0.06); }
+  .hl-purple { border-color: var(--purple); background: rgba(124,58,237,0.06); }
+  .hl-yellow { border-color: var(--yellow); background: rgba(217,119,6,0.06); }
+  .hl-red    { border-color: var(--red);    background: rgba(220,38,38,0.06); }
+  .hl-cyan   { border-color: var(--cyan);   background: rgba(8,145,178,0.06); }
+
+  /* ── Code block ── */
+  .code {
+    background: rgba(5,10,25,0.8);
+    border: 1px solid rgba(37,99,235,0.2);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #93c5fd;
+    line-height: 1.7;
+    white-space: pre;
+    margin: 8px 0;
+  }
+  .code .comment { color: #475569; }
+  .code .key     { color: #a78bfa; }
+  .code .val     { color: #4ade80; }
+  .code .str     { color: #fbbf24; }
+
+  /* ── Pill de ação (UI) ── */
+  .ui-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 12px;
+    background: rgba(37,99,235,0.15);
+    border: 1px solid rgba(37,99,235,0.4);
+    border-radius: 6px;
+    font-size: 10px; font-weight: 600; color: var(--blue-l);
+    white-space: nowrap;
+  }
+  .ui-btn-green {
+    background: rgba(31,157,85,0.15);
+    border-color: rgba(31,157,85,0.4);
+    color: #4ade80;
+  }
+  .ui-btn-red {
+    background: rgba(220,38,38,0.15);
+    border-color: rgba(220,38,38,0.4);
+    color: #f87171;
+  }
+  .ui-btn-yellow {
+    background: rgba(217,119,6,0.15);
+    border-color: rgba(217,119,6,0.4);
+    color: #fbbf24;
+  }
+
+  /* ── Pipeline flow ── */
+  .flow {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 4px; margin: 8px 0;
+  }
+  .flow-step {
+    padding: 4px 10px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 99px; font-size: 9.5px; color: var(--text3);
+    white-space: nowrap;
+  }
+  .flow-arrow { color: var(--blue); font-size: 10px; opacity: 0.7; }
+
+  /* ── Big stat ── */
+  .big-stat { text-align: center; padding: 10px 6px; }
+  .big-num {
+    font-size: 28px; font-weight: 800; letter-spacing: -1px;
+    background: linear-gradient(90deg, var(--blue-l), var(--purple-l));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .big-label { font-size: 9.5px; color: var(--text3); margin-top: 2px; }
+
+  /* ── Warning box ── */
+  .warn {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(217,119,6,0.08);
+    border: 1px solid rgba(217,119,6,0.3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 10.5px; color: var(--text2); line-height: 1.6;
+    margin: 8px 0;
+  }
+  .warn-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Footer ── */
+  .slide-footer {
+    padding: 3mm 14mm;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 9px; color: var(--text3);
+    position: relative; z-index: 1;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    .print-btn { display: none; }
+    body { background: #050A19 !important; }
+    .slide {
+      margin: 0;
+      page-break-after: always;
+      break-after: page;
+      background: #050A19 !important;
+    }
+    .c { background: rgba(12,22,48,0.85) !important; }
+    .code { background: rgba(5,10,25,0.9) !important; }
+  }
+
+  @media screen {
+    body { padding: 20px 0 40px; }
+  }
+</style>
+</head>
+<body>
+
+
+<!-- ══════════════════════════════════════════
+     SLIDE 1 — CAPA
+══════════════════════════════════════════ -->
+<div class="slide slide-cover">
+  <div class="cover-tag">⬡ Documentação Oficial · v2.5</div>
+  <div class="cover-logo">
+    <div class="logo-hex">⬡</div>
+    <div class="cover-title">Qorbit</div>
+  </div>
+  <div class="cover-sub">Manual do Usuário — Engine de Automação Web</div>
+  <div class="cover-desc">
+    Guia completo para criar, executar e gerenciar testes automatizados com o Qorbit Engine.
+    Do primeiro acesso à exportação de código para CI/CD.
+  </div>
+  <div class="cover-pills">
+    <span class="pill pill-blue">Primeiro Acesso</span>
+    <span class="pill pill-purple">Casos de Teste</span>
+    <span class="pill pill-green">Gravação Rápida</span>
+    <span class="pill pill-cyan">Execução e Evidências</span>
+    <span class="pill pill-yellow">Plugin IA</span>
+  </div>
+  <div class="toc-grid">
+    <div class="toc-item"><span class="toc-num">01</span> Primeiro Acesso</div>
+    <div class="toc-item"><span class="toc-num">02</span> Dashboard</div>
+    <div class="toc-item"><span class="toc-num">03</span> Biblioteca de Elementos</div>
+    <div class="toc-item"><span class="toc-num">04</span> Casos de Teste</div>
+    <div class="toc-item"><span class="toc-num">05</span> Gravação Rápida</div>
+    <div class="toc-item"><span class="toc-num">06</span> Suites de Teste</div>
+    <div class="toc-item"><span class="toc-num">07</span> Executar Testes</div>
+    <div class="toc-item"><span class="toc-num">08</span> Evidências</div>
+    <div class="toc-item"><span class="toc-num">09</span> Gerar Código</div>
+    <div class="toc-item"><span class="toc-num">10</span> Plugin de IA</div>
+    <div class="toc-item"><span class="toc-num">11</span> Segurança (MFA)</div>
+    <div class="toc-item"><span class="toc-num">12</span> Referência Rápida</div>
+  </div>
+  <div class="cover-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>2026 · v2.5.0</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 2 — PRIMEIRO ACESSO
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">01 · Início</div>
+      <div class="sh-title">Primeiro acesso ao Qorbit</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+          Acesse o Qorbit pelo navegador na URL fornecida pelo administrador (ex: <strong style="color:var(--blue-l)">http://localhost:8080</strong>).
+          Você será redirecionado automaticamente para a tela de login.
+        </p>
+
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">🔑 Login</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Informe seu e-mail e senha</div>
+                Use as credenciais criadas pelo administrador ou no cadastro.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">Entrar</span></div>
+                Se MFA estiver ativo, você será direcionado para validação de código.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Você chega ao Dashboard</div>
+                A visão geral do sistema exibe métricas, execuções recentes e status.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hl hl-yellow">
+          <strong>Esqueceu a senha?</strong> Clique em "Esqueci minha senha" na tela de login. Um e-mail de recuperação será enviado automaticamente.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px; border-color:rgba(31,157,85,0.3)">
+          <div class="c-title">📝 Criar nova conta</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">Criar conta</span></div>
+                Na tela de login, acesse o formulário de registro.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Preencha nome, e-mail e senha</div>
+                A senha deve ter no mínimo 8 caracteres, letras e números.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Confirme e acesse</div>
+                Após registro, faça login normalmente.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="c">
+          <div class="c-title">🔐 Autenticação de dois fatores (MFA)</div>
+          <div class="c-body" style="margin-bottom:8px">
+            Se o administrador exigir ou você quiser maior segurança, configure o MFA após o login.
+          </div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Acesse <strong>Perfil → Configurar MFA</strong></div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Escaneie o QR code com Google Authenticator ou Authy</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Guarde os 8 códigos de backup em local seguro</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> A cada login, informe o código de 6 dígitos do app</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>2 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 3 — DASHBOARD
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">02 · Dashboard</div>
+      <div class="sh-title">Visão geral — Dashboard</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+      O Dashboard é a tela inicial após o login. Ela consolida o estado atual do seu ambiente de testes em tempo real.
+    </p>
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📊 Métricas principais (topo)</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> <strong>Elementos cadastrados</strong> — total na biblioteca POM</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> <strong>Casos de teste</strong> — total criados</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> <strong>Execuções</strong> — total de execuções realizadas</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> <strong>% de sucesso</strong> — taxa média de steps que passaram</div>
+          </div>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">⚡ Execução em andamento</div>
+          <div class="c-body" style="margin-bottom:8px">Quando um teste está rodando, o Dashboard exibe em tempo real:</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Barra de progresso com porcentagem concluída</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Step atual sendo executado</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Contadores de passou / falhou em tempo real</div>
+          </div>
+        </div>
+        <div class="hl hl-green">
+          <strong>Dica:</strong> Deixe o Dashboard aberto durante a execução. Ele atualiza automaticamente via WebSocket, sem precisar recarregar a página.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📋 Histórico de execuções recentes</div>
+          <div class="c-body" style="margin-bottom:8px">Lista as últimas execuções com:</div>
+          <table>
+            <tr><th>Campo</th><th>Significado</th></tr>
+            <tr><td><span class="badge badge-green">CONCLUÍDO</span></td><td>Execução finalizada normalmente</td></tr>
+            <tr><td><span class="badge badge-red">ERRO</span></td><td>Execução encerrada com falha crítica</td></tr>
+            <tr><td><span class="badge badge-yellow">EM ANDAMENTO</span></td><td>Teste ainda em execução</td></tr>
+            <tr><td><span class="badge badge-purple">AGUARDANDO</span></td><td>Na fila para iniciar</td></tr>
+          </table>
+        </div>
+        <div class="c">
+          <div class="c-title">🧭 Menu lateral (sidebar)</div>
+          <div class="c-body">Navegue entre os módulos clicando nos ícones ou nomes no menu esquerdo:</div>
+          <div class="check-list" style="margin-top:6px">
+            <div class="check-item"><span class="check-dot dot-purple">→</span> Dashboard · Elementos · Casos · Suites</div>
+            <div class="check-item"><span class="check-dot dot-purple">→</span> Gravar · Nova Execução · Histórico</div>
+            <div class="check-item"><span class="check-dot dot-purple">→</span> Evidências · Gerar Código · Plugin IA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>3 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 4 — BIBLIOTECA DE ELEMENTOS
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">03 · Elementos</div>
+      <div class="sh-title">Biblioteca de Elementos (Page Object Model)</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+      A Biblioteca de Elementos é o catálogo dos componentes da interface que seus testes vão interagir.
+      Cadastre aqui os campos, botões e links da aplicação testada.
+    </p>
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px; border-color:rgba(37,99,235,0.35)">
+          <div class="c-title">🔍 Captura automática por URL</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">Capturar Elementos</span></div>
+                Informe a URL da página a ser mapeada.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">O Qorbit abre o navegador e varre a página</div>
+                Detecta inputs, selects, botões, links e outros elementos interativos.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Revise e ative os elementos encontrados</div>
+                Elementos aparecem com status <span class="badge badge-yellow">PENDENTE</span>. Ative os que serão usados.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hl">
+          <strong>Recomendação:</strong> Antes de criar casos de teste, sempre construa a biblioteca da URL alvo primeiro.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">✏️ Adicionar elemento manualmente</div>
+          <div class="c-body" style="margin-bottom:8px">Use quando a captura automática não encontrar o elemento desejado.</div>
+          <table>
+            <tr><th>Campo</th><th>Descrição</th></tr>
+            <tr><td><strong>Nome lógico</strong></td><td>Ex: "Campo Email", "Botão Salvar"</td></tr>
+            <tr><td><strong>Página</strong></td><td>Tela ou módulo onde fica o elemento</td></tr>
+            <tr><td><strong>Tipo seletor</strong></td><td>CSS, XPATH, ID, NAME, LINK_TEXT</td></tr>
+            <tr><td><strong>Seletor</strong></td><td>Ex: <code style="color:var(--blue-l)">#btn-login</code></td></tr>
+            <tr><td><strong>Status</strong></td><td>ATIVO (disponível) ou PENDENTE</td></tr>
+          </table>
+        </div>
+        <div class="c">
+          <div class="c-title">🔎 Filtrar e gerenciar</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Busca por nome ou página</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Filtro por status (ATIVO / PENDENTE)</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Editar seletor quando o elemento mudar</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Remover elementos desatualizados</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>4 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 5 — CASOS DE TESTE
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">04 · Casos de Teste</div>
+      <div class="sh-title">Criar e gerenciar casos de teste</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📝 Criar novo caso de teste</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">+ Novo Caso</span></div>
+                Preencha: nome, módulo e URL alvo do teste.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Adicione os passos (steps)</div>
+                Cada passo é uma ação: NAVEGAR, CLICAR, PREENCHER, SELECIONAR, VALIDAR, etc.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Para cada passo: escolha ação, elemento e valor</div>
+                O sistema gera o texto Gherkin automaticamente.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Salve o caso</div>
+                Ele recebe um código automático: CT-01, CT-02, etc.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hl hl-green">
+          <strong>Dica:</strong> Reordene os passos arrastando as linhas. Use <span class="ui-btn">↑ ↓</span> para mover steps.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">⚡ Ações disponíveis nos passos</div>
+          <table>
+            <tr><th>Ação</th><th>O que faz</th><th>Valor</th></tr>
+            <tr><td><span class="badge badge-blue">NAVEGAR</span></td><td>Abre URL no navegador</td><td>URL completa</td></tr>
+            <tr><td><span class="badge badge-purple">CLICAR</span></td><td>Clica em um elemento</td><td>—</td></tr>
+            <tr><td><span class="badge badge-green">PREENCHER</span></td><td>Digita em campo de texto</td><td>Texto a digitar</td></tr>
+            <tr><td><span class="badge badge-cyan">SELECIONAR</span></td><td>Escolhe opção em dropdown</td><td>Texto da opção</td></tr>
+            <tr><td><span class="badge badge-yellow">VALIDAR</span></td><td>Verifica texto na tela</td><td>Texto esperado</td></tr>
+            <tr><td><span class="badge badge-red">LIMPAR</span></td><td>Apaga conteúdo de campo</td><td>—</td></tr>
+            <tr><td><span class="badge badge-purple">WAIT</span></td><td>Aguarda N segundos</td><td>Segundos (ex: 2)</td></tr>
+          </table>
+        </div>
+        <div class="c">
+          <div class="c-title">🔍 Visualizar em Gherkin</div>
+          <div class="c-body" style="margin-bottom:6px">Ao visualizar um caso, os passos são exibidos em linguagem Gherkin:</div>
+          <div class="code"><span class="comment">Scenario: Login com sucesso</span>
+  <span class="key">Given</span> <span class="str">que o usuário navega para "/login"</span>
+  <span class="key">When</span>  <span class="str">preenche "Campo Email" com "user@email.com"</span>
+  <span class="key">And</span>   <span class="str">preenche "Campo Senha" com "senha123"</span>
+  <span class="key">And</span>   <span class="str">clica em "Botão Entrar"</span>
+  <span class="key">Then</span>  <span class="str">valida que "Mensagem Boas-vindas" contém "Olá"</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>5 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 6 — GRAVAÇÃO RÁPIDA
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">05 · Gravação</div>
+      <div class="sh-title">Gravar teste — fluxo rápido</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+      A gravação permite capturar um fluxo de teste executando-o normalmente no navegador — sem precisar criar steps manualmente.
+    </p>
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px; border-color:rgba(31,157,85,0.35)">
+          <div class="c-title">🎬 Como gravar um teste</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Acesse <strong>Gravar Teste</strong> no menu lateral</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Informe a URL inicial e clique <span class="ui-btn ui-btn-green">▶ Iniciar Gravação</span></div>
+                O Chrome abre automaticamente na URL informada.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Execute o fluxo normalmente no navegador</div>
+                Clique, preencha campos, navegue entre páginas. O Qorbit captura tudo em tempo real.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn ui-btn-red">■ Parar Gravação</span></div>
+                Os passos gravados aparecem na lista com preview em Gherkin.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">5</div>
+              <div class="step-body">
+                <div class="step-title">Dê um nome ao caso e clique em <span class="ui-btn">Salvar</span></div>
+                O caso é criado automaticamente com todos os passos gravados.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">✅ O que é capturado automaticamente</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Cliques em botões e links</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Texto digitado em campos de input</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Seleções em dropdowns (nativos e customizados)</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Navegações entre páginas (URL)</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Nome lógico sugerido automaticamente por IA (se configurada)</div>
+          </div>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">✏️ Revisar após gravação</div>
+          <div class="c-body" style="margin-bottom:6px">Após salvar, acesse <strong>Casos de Teste</strong> para:</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Remover passos desnecessários</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Adicionar passos de VALIDAR</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Reordenar a sequência</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Ajustar valores gravados</div>
+          </div>
+        </div>
+        <div class="warn">
+          <span class="warn-icon">⚠️</span>
+          <span><strong>Atenção:</strong> Senhas digitadas durante a gravação são capturadas como valor do campo. Revise os passos antes de compartilhar o caso de teste.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>6 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 7 — SUITES DE TESTE
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">06 · Suites</div>
+      <div class="sh-title">Organizar e executar suites de teste</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+      Suites agrupam múltiplos casos de teste para execução em conjunto. Use para organizar por módulo, sprint ou fluxo de negócio.
+    </p>
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📦 Criar nova suite</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">+ Nova Suite</span></div>
+                Informe o nome da suite (ex: "Regressão Sprint 14") e escolha uma cor de identificação.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Adicione casos de teste à suite</div>
+                Selecione os casos (CT-01, CT-02, etc.) que compõem este grupo.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Salve e execute quando precisar</div>
+                Clique em <span class="ui-btn ui-btn-green">▶ Executar Suite</span> para rodar todos os casos em sequência.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hl hl-purple">
+          <strong>Organização sugerida:</strong> Crie uma suite por módulo da aplicação (Login, Cadastro, Checkout) e uma suite "Regressão Completa" com todos os casos críticos.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">⚙️ Gerenciar composição da suite</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Adicionar ou remover casos a qualquer momento</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Reordenar a sequência de execução</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Um mesmo caso pode estar em várias suites</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Alterar cor para identificação visual</div>
+          </div>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📤 Exportar suite</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Baixe todos os casos da suite como <strong>projeto ZIP</strong></div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Pronto para rodar em CI/CD (Maven + Selenium + Cucumber)</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Inclui arquivo de feature Gherkin gerado automaticamente</div>
+          </div>
+        </div>
+        <div class="c">
+          <div class="c-title">📊 Resultado da suite</div>
+          <div class="c-body">Após execução, o Dashboard mostra o resumo por caso: <span class="badge badge-green">PASSOU</span> <span class="badge badge-red">FALHOU</span> com taxa de sucesso geral da suite.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>7 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 8 — EXECUTAR TESTES
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">07 · Execução</div>
+      <div class="sh-title">Configurar e executar testes</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.6">
+      Acesse <strong>Nova Execução</strong> no menu para configurar e rodar seus testes em 4 etapas.
+    </p>
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">🔧 Passo 1 — Configuração geral</div>
+          <table style="margin-bottom:6px">
+            <tr><th>Campo</th><th>Opções / Descrição</th></tr>
+            <tr><td><strong>URL alvo</strong></td><td>URL base da aplicação sendo testada</td></tr>
+            <tr><td><strong>Navegador</strong></td><td>Chrome · Firefox · Edge</td></tr>
+            <tr><td><strong>Timeout por step</strong></td><td>Segundos antes de considerar falha (padrão: 10s)</td></tr>
+            <tr><td><strong>Retentativas</strong></td><td>Quantas vezes tentar antes de falhar definitivo</td></tr>
+          </table>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">🔑 Passo 2 — Autenticação (opcional)</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-yellow">→</span> <strong>Cookie:</strong> cole os cookies de uma sessão ativa (F12 → Application)</div>
+            <div class="check-item"><span class="check-dot dot-yellow">→</span> <strong>Usuário/Senha:</strong> o Qorbit faz login automaticamente antes de executar</div>
+            <div class="check-item"><span class="check-dot dot-yellow">→</span> <strong>Token Bearer:</strong> informe o token JWT para APIs autenticadas</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📋 Passo 3 — Selecionar testes</div>
+          <div class="c-body" style="margin-bottom:6px">Marque os casos ou suites que deseja executar nessa rodada.</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Filtre por módulo ou nome</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Selecione casos individualmente ou a suite inteira</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> A ordem de execução segue a ordem selecionada</div>
+          </div>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">▶ Passo 4 — Confirmar e executar</div>
+          <div class="c-body" style="margin-bottom:6px">Revise o resumo e clique em <span class="ui-btn ui-btn-green">▶ Executar</span>.</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> O navegador abre automaticamente</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Acompanhe o progresso no Dashboard em tempo real</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Screenshots são capturadas a cada step</div>
+          </div>
+        </div>
+        <div class="hl hl-yellow">
+          <strong>Execuções presas?</strong> Se uma execução ficar em "AGUARDANDO" por muito tempo, acesse <strong>Histórico → Limpar execuções presas</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>8 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 9 — EVIDÊNCIAS
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">08 · Evidências</div>
+      <div class="sh-title">Visualizar e exportar evidências de execução</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+          Toda execução gera capturas de tela automáticas a cada passo. Acesse o módulo <strong>Evidências</strong> para analisar o que aconteceu.
+        </p>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📸 Acessar evidências de uma execução</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Acesse <strong>Evidências</strong> no menu lateral</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Selecione a execução desejada</div>
+                Use o seletor no topo para filtrar por ID, URL ou data.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Filtre por status</div>
+                <span class="badge badge-green">PASSOU</span> exibe capturas de sucesso · <span class="badge badge-red">FALHOU</span> exibe as falhas
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Clique em uma captura para ampliar</div>
+                O lightbox exibe a imagem em tela cheia com detalhes do passo.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📋 Informações em cada evidência</div>
+          <table>
+            <tr><th>Campo</th><th>Conteúdo</th></tr>
+            <tr><td><strong>Número do step</strong></td><td>Ex: Step 3 de 8</td></tr>
+            <tr><td><strong>Ação executada</strong></td><td>CLICAR, PREENCHER, VALIDAR...</td></tr>
+            <tr><td><strong>Elemento alvo</strong></td><td>Nome lógico do elemento</td></tr>
+            <tr><td><strong>Status</strong></td><td><span class="badge badge-green">PASSOU</span> ou <span class="badge badge-red">FALHOU</span></td></tr>
+            <tr><td><strong>Motivo da falha</strong></td><td>Causa em linguagem natural (quando falha)</td></tr>
+            <tr><td><strong>Screenshot</strong></td><td>Captura do estado da tela no momento</td></tr>
+          </table>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📦 Exportar evidências</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Clique em <span class="ui-btn">⬇ Baixar ZIP</span> para exportar todas as capturas</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> O ZIP contém imagens organizadas por step</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Ideal para anexar em relatórios de bug ou chamados</div>
+          </div>
+        </div>
+        <div class="hl hl-green">
+          <strong>Diagnóstico inteligente:</strong> Em vez de "ElementNotFoundException", o Qorbit mostra: <em style="color:var(--blue-l)">"Elemento fora da área visível — scroll necessário antes da interação"</em>. Isso reduz horas de triagem.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>9 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 10 — GERAR CÓDIGO
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">09 · Exportação</div>
+      <div class="sh-title">Gerar código para CI/CD</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+      O módulo <strong>Gerar Código</strong> exporta seus casos de teste como um projeto Maven pronto para rodar em pipelines de CI/CD.
+    </p>
+    <div class="g2" style="gap:14px">
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📤 Como exportar o código</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Acesse <strong>Gerar Código</strong> no menu lateral</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Selecione os casos de teste a exportar</div>
+                Filtre por módulo ou selecione manualmente.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Configure as opções avançadas</div>
+                Veja as opções disponíveis na coluna ao lado.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">⚙ Gerar</span> e depois <span class="ui-btn ui-btn-green">⬇ Baixar ZIP</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hl hl-cyan">
+          <strong>Para CI/CD:</strong> Ative "Driver headless" para executar sem abrir janela do navegador. Essencial para ambientes de servidor.
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">⚙️ Opções de exportação</div>
+          <table>
+            <tr><th>Opção</th><th>Quando usar</th></tr>
+            <tr><td><strong>GitHub Actions</strong></td><td>Gera workflow YAML para rodar no GitHub CI</td></tr>
+            <tr><td><strong>Driver headless</strong></td><td>Execução sem interface gráfica (servidores)</td></tr>
+            <tr><td><strong>WebDriverManager</strong></td><td>Download automático do driver (recomendado)</td></tr>
+          </table>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📁 Estrutura do ZIP gerado</div>
+          <div class="code"><span class="val">projeto-selenium.zip</span>
+├── <span class="key">pom.xml</span>          <span class="comment"># Maven + Selenium + Cucumber</span>
+├── src/test/
+│   ├── java/steps/
+│   │   └── <span class="key">StepDefinitions.java</span>
+│   └── resources/features/
+│       └── <span class="key">testes.feature</span>   <span class="comment"># Gherkin</span>
+└── .github/workflows/
+    └── <span class="key">testes.yml</span>       <span class="comment"># GitHub Actions</span></div>
+        </div>
+        <div class="hl">
+          <strong>Rodar localmente:</strong> Descompacte o ZIP e execute <code style="color:var(--blue-l)">mvn test</code> na pasta do projeto. Requer Java 17+ e Maven instalados.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>10 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 11 — PLUGIN IA
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">10 · Plugin de IA</div>
+      <div class="sh-title">Configurar e usar o Plugin de Inteligência Artificial</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g2" style="gap:14px">
+      <div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">
+          O Plugin de IA conecta o Qorbit a qualquer API de linguagem (DeepSeek, Mistral, Claude, OpenAI, etc) para funcionalidades avançadas.
+        </p>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">🔧 Configurar o Plugin</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <div class="step-title">Acesse <strong>Plugin de IA</strong> no menu lateral</div>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <div class="step-title">Preencha Endpoint, Modelo e API Key</div>
+                A API Key deve ser definida via variável de ambiente <code style="color:var(--blue-l)">QORBIT_AI_API_KEY</code> pelo administrador.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <div class="step-title">Clique em <span class="ui-btn">Testar Conexão</span></div>
+                O sistema valida se a API responde corretamente.
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <div class="step-title">Ative e salve a configuração</div>
+                As funcionalidades de IA ficam disponíveis em todo o sistema.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">🤖 Funcionalidades disponíveis</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-purple">✦</span> <strong>Auto-naming:</strong> IA sugere nomes descritivos para elementos capturados automaticamente (ex: "btn_123" → "Botão Confirmar Compra")</div>
+            <div class="check-item"><span class="check-dot dot-purple">✦</span> <strong>Diagnóstico de falhas:</strong> IA explica em português por que um passo falhou, com sugestão de correção</div>
+            <div class="check-item"><span class="check-dot dot-purple">✦</span> <strong>Auto-healing:</strong> quando um elemento muda, IA sugere estratégias alternativas de localização</div>
+          </div>
+        </div>
+        <div class="c" style="margin-bottom:10px">
+          <div class="c-title">📊 Monitoramento de uso</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Total de requisições enviadas à API</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Taxa de sucesso das respostas</div>
+            <div class="check-item"><span class="check-dot dot-blue">→</span> Logs estruturados de cada interação</div>
+          </div>
+        </div>
+        <div class="warn">
+          <span class="warn-icon">⚠️</span>
+          <span><strong>Segurança:</strong> Nunca insira a API Key diretamente no formulário. Configure sempre via variável de ambiente <code style="color:var(--blue-l)">QORBIT_AI_API_KEY</code> para evitar exposição nas configurações.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>11 / 12</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SLIDE 12 — REFERÊNCIA RÁPIDA
+══════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <div>
+      <div class="sh-label">12 · Referência Rápida</div>
+      <div class="sh-title">Guia de consulta rápida — Status, Limites e Dicas</div>
+    </div>
+    <div class="sh-logo"><span>⬡</span> Qorbit</div>
+  </div>
+  <div class="slide-body">
+    <div class="g3" style="gap:10px;margin-bottom:10px">
+      <div class="c">
+        <div class="c-title">🔐 Segurança da conta</div>
+        <table>
+          <tr><th>Regra</th><th>Valor</th></tr>
+          <tr><td>Tentativas de login</td><td>5 tentativas</td></tr>
+          <tr><td>Bloqueio após falhas</td><td>15 minutos</td></tr>
+          <tr><td>Sessão por inatividade</td><td>8 horas</td></tr>
+          <tr><td>Retenção de auditoria</td><td>90 dias</td></tr>
+        </table>
+      </div>
+      <div class="c">
+        <div class="c-title">⚡ Ações dos steps</div>
+        <div class="check-list">
+          <div class="check-item"><span class="badge badge-blue">NAVEGAR</span> Abre URL</div>
+          <div class="check-item"><span class="badge badge-purple">CLICAR</span> Clique em elemento</div>
+          <div class="check-item"><span class="badge badge-green">PREENCHER</span> Digita texto</div>
+          <div class="check-item"><span class="badge badge-cyan">SELECIONAR</span> Escolhe opção</div>
+          <div class="check-item"><span class="badge badge-yellow">VALIDAR</span> Verifica texto</div>
+          <div class="check-item"><span class="badge badge-red">LIMPAR</span> Apaga campo</div>
+          <div class="check-item"><span class="badge badge-purple">WAIT</span> Aguarda Ns</div>
+        </div>
+      </div>
+      <div class="c">
+        <div class="c-title">📊 Status de execução</div>
+        <div class="check-list" style="gap:8px">
+          <div class="check-item"><span class="badge badge-green">CONCLUÍDO</span> Finalizado sem erros críticos</div>
+          <div class="check-item"><span class="badge badge-red">ERRO</span> Falha crítica encerrou a execução</div>
+          <div class="check-item"><span class="badge badge-yellow">EM ANDAMENTO</span> Executando agora</div>
+          <div class="check-item"><span class="badge badge-purple">AGUARDANDO</span> Na fila de execução</div>
+          <div class="check-item"><span class="badge badge-green">PASSOU</span> Step executado com sucesso</div>
+          <div class="check-item"><span class="badge badge-red">FALHOU</span> Step não concluído</div>
+        </div>
+      </div>
+    </div>
+    <div class="g2" style="gap:10px">
+      <div class="c">
+        <div class="c-title">🛟 Solução de problemas comuns</div>
+        <table>
+          <tr><th>Problema</th><th>O que fazer</th></tr>
+          <tr><td>Execução travada em AGUARDANDO</td><td>Histórico → <strong>Limpar execuções presas</strong></td></tr>
+          <tr><td>Elemento não encontrado na execução</td><td>Verifique o seletor na Biblioteca de Elementos</td></tr>
+          <tr><td>Teste falha com overlay/modal</td><td>Adicione um step <span class="badge badge-purple">WAIT</span> antes da ação</td></tr>
+          <tr><td>Conta bloqueada por tentativas</td><td>Aguarde 15 min ou contate o administrador</td></tr>
+          <tr><td>Plugin IA não responde</td><td>Verifique endpoint e <code style="color:var(--blue-l)">QORBIT_AI_API_KEY</code></td></tr>
+          <tr><td>Screenshot não gerada</td><td>Verifique permissão de escrita na pasta <code style="color:var(--blue-l)">evidencias/</code></td></tr>
+        </table>
+      </div>
+      <div>
+        <div class="c" style="margin-bottom:8px">
+          <div class="c-title">💡 Dicas de produtividade</div>
+          <div class="check-list">
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Use a <strong>Gravação</strong> para criar testes complexos rapidamente — depois ajuste com validações</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Mantenha a Biblioteca de Elementos atualizada — elementos com status PENDENTE não funcionam nos testes</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Sempre adicione steps de VALIDAR no final de cada fluxo para confirmar o resultado esperado</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> Nomeie os casos de forma descritiva: "Login - email inválido" é melhor que "CT-05"</div>
+            <div class="check-item"><span class="check-dot dot-green">✓</span> O aprendizado do Qorbit melhora com o uso — execute os mesmos casos repetidamente para ganhar precisão</div>
+          </div>
+        </div>
+        <div class="c" style="text-align:center">
+          <div style="font-size:11px;font-weight:700;margin-bottom:4px">Qorbit Engine v2.5.0</div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.7">
+            Manual do Usuário · 2026
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <span class="badge badge-blue">Java · Spring Boot</span>
+            <span class="badge badge-purple">Selenium · WebDriver</span>
+            <span class="badge badge-green">SQLite · Aprendizado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Qorbit Engine · Manual do Usuário</span>
+    <span>12 / 12</span>
+  </div>
+</div>
+
+</body>
+</html>
