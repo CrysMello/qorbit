@@ -28,7 +28,7 @@ jobs:
         run: mvn -B clean verify
 
       - name: Copy artifact to server
-        uses: appleboy/scp-action@v0.1.10
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
@@ -38,7 +38,7 @@ jobs:
           target: "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
 
       - name: Copy deployment script
-        uses: appleboy/scp-action@v0.1.10
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
