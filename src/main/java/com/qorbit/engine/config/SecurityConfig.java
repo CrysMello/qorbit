@@ -49,6 +49,7 @@ public class SecurityConfig {
                     "/auth/forgot-password", "/auth/reset-password",
                     "/auth/verify-email",
                     "/css/**", "/js/**", "/images/**", "/favicon.ico",
+                    "/qorbit-manual-usuario.html",
                     "/api/diagnostico/**", "/error"
                 ).permitAll()
                 .requestMatchers("/auth/mfa", "/auth/mfa/**").permitAll()
