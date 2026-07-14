@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
+import org.openqa.selenium.chrome.ChromeDriverService;
+import java.io.File;
 
 @Component
 public class DriverManager {
@@ -62,6 +64,19 @@ public class DriverManager {
                     opts.addArguments("--no-sandbox");
                     opts.addArguments("--disable-dev-shm-usage");
 
+                    // Flags adicionais para estabilidade em servidores Linux
+                    opts.addArguments("--disable-gpu");
+                    opts.addArguments("--disable-software-rasterizer");
+                    opts.addArguments("--disable-extensions");
+                    opts.addArguments("--disable-setuid-sandbox");
+
+                    // Permite configurar o caminho do binário do Chrome via propriedade
+                    String chromeBin = System.getProperty("scanner.chrome.bin");
+                    if (chromeBin != null && !chromeBin.isBlank()) {
+                        opts.setBinary(chromeBin);
+                        System.out.println("[DriverManager] Usando Chrome binary: " + chromeBin);
+                    }
+
                     // ── Selenium Stealth — anti-detecção de bot ──────────────
                     opts.addArguments("--disable-blink-features=AutomationControlled");
                     opts.addArguments("--disable-infobars");
@@ -78,7 +93,17 @@ public class DriverManager {
                         System.out.println("[DriverManager] Usando perfil real do Chrome: " + perfilChrome);
                     }
 
-                    driver = new ChromeDriver(opts);
+                        // Cria ChromeDriverService com logging para diagnóstico
+                        String logPath = System.getProperty("scanner.chromedriver.log", "/tmp/chromedriver.log");
+                        ChromeDriverService service = new ChromeDriverService.Builder()
+                            .usingAnyFreePort()
+                            .withSilent(false)
+                            .withVerbose(true)
+                            .withLogFile(new File(logPath))
+                            .build();
+
+                        System.out.println("[DriverManager] Chromedriver log: " + logPath);
+                        driver = new ChromeDriver(service, opts);
 
                     // Injeta JS stealth para esconder marcas do WebDriver
                     aplicarStealth((org.openqa.selenium.JavascriptExecutor) driver);
