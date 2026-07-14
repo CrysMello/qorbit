@@ -266,7 +266,7 @@ function atualizarStatusBar(ativo) {
     const badge = document.getElementById('badgeStatus');
     if (ativo) {
         if (bar)   bar.className = 'status-bar gravando-ativo';
-        if (texto) { texto.textContent = 'Gravando — interaja com o Chrome aberto'; texto.style.color = '#DC2626'; }
+        if (texto) { texto.textContent = 'Gravando - Chrome visivel no ambiente configurado'; texto.style.color = '#DC2626'; }
         if (badge) { badge.textContent = '⏺ Gravando'; badge.className = 'badge badge-danger'; }
     } else {
         if (bar)   bar.className = 'status-bar inativo';

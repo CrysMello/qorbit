@@ -9,6 +9,7 @@ import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
 import java.io.File;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class GravacaoController {
 
     @Autowired private GravacaoService gravacaoService;
+
+    @Value("${scanner.webdriver.headless:${scanner.headless:false}}")
+    private boolean headless;
 
     private WebDriver driverGravacao;
     private final AtomicBoolean coletando = new AtomicBoolean(false);
@@ -44,11 +48,9 @@ public class GravacaoController {
         try {
             WebDriverManager.chromedriver().setup();
             ChromeOptions opts = new ChromeOptions();
-            // Habilita headless automaticamente se não houver DISPLAY ou se for configurado
-            boolean headless = Boolean.parseBoolean(System.getProperty("scanner.headless", "false"));
-            String display = System.getenv("DISPLAY");
-            if (display == null || display.isBlank()) headless = true;
+            validarAmbienteGrafico();
             if (headless) opts.addArguments("--headless=new");
+            opts.addArguments("--start-maximized");
             opts.addArguments("--disable-blink-features=AutomationControlled");
             opts.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
             opts.setExperimentalOption("useAutomationExtension", false);
@@ -79,7 +81,7 @@ public class GravacaoController {
             iniciarLoopColetaAsync();
 
             return ResponseEntity.ok(Map.of(
-                    "mensagem", "Gravação iniciada — interaja com o Chrome que foi aberto",
+                    "mensagem", "Gravacao iniciada - Chrome visivel no ambiente configurado",
                     "url", url
             ));
         } catch (Exception e) {
@@ -127,6 +129,22 @@ public class GravacaoController {
         pararBrowser();
         gravacaoService.pararGravacao("_descartar_", "_descartar_");
         return ResponseEntity.ok(Map.of("mensagem", "Gravação descartada"));
+    }
+
+    private void validarAmbienteGrafico() {
+        if (headless || !isLinux()) return;
+
+        String display = System.getenv("DISPLAY");
+        String waylandDisplay = System.getenv("WAYLAND_DISPLAY");
+        if ((display == null || display.isBlank())
+                && (waylandDisplay == null || waylandDisplay.isBlank())) {
+            throw new IllegalStateException("Chrome visivel solicitado, mas o servidor nao possui DISPLAY/WAYLAND_DISPLAY. "
+                    + "Inicie o Qorbit em uma sessao grafica, VNC/noVNC ou Xvfb, ou habilite scanner.webdriver.headless=true.");
+        }
+    }
+
+    private boolean isLinux() {
+        return System.getProperty("os.name", "").toLowerCase().contains("linux");
     }
 
     private void iniciarLoopColetaAsync() {

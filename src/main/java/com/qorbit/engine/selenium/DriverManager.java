@@ -19,7 +19,7 @@ import java.io.File;
 @Component
 public class DriverManager {
 
-    @Value("${scanner.headless:false}")
+    @Value("${scanner.webdriver.headless:${scanner.headless:false}}")
     private boolean headless;
 
     private final ThreadLocal<WebDriver> driverHolder = new ThreadLocal<>();
@@ -41,6 +41,7 @@ public class DriverManager {
                 case "firefox" -> {
                     WebDriverManager.firefoxdriver().setup();
                     FirefoxOptions ffOpts = new FirefoxOptions();
+                    validarAmbienteGrafico("Firefox");
                     if (headless) ffOpts.addArguments("-headless");
                     driver = new FirefoxDriver(ffOpts);
                 }
@@ -48,6 +49,7 @@ public class DriverManager {
                     // Selenium Manager (embutido no Selenium 4.6+) gerencia o msedgedriver
                     // automaticamente sem precisar de acesso à rede externa
                     EdgeOptions edgeOpts = new EdgeOptions();
+                    validarAmbienteGrafico("Edge");
                     if (headless) edgeOpts.addArguments("--headless=new");
                     edgeOpts.addArguments("--start-maximized");
                     edgeOpts.addArguments("--disable-notifications");
@@ -57,6 +59,7 @@ public class DriverManager {
                 default -> {  // chrome (padrão)
                     WebDriverManager.chromedriver().setup();
                     ChromeOptions opts = new ChromeOptions();
+                    validarAmbienteGrafico("Chrome");
                     if (headless) opts.addArguments("--headless=new");
                     opts.addArguments("--start-maximized");
                     opts.addArguments("--disable-notifications");
@@ -137,6 +140,22 @@ public class DriverManager {
         } catch (Exception ignored) {
             // Não crítico — continua sem stealth se falhar
         }
+    }
+
+    private void validarAmbienteGrafico(String browser) {
+        if (headless || !isLinux()) return;
+
+        String display = System.getenv("DISPLAY");
+        String waylandDisplay = System.getenv("WAYLAND_DISPLAY");
+        if ((display == null || display.isBlank())
+                && (waylandDisplay == null || waylandDisplay.isBlank())) {
+            throw new IllegalStateException(browser + " visivel solicitado, mas o servidor nao possui DISPLAY/WAYLAND_DISPLAY. "
+                    + "Inicie o Qorbit dentro de uma sessao grafica, VNC/noVNC ou Xvfb, ou habilite scanner.webdriver.headless=true.");
+        }
+    }
+
+    private boolean isLinux() {
+        return System.getProperty("os.name", "").toLowerCase().contains("linux");
     }
 
     public WebDriver atual() {

@@ -1,0 +1,84 @@
+name: Build and Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn -B -DskipTests package
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qorbit-jar
+          path: target/qorbit-*.jar
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: qorbit-jar
+          path: .
+
+      - name: Prepare systemd override file
+        run: |
+          cat > override.conf <<'EOF'
+          [Service]
+          # Environment variables exposed to the process (accessed as system properties)
+          Environment=SCANNER_HEADLESS=false
+          Environment=SCANNER_CHROMEDRIVER_LOG=/var/log/chromedriver.log
+          Environment=SCANNER_CHROME_BIN=/opt/google/chrome/chrome
+          EOF
+
+      - name: Copy JAR to remote host
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "target/qorbit-*.jar"
+          target: /tmp/qorbit.jar
+
+      - name: Copy override file to remote host
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: override.conf
+          target: /tmp/override_qorbit.conf
+
+      - name: Deploy on remote host (move files, reload systemd, restart)
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            sudo cp /tmp/qorbit.jar /opt/qorbit/qorbit.jar
+            sudo mkdir -p /etc/systemd/system/qorbit.service.d
+            sudo mv /tmp/override_qorbit.conf /etc/systemd/system/qorbit.service.d/override.conf
+            sudo systemctl daemon-reload
+            sudo systemctl restart qorbit.service
+            sudo journalctl -u qorbit.service -n 50 --no-pager
