@@ -35,11 +35,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
             .addResourceHandler("/favicon.ico")
             .addResourceLocations("classpath:/static/favicon.ico")
             .setCacheControl(CacheControl.maxAge(30, TimeUnit.DAYS).cachePublic());
-
-        registry
-            .addResourceHandler("/**/*.html")
-            .addResourceLocations("classpath:/static/")
-            .setCacheControl(CacheControl.maxAge(30, TimeUnit.DAYS).cachePublic());
     }
 
     @Override
