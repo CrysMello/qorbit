@@ -70,7 +70,7 @@ public class GravacaoController {
                 .build();
 
             driverGravacao = new ChromeDriver(service, opts);
-            driverGravacao.manage().window().maximize();
+            maximizarJanelaSePossivel(driverGravacao);
             driverGravacao.get(url);
 
             gravacaoService.iniciarGravacao(url);
@@ -145,6 +145,16 @@ public class GravacaoController {
 
     private boolean isLinux() {
         return System.getProperty("os.name", "").toLowerCase().contains("linux");
+    }
+
+    private void maximizarJanelaSePossivel(WebDriver driver) {
+        if (headless || driver == null) return;
+        try {
+            driver.manage().window().maximize();
+        } catch (Exception e) {
+            System.err.println("[Gravacao] Nao foi possivel maximizar a janela. Continuando com --start-maximized. Detalhe: "
+                    + e.getMessage());
+        }
     }
 
     private void iniciarLoopColetaAsync() {
