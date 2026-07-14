@@ -5,7 +5,9 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeDriverService;
 import org.openqa.selenium.chrome.ChromeOptions;
+import java.io.File;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,8 +47,22 @@ public class GravacaoController {
             opts.addArguments("--disable-blink-features=AutomationControlled");
             opts.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
             opts.setExperimentalOption("useAutomationExtension", false);
+            // Stability flags for Linux servers
+            opts.addArguments("--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--disable-setuid-sandbox");
 
-            driverGravacao = new ChromeDriver(opts);
+            String chromeBin = System.getProperty("scanner.chrome.bin");
+            if (chromeBin != null && !chromeBin.isBlank()) {
+              opts.setBinary(chromeBin);
+            }
+
+            String logPath = System.getProperty("scanner.chromedriver.log", "/tmp/chromedriver.log");
+            ChromeDriverService service = new ChromeDriverService.Builder()
+                .usingAnyFreePort()
+                .withVerbose(true)
+                .withLogFile(new File(logPath))
+                .build();
+
+            driverGravacao = new ChromeDriver(service, opts);
             driverGravacao.manage().window().maximize();
             driverGravacao.get(url);
 
