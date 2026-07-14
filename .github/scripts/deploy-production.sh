@@ -31,8 +31,10 @@ if [[ -z "$JAR_FILE" ]]; then
 fi
 
 TARGET_JAR="$DEPLOY_ROOT/current/${APP_NAME}.jar"
+ACTIVE_JAR="$DEPLOY_ROOT/qorbit.jar"
 cp "$JAR_FILE" "$TARGET_JAR"
-chmod +x "$TARGET_JAR"
+cp "$JAR_FILE" "$ACTIVE_JAR"
+chmod +x "$TARGET_JAR" "$ACTIVE_JAR"
 
 if command -v systemctl >/dev/null 2>&1 && systemctl list-units --type=service --all 2>/dev/null | awk '{print $1}' | grep -Fxq "${APP_SERVICE}.service"; then
   if command -v sudo >/dev/null 2>&1; then
