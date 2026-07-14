@@ -27,41 +27,25 @@ jobs:
       - name: Build package without tests
         run: mvn -B clean package -DskipTests
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PROD_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_HOST }}" >> ~/.ssh/known_hosts
+        env:
+          PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+
       - name: Copy artifact to server
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USER }}
-          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          source: "target/*.jar"
-          target: "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
+        run: |
+          mkdir -p "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
+          scp -i ~/.ssh/id_ed25519 -P "${{ secrets.PROD_SSH_PORT || '22' }}" target/*.jar "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
 
       - name: Copy deployment script
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USER }}
-          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          source: ".github/scripts/deploy-production.sh"
-          target: "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
+        run: |
+          scp -i ~/.ssh/id_ed25519 -P "${{ secrets.PROD_SSH_PORT || '22' }}" .github/scripts/deploy-production.sh "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
 
       - name: Deploy and restart application
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USER }}
-          key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.PROD_SSH_PORT || 22 }}
-          envs: PROD_DEPLOY_PATH,APP_NAME,APP_PORT,APP_SERVICE,SPRING_PROFILES_ACTIVE,APP_URL,SESSION_COOKIE_SECURE
-          script: |
-            set -e
-            RELEASE_DIR="${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
-            chmod +x "$RELEASE_DIR/deploy-production.sh"
-            bash "$RELEASE_DIR/deploy-production.sh" \
-              "$RELEASE_DIR" \
-              "${{ secrets.PROD_DEPLOY_PATH }}" \
-              "${{ vars.APP_NAME || 'qorbit-engine' }}" \
-              "${{ vars.APP_PORT || '8080' }}" \
-              "${{ vars.APP_SERVICE || 'qorbit' }}"
+        run: |
+          RELEASE_DIR="${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" "chmod +x '$RELEASE_DIR/deploy-production.sh' && bash '$RELEASE_DIR/deploy-production.sh' '$RELEASE_DIR' '${{ secrets.PROD_DEPLOY_PATH }}' '${{ vars.APP_NAME || 'qorbit-engine' }}' '${{ vars.APP_PORT || '8080' }}' '${{ vars.APP_SERVICE || 'qorbit' }}'"
