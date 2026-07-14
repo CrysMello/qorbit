@@ -30,15 +30,19 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$PROD_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$PROD_SSH_PRIVATE_KEY" | sed 's/\r$//' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_HOST }}" >> ~/.ssh/known_hosts
         env:
           PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
 
+      - name: Verify SSH access
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" echo SSH_OK
+
       - name: Copy artifact to server
         run: |
-          mkdir -p "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" mkdir -p "${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
           scp -i ~/.ssh/id_ed25519 -P "${{ secrets.PROD_SSH_PORT || '22' }}" target/*.jar "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}:${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}/"
 
       - name: Copy deployment script
@@ -48,4 +52,4 @@ jobs:
       - name: Deploy and restart application
         run: |
           RELEASE_DIR="${{ secrets.PROD_DEPLOY_PATH }}/releases/${{ github.run_id }}"
-          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=yes -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" "chmod +x '$RELEASE_DIR/deploy-production.sh' && bash '$RELEASE_DIR/deploy-production.sh' '$RELEASE_DIR' '${{ secrets.PROD_DEPLOY_PATH }}' '${{ vars.APP_NAME || 'qorbit-engine' }}' '${{ vars.APP_PORT || '8080' }}' '${{ vars.APP_SERVICE || 'qorbit' }}'"
+          ssh -i ~/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -p "${{ secrets.PROD_SSH_PORT || '22' }}" "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" "chmod +x '$RELEASE_DIR/deploy-production.sh' && bash '$RELEASE_DIR/deploy-production.sh' '$RELEASE_DIR' '${{ secrets.PROD_DEPLOY_PATH }}' '${{ vars.APP_NAME || 'qorbit-engine' }}' '${{ vars.APP_PORT || '8080' }}' '${{ vars.APP_SERVICE || 'qorbit' }}'"
