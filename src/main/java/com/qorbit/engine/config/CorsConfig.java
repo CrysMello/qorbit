@@ -14,11 +14,16 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
-                    // Restringe a origens locais — ferramenta de uso local
-                    .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
+                    // Permite local e domínios de produção com proxy reverso.
+                    .allowedOriginPatterns(
+                        "http://localhost:*",
+                        "http://127.0.0.1:*",
+                        "http://*.duckdns.org",
+                        "https://*.duckdns.org"
+                    )
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
-                    .allowCredentials(false);
+                    .allowCredentials(true);
             }
         };
     }

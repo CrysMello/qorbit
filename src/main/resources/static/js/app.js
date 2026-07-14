@@ -1,7 +1,11 @@
 // ── Utilitários ────────────────────────────────────────────────────────────
 
 async function api(method, url, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+    };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(url, opts);
     if (!res.ok) {

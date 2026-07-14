@@ -21,8 +21,12 @@ public class AppConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                // Aceita conexões WebSocket apenas de origens locais
-                .setAllowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
+                .setAllowedOriginPatterns(
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "http://*.duckdns.org",
+                    "https://*.duckdns.org"
+                )
                 .withSockJS();
     }
 }
