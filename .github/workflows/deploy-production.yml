@@ -17,6 +17,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug secrets (sem vazar valor)
+        run: |
+          echo "Tamanho SSH_USER: ${#SSH_USER}"
+          echo "Tamanho SSH_HOST: ${#SSH_HOST}"
+          echo "Tamanho SSH_PORT: ${#SSH_PORT}"
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
