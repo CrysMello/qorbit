@@ -44,6 +44,11 @@ public class GravacaoController {
         try {
             WebDriverManager.chromedriver().setup();
             ChromeOptions opts = new ChromeOptions();
+            // Habilita headless automaticamente se não houver DISPLAY ou se for configurado
+            boolean headless = Boolean.parseBoolean(System.getProperty("scanner.headless", "false"));
+            String display = System.getenv("DISPLAY");
+            if (display == null || display.isBlank()) headless = true;
+            if (headless) opts.addArguments("--headless=new");
             opts.addArguments("--disable-blink-features=AutomationControlled");
             opts.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
             opts.setExperimentalOption("useAutomationExtension", false);
