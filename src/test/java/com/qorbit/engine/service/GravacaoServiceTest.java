@@ -273,21 +273,19 @@ class GravacaoServiceTest {
         assertThat(status2.get("totalSteps")).isEqualTo(2);
     }
 
-    // ── Testes do script JS de captura client-side (via CapturaPublicaController) ──
+    // ── Testes do script JS de captura da extensão de navegador ─────────────
 
     private String obterScript() throws Exception {
-        var campo = com.qorbit.engine.controller.CapturaPublicaController.class
-            .getDeclaredField("TEMPLATE");
-        campo.setAccessible(true);
-        return (String) campo.get(null);
+        return java.nio.file.Files.readString(
+            java.nio.file.Path.of("browser-extension", "content-capture.js"));
     }
 
     @Test
-    @DisplayName("gerarScript — deve enviar eventos direto para o backend via fetch")
+    @DisplayName("content-capture.js — deve repassar eventos para o background via chrome.runtime")
     void script_deveConterFilaDeEventos() throws Exception {
         String script = obterScript();
-        assertThat(script).contains("EVENTO_URL");
-        assertThat(script).contains("fetch(EVENTO_URL");
+        assertThat(script).contains("chrome.runtime.sendMessage");
+        assertThat(script).contains("qorbitSessao");
     }
 
     @Test

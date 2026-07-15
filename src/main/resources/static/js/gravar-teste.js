@@ -6,42 +6,36 @@ let pollingTimer = null;
 let tokenAtual   = null;
 
 // ── Controles principais ────────────────────────────────────────────────────
+// A captura roda via extensão de navegador instalada uma vez (browser-extension/).
+// A página só avisa a extensão (via CustomEvent, repassado pelo content-bridge.js
+// dela) qual token/URL usar; quem escuta cliques/preenchimentos na aba aberta e
+// envia pro backend é o content-capture.js da extensão.
 
-function construirScriptUrl(token) {
-    const eventoUrl = window.location.origin + '/captura-publica/evento';
-    return window.location.origin + '/captura-publica/script.js'
-        + '?token=' + encodeURIComponent(token)
-        + '&eventoUrl=' + encodeURIComponent(eventoUrl);
+function extensaoInstalada() {
+    return !!window.__qorbitExtensaoPresente;
 }
 
-function construirBookmarklet(token) {
-    const scriptUrl = construirScriptUrl(token);
-    const codigo = "(function(){var s=document.createElement('script');s.src='" + scriptUrl + "';document.body.appendChild(s);})()";
-    return 'javascript:' + encodeURIComponent(codigo);
-}
-
-function construirSnippetConsole(token) {
-    const scriptUrl = construirScriptUrl(token);
-    return "fetch('" + scriptUrl + "').then(r=>r.text()).then(eval);";
-}
-
-function renderizarInstrucoesCaptura(token) {
-    const box = document.getElementById('capturaInstrucoes');
-    const bookmarklet = document.getElementById('linkBookmarklet');
-    const snippet = document.getElementById('snippetConsole');
-    if (bookmarklet) bookmarklet.href = construirBookmarklet(token);
-    if (snippet) snippet.textContent = construirSnippetConsole(token);
-    box?.classList.remove('hidden');
-}
-
-function copiarSnippetCaptura() {
-    const texto = document.getElementById('snippetConsole')?.textContent || '';
-    navigator.clipboard.writeText(texto).then(() => toast('Snippet copiado! Cole no Console (F12) da aba aberta.'));
+function atualizarBadgeExtensao() {
+    const badge = document.getElementById('badgeExtensao');
+    if (!badge) return;
+    if (extensaoInstalada()) {
+        badge.textContent = '✓ Extensão detectada';
+        badge.className = 'badge badge-success';
+    } else {
+        badge.textContent = '⚠ Extensão não instalada';
+        badge.className = 'badge badge-danger';
+    }
 }
 
 async function iniciarGravacao() {
     const url = document.getElementById('urlGravacao')?.value.trim();
     if (!url) { toast('Informe a URL da aplicação alvo', 'danger'); return; }
+
+    if (!extensaoInstalada()) {
+        toast('Instale a extensão do Qorbit antes de gravar (veja as instruções abaixo).', 'danger');
+        document.getElementById('avisoExtensao')?.classList.remove('hidden');
+        return;
+    }
 
     // Abre a aba já aqui, de forma síncrona: se esperarmos a resposta do backend
     // (await) antes de chamar window.open, o navegador não reconhece mais isso
@@ -67,32 +61,24 @@ async function iniciarGravacao() {
             return;
         }
         tokenAtual = res.token;
-        renderizarInstrucoesCaptura(tokenAtual);
+        const eventoUrl = window.location.origin + '/captura-publica/evento';
+        window.dispatchEvent(new CustomEvent('qorbit-iniciar-gravacao', { detail: { token: tokenAtual, eventoUrl } }));
 
         if (abaAlvo) {
             abaAlvo.location.href = url;
-            iniciarPolling();
-            conectarWsGravacao();
-            carregarModulos();
-            toast('Nova aba aberta — use o bookmarklet ou cole o snippet no Console para começar a capturar.');
         } else {
-            iniciarPolling();
-            conectarWsGravacao();
-            carregarModulos();
-            toast('O navegador bloqueou a nova aba. Clique no link "Abrir aba manualmente" abaixo.', 'danger');
+            toast('O navegador bloqueou a nova aba. Abra manualmente: ' + url, 'danger');
         }
-        exibirLinkAbrirManual(url);
+        iniciarPolling();
+        conectarWsGravacao();
+        carregarModulos();
+        toast('Gravando — a extensão já está capturando na aba aberta.');
     } catch (e) {
         gravando = false;
         mostrarPainelIniciar();
         abaAlvo?.close();
         toast('Erro ao iniciar: ' + e.message, 'danger');
     }
-}
-
-function exibirLinkAbrirManual(url) {
-    const link = document.getElementById('linkAbrirManual');
-    if (link) { link.href = url; link.classList.remove('hidden'); }
 }
 
 async function pararGravacao() {
@@ -312,8 +298,7 @@ function mostrarPainelGravando() {
 function mostrarPainelIniciar() {
     document.getElementById('formIniciar')?.classList.remove('hidden');
     document.getElementById('painelGravando')?.classList.add('hidden');
-    document.getElementById('capturaInstrucoes')?.classList.add('hidden');
-    document.getElementById('linkAbrirManual')?.classList.add('hidden');
+    if (tokenAtual) window.dispatchEvent(new CustomEvent('qorbit-parar-gravacao'));
     tokenAtual = null;
     setBtnIniciar('⏺ Iniciar gravação', false);
     const n = document.getElementById('nomeCaso');
@@ -329,7 +314,7 @@ function atualizarStatusBar(ativo) {
     const badge = document.getElementById('badgeStatus');
     if (ativo) {
         if (bar)   bar.className = 'status-bar gravando-ativo';
-        if (texto) { texto.textContent = 'Gravando — use o bookmarklet/snippet na aba aberta'; texto.style.color = '#DC2626'; }
+        if (texto) { texto.textContent = 'Gravando — interaja com a aba aberta'; texto.style.color = '#DC2626'; }
         if (badge) { badge.textContent = '⏺ Gravando'; badge.className = 'badge badge-danger'; }
     } else {
         if (bar)   bar.className = 'status-bar inativo';
@@ -381,15 +366,13 @@ async function inicializar() {
             atualizarContador();
             atualizarGherkin();
             mostrarPainelGravando();
-            if (status.token) {
-                tokenAtual = status.token;
-                renderizarInstrucoesCaptura(tokenAtual);
-            }
+            if (status.token) tokenAtual = status.token;
             iniciarPolling();
             conectarWsGravacao();
         }
     } catch {}
 
+    atualizarBadgeExtensao();
     checkSeleniumStatus();
 }
 

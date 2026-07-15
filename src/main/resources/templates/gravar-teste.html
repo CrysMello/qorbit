@@ -113,6 +113,7 @@
                 <span class="topbar-sub">Interaja com a aplicação e o Qorbit captura os steps automaticamente</span>
             </div>
             <div class="topbar-actions">
+                <span class="badge" id="badgeExtensao" style="font-size:12px">verificando extensão…</span>
                 <span class="badge" id="badgeStatus" style="font-size:12px">● Inativo</span>
             </div>
         </div>
@@ -151,40 +152,16 @@
                         </button>
                     </div>
 
-                    <!-- Instruções de captura (bookmarklet / snippet console) -->
-                    <div class="card hidden" id="capturaInstrucoes" style="margin-top:12px">
+                    <!-- Aviso quando a extensão do Qorbit não está instalada -->
+                    <div class="card hidden" id="avisoExtensao" style="margin-top:12px">
                         <div class="card-title" style="margin-bottom:10px">
-                            Ative a captura na aba aberta
+                            Instale a extensão do Qorbit
                         </div>
-                        <div class="dica-box" style="margin-bottom:10px">
-                            Uma nova aba foi aberta com a URL informada. Nessa aba, escolha uma opção
-                            para começar a capturar seus cliques e preenchimentos:
-                        </div>
-                        <a id="linkAbrirManual" href="#" target="_blank" rel="noopener"
-                           class="btn btn-sm hidden" style="display:inline-block;margin-bottom:10px">
-                            🔗 Abrir aba manualmente (caso o navegador tenha bloqueado o pop-up)
-                        </a>
-                        <div class="form-group">
-                            <label>Opção 1 — Bookmarklet</label>
-                            <a id="linkBookmarklet" href="javascript:void(0)"
-                               class="btn btn-sm" style="display:inline-block"
-                               onclick="toast('Arraste este botão para a barra de favoritos, depois clique nele na aba aberta.'); return false;">
-                                ⏺ Gravar com Qorbit
-                            </a>
-                            <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
-                                Arraste este botão para a barra de favoritos uma vez. Depois, clique nele
-                                sempre que estiver na aba que quer gravar.
-                            </span>
-                        </div>
-                        <div class="form-group">
-                            <label>Opção 2 — Console do navegador</label>
-                            <pre id="snippetConsole" style="font-family:monospace;font-size:11px;
-                                 color:var(--text-2);background:var(--bg-input);border:1px solid var(--border);
-                                 padding:10px;border-radius:4px;overflow-x:auto;white-space:pre-wrap"></pre>
-                            <button class="btn btn-sm" style="margin-top:6px" onclick="copiarSnippetCaptura()">Copiar snippet</button>
-                            <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
-                                Na aba aberta, pressione F12 → aba "Console", cole o snippet e pressione Enter.
-                            </span>
+                        <div class="dica-box">
+                            A gravação captura os eventos através de uma extensão de navegador
+                            (instala uma vez, funciona em qualquer aba depois). Pasta
+                            <code>browser-extension/</code> do projeto → <code>chrome://extensions</code>
+                            → ative o "Modo do desenvolvedor" → "Carregar sem compactação".
                         </div>
                     </div>
 
@@ -220,9 +197,9 @@
                     <!-- Dicas de uso -->
                     <div class="dica-box">
                         <strong>Como usar:</strong><br>
-                        1. Informe a URL e clique em "Iniciar gravação"<br>
-                        2. Uma nova aba abrirá na URL informada<br>
-                        3. Nessa aba, use o bookmarklet ou o snippet do console para ativar a captura<br>
+                        1. Instale a extensão do Qorbit uma vez (veja aviso acima, se aparecer)<br>
+                        2. Informe a URL e clique em "Iniciar gravação"<br>
+                        3. Uma nova aba abrirá e a captura já começa automaticamente<br>
                         4. Navegue e interaja com a aplicação normalmente<br>
                         5. Cada clique, preenchimento e navegação é gravado<br>
                         6. Clique em "Parar e salvar" para criar o caso de teste<br><br>

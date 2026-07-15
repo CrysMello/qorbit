@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Qorbit — Gravador de Testes",
+  "version": "1.0.0",
+  "description": "Captura cliques, preenchimentos e navegação na aba ativa para gravação de testes no Qorbit.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://qorbit.duckdns.org/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://qorbit.duckdns.org/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["content-bridge.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-capture.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}
