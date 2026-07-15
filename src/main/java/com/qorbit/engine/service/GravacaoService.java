@@ -30,7 +30,6 @@ public class GravacaoService {
 
     private final AtomicBoolean gravando = new AtomicBoolean(false);
     private String urlBase = "";
-    private volatile String tokenSessao;
     private final List<StepTeste> stepsGravados = Collections.synchronizedList(new ArrayList<>());
     private final List<Elemento> elementosGravados = Collections.synchronizedList(new ArrayList<>());
     private final AtomicInteger contadorStep = new AtomicInteger(0);
@@ -66,24 +65,17 @@ public class GravacaoService {
         }
         gravando.set(true);
         urlBase = url;
-        tokenSessao = UUID.randomUUID().toString();
         stepsGravados.clear();
         elementosGravados.clear();
         seletoresVistos.clear();
         assinaturasRecentes.clear();
         ultimoValorPorCampo.clear();
         contadorStep.set(0);
-        return Map.of("mensagem", "Gravação iniciada", "url", url, "token", tokenSessao);
-    }
-
-    /** Valida o token da sessão de gravação atual (usado pela captura client-side via bookmarklet). */
-    public boolean tokenValido(String token) {
-        return gravando.get() && tokenSessao != null && tokenSessao.equals(token);
+        return Map.of("mensagem", "Gravação iniciada", "url", url);
     }
 
     public Map<String, Object> pararGravacao(String nomeCaso, String modulo) {
         gravando.set(false);
-        tokenSessao = null;
 
         if ("_descartar_".equals(nomeCaso)) {
             stepsGravados.clear();
@@ -349,19 +341,18 @@ public class GravacaoService {
     }
 
     public Map<String, Object> getStatus() {
-        Map<String, Object> status = new LinkedHashMap<>();
-        status.put("gravando", gravando.get());
-        status.put("url", urlBase);
-        status.put("token", tokenSessao != null ? tokenSessao : "");
-        status.put("totalSteps", stepsGravados.size());
-        status.put("steps", stepsGravados.stream().map(s -> Map.of(
+        return Map.of(
+                "gravando", gravando.get(),
+                "url", urlBase,
+                "totalSteps", stepsGravados.size(),
+                "steps", stepsGravados.stream().map(s -> Map.of(
                         "numero", s.getNumeroStep(),
                         "acao", s.getAcao() != null ? s.getAcao() : "",
                         "elemento", s.getNomeLogicoElemento() != null ? s.getNomeLogicoElemento() : "",
                         "valor", s.getValorEntrada() != null ? s.getValorEntrada() : "",
                         "gherkin", s.getDescricaoGherkin() != null ? s.getDescricaoGherkin() : ""
-                )).toList());
-        return status;
+                )).toList()
+        );
     }
 
     public void removerStep(int numeroStep) {

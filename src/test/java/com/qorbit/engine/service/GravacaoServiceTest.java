@@ -273,19 +273,25 @@ class GravacaoServiceTest {
         assertThat(status2.get("totalSteps")).isEqualTo(2);
     }
 
-    // ── Testes do script JS de captura da extensão de navegador ─────────────
+    // ── Testes do script JS gerado (via GravacaoController por reflexao) ───────
 
     private String obterScript() throws Exception {
-        return java.nio.file.Files.readString(
-            java.nio.file.Path.of("browser-extension", "content-capture.js"));
+        com.qorbit.engine.controller.GravacaoController ctrl =
+            new com.qorbit.engine.controller.GravacaoController();
+        // Injeta dependencias minimas
+        org.springframework.test.util.ReflectionTestUtils.setField(ctrl, "gravacaoService", gravacaoService);
+        var metodo = com.qorbit.engine.controller.GravacaoController.class
+            .getDeclaredMethod("gerarScript");
+        metodo.setAccessible(true);
+        return (String) metodo.invoke(ctrl);
     }
 
     @Test
-    @DisplayName("content-capture.js — deve repassar eventos para o background via chrome.runtime")
+    @DisplayName("gerarScript — deve conter fila de eventos __scannerEventos")
     void script_deveConterFilaDeEventos() throws Exception {
         String script = obterScript();
-        assertThat(script).contains("chrome.runtime.sendMessage");
-        assertThat(script).contains("qorbitSessao");
+        assertThat(script).contains("__scannerEventos");
+        assertThat(script).contains("__scannerDrainEventos");
     }
 
     @Test

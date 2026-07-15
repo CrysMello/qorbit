@@ -113,7 +113,6 @@
                 <span class="topbar-sub">Interaja com a aplicação e o Qorbit captura os steps automaticamente</span>
             </div>
             <div class="topbar-actions">
-                <span class="badge" id="badgeExtensao" style="font-size:12px">verificando extensão…</span>
                 <span class="badge" id="badgeStatus" style="font-size:12px">● Inativo</span>
             </div>
         </div>
@@ -144,25 +143,12 @@
                             <input type="url" id="urlGravacao" class="input"
                                    placeholder="https://app.suaempresa.com.br/pagina"/>
                             <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
-                                Abriremos essa URL numa nova aba do seu navegador
+                                O Chrome abrirá nessa URL automaticamente
                             </span>
                         </div>
                         <button class="record-btn start" onclick="iniciarGravacao()">
                             ⏺ Iniciar gravação
                         </button>
-                    </div>
-
-                    <!-- Aviso quando a extensão do Qorbit não está instalada -->
-                    <div class="card hidden" id="avisoExtensao" style="margin-top:12px">
-                        <div class="card-title" style="margin-bottom:10px">
-                            Instale a extensão do Qorbit
-                        </div>
-                        <div class="dica-box">
-                            A gravação captura os eventos através de uma extensão de navegador
-                            (instala uma vez, funciona em qualquer aba depois). Pasta
-                            <code>browser-extension/</code> do projeto → <code>chrome://extensions</code>
-                            → ative o "Modo do desenvolvedor" → "Carregar sem compactação".
-                        </div>
                     </div>
 
                     <!-- Painel durante a gravação -->
@@ -197,12 +183,11 @@
                     <!-- Dicas de uso -->
                     <div class="dica-box">
                         <strong>Como usar:</strong><br>
-                        1. Instale a extensão do Qorbit uma vez (veja aviso acima, se aparecer)<br>
-                        2. Informe a URL e clique em "Iniciar gravação"<br>
-                        3. Uma nova aba abrirá e a captura já começa automaticamente<br>
-                        4. Navegue e interaja com a aplicação normalmente<br>
-                        5. Cada clique, preenchimento e navegação é gravado<br>
-                        6. Clique em "Parar e salvar" para criar o caso de teste<br><br>
+                        1. Informe a URL e clique em "Iniciar gravação"<br>
+                        2. O Chrome abrirá automaticamente na URL informada<br>
+                        3. Navegue e interaja com a aplicação normalmente<br>
+                        4. Cada clique, preenchimento e navegação é gravado<br>
+                        5. Clique em "Parar e salvar" para criar o caso de teste<br><br>
                         <strong>O que é gravado:</strong>
                         Cliques em botões e links, preenchimento de campos,
                         seleção em dropdowns, navegação entre páginas.<br><br>
@@ -211,8 +196,14 @@
                     </div>
                 </div>
 
-                <!-- Coluna direita: steps em tempo real -->
+                <!-- Coluna direita: tela remota + steps em tempo real -->
                 <div>
+                    <!-- Tela do Chrome remoto (Xvfb + noVNC) -->
+                    <div class="card hidden" id="cardTelaRemota" style="margin-bottom:12px;padding:0;overflow:hidden">
+                        <iframe id="frameTelaRemota" title="Chrome remoto"
+                                style="width:100%;height:480px;border:0;display:block;background:#000"></iframe>
+                    </div>
+
                     <div class="card">
                         <div class="card-header">
                             <span class="card-title">Steps gravados em tempo real</span>
@@ -221,7 +212,7 @@
 
                         <div id="listaSteps">
                             <div style="text-align:center;padding:40px;color:var(--text-3);font-size:12px">
-                                Os steps aparecerão aqui conforme você interage<br>com a aplicação na aba aberta.
+                                Os steps aparecerão aqui conforme você interage<br>com a aplicação no browser aberto.
                             </div>
                         </div>
                     </div>

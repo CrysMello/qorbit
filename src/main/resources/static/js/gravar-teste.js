@@ -3,47 +3,12 @@ let stepsLocais  = [];
 let wsGravacao   = null;
 let gravando     = false;
 let pollingTimer = null;
-let tokenAtual   = null;
 
 // ── Controles principais ────────────────────────────────────────────────────
-// A captura roda via extensão de navegador instalada uma vez (browser-extension/).
-// A página só avisa a extensão (via CustomEvent, repassado pelo content-bridge.js
-// dela) qual token/URL usar; quem escuta cliques/preenchimentos na aba aberta e
-// envia pro backend é o content-capture.js da extensão.
-
-function extensaoInstalada() {
-    return !!window.__qorbitExtensaoPresente;
-}
-
-function atualizarBadgeExtensao() {
-    const badge = document.getElementById('badgeExtensao');
-    if (!badge) return;
-    if (extensaoInstalada()) {
-        badge.textContent = '✓ Extensão detectada';
-        badge.className = 'badge badge-success';
-    } else {
-        badge.textContent = '⚠ Extensão não instalada';
-        badge.className = 'badge badge-danger';
-    }
-}
 
 async function iniciarGravacao() {
     const url = document.getElementById('urlGravacao')?.value.trim();
     if (!url) { toast('Informe a URL da aplicação alvo', 'danger'); return; }
-
-    if (!extensaoInstalada()) {
-        toast('Instale a extensão do Qorbit antes de gravar (veja as instruções abaixo).', 'danger');
-        document.getElementById('avisoExtensao')?.classList.remove('hidden');
-        return;
-    }
-
-    // Abre a aba já aqui, de forma síncrona: se esperarmos a resposta do backend
-    // (await) antes de chamar window.open, o navegador não reconhece mais isso
-    // como originado de um clique direto do usuário e bloqueia o pop-up em silêncio.
-    // Não usamos 'noopener' aqui porque precisamos manter a referência (abaAlvo)
-    // para navegar essa aba assim que soubermos a URL validada pelo backend.
-    const abaAlvo = window.open('about:blank', '_blank');
-    if (abaAlvo) { try { abaAlvo.opener = null; } catch (e) {} }
 
     // Atualiza UI imediatamente
     gravando = true;
@@ -57,26 +22,15 @@ async function iniciarGravacao() {
             gravando = false;
             mostrarPainelIniciar();
             toast(res.erro, 'danger');
-            abaAlvo?.close();
             return;
-        }
-        tokenAtual = res.token;
-        const eventoUrl = window.location.origin + '/captura-publica/evento';
-        window.dispatchEvent(new CustomEvent('qorbit-iniciar-gravacao', { detail: { token: tokenAtual, eventoUrl } }));
-
-        if (abaAlvo) {
-            abaAlvo.location.href = url;
-        } else {
-            toast('O navegador bloqueou a nova aba. Abra manualmente: ' + url, 'danger');
         }
         iniciarPolling();
         conectarWsGravacao();
         carregarModulos();
-        toast('Gravando — a extensão já está capturando na aba aberta.');
+        toast('Chrome aberto! Interaja com a aplicação.');
     } catch (e) {
         gravando = false;
         mostrarPainelIniciar();
-        abaAlvo?.close();
         toast('Erro ao iniciar: ' + e.message, 'danger');
     }
 }
@@ -93,7 +47,7 @@ async function pararGravacao() {
         const totalBackend = status.totalSteps || 0;
 
         if (totalBackend === 0 && stepsLocais.length === 0) {
-            toast('Nenhum step gravado — interaja com a aba aberta antes de parar', 'danger');
+            toast('Nenhum step gravado — interaja com o Chrome antes de parar', 'danger');
             return;
         }
     } catch {}
@@ -292,14 +246,14 @@ function copiarGherkin() {
 function mostrarPainelGravando() {
     document.getElementById('formIniciar')?.classList.add('hidden');
     document.getElementById('painelGravando')?.classList.remove('hidden');
+    mostrarTelaRemota();
     atualizarStatusBar(true);
 }
 
 function mostrarPainelIniciar() {
     document.getElementById('formIniciar')?.classList.remove('hidden');
     document.getElementById('painelGravando')?.classList.add('hidden');
-    if (tokenAtual) window.dispatchEvent(new CustomEvent('qorbit-parar-gravacao'));
-    tokenAtual = null;
+    esconderTelaRemota();
     setBtnIniciar('⏺ Iniciar gravação', false);
     const n = document.getElementById('nomeCaso');
     const m = document.getElementById('moduloCaso');
@@ -308,13 +262,28 @@ function mostrarPainelIniciar() {
     atualizarStatusBar(false);
 }
 
+function mostrarTelaRemota() {
+    const card  = document.getElementById('cardTelaRemota');
+    const frame = document.getElementById('frameTelaRemota');
+    if (!card || !frame) return;
+    frame.src = '/vnc/vnc.html?autoconnect=true&resize=scale&path=vnc/websockify&reconnect=true';
+    card.classList.remove('hidden');
+}
+
+function esconderTelaRemota() {
+    const card  = document.getElementById('cardTelaRemota');
+    const frame = document.getElementById('frameTelaRemota');
+    if (card) card.classList.add('hidden');
+    if (frame) frame.src = 'about:blank';
+}
+
 function atualizarStatusBar(ativo) {
     const bar   = document.getElementById('statusBar');
     const texto = document.getElementById('statusTexto');
     const badge = document.getElementById('badgeStatus');
     if (ativo) {
         if (bar)   bar.className = 'status-bar gravando-ativo';
-        if (texto) { texto.textContent = 'Gravando — interaja com a aba aberta'; texto.style.color = '#DC2626'; }
+        if (texto) { texto.textContent = 'Gravando — interaja com o Chrome aberto'; texto.style.color = '#DC2626'; }
         if (badge) { badge.textContent = '⏺ Gravando'; badge.className = 'badge badge-danger'; }
     } else {
         if (bar)   bar.className = 'status-bar inativo';
@@ -366,13 +335,11 @@ async function inicializar() {
             atualizarContador();
             atualizarGherkin();
             mostrarPainelGravando();
-            if (status.token) tokenAtual = status.token;
             iniciarPolling();
             conectarWsGravacao();
         }
     } catch {}
 
-    atualizarBadgeExtensao();
     checkSeleniumStatus();
 }
 
