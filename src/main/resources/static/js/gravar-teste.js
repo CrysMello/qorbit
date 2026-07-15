@@ -3,8 +3,41 @@ let stepsLocais  = [];
 let wsGravacao   = null;
 let gravando     = false;
 let pollingTimer = null;
+let tokenAtual   = null;
 
 // ── Controles principais ────────────────────────────────────────────────────
+
+function construirScriptUrl(token) {
+    const eventoUrl = window.location.origin + '/captura-publica/evento';
+    return window.location.origin + '/captura-publica/script.js'
+        + '?token=' + encodeURIComponent(token)
+        + '&eventoUrl=' + encodeURIComponent(eventoUrl);
+}
+
+function construirBookmarklet(token) {
+    const scriptUrl = construirScriptUrl(token);
+    const codigo = "(function(){var s=document.createElement('script');s.src='" + scriptUrl + "';document.body.appendChild(s);})()";
+    return 'javascript:' + encodeURIComponent(codigo);
+}
+
+function construirSnippetConsole(token) {
+    const scriptUrl = construirScriptUrl(token);
+    return "fetch('" + scriptUrl + "').then(r=>r.text()).then(eval);";
+}
+
+function renderizarInstrucoesCaptura(token) {
+    const box = document.getElementById('capturaInstrucoes');
+    const bookmarklet = document.getElementById('linkBookmarklet');
+    const snippet = document.getElementById('snippetConsole');
+    if (bookmarklet) bookmarklet.href = construirBookmarklet(token);
+    if (snippet) snippet.textContent = construirSnippetConsole(token);
+    box?.classList.remove('hidden');
+}
+
+function copiarSnippetCaptura() {
+    const texto = document.getElementById('snippetConsole')?.textContent || '';
+    navigator.clipboard.writeText(texto).then(() => toast('Snippet copiado! Cole no Console (F12) da aba aberta.'));
+}
 
 async function iniciarGravacao() {
     const url = document.getElementById('urlGravacao')?.value.trim();
@@ -24,10 +57,13 @@ async function iniciarGravacao() {
             toast(res.erro, 'danger');
             return;
         }
+        tokenAtual = res.token;
+        renderizarInstrucoesCaptura(tokenAtual);
+        window.open(url, '_blank', 'noopener');
         iniciarPolling();
         conectarWsGravacao();
         carregarModulos();
-        toast('Chrome aberto! Interaja com a aplicação.');
+        toast('Nova aba aberta — use o bookmarklet ou cole o snippet no Console para começar a capturar.');
     } catch (e) {
         gravando = false;
         mostrarPainelIniciar();
@@ -47,7 +83,7 @@ async function pararGravacao() {
         const totalBackend = status.totalSteps || 0;
 
         if (totalBackend === 0 && stepsLocais.length === 0) {
-            toast('Nenhum step gravado — interaja com o Chrome antes de parar', 'danger');
+            toast('Nenhum step gravado — interaja com a aba aberta antes de parar', 'danger');
             return;
         }
     } catch {}
@@ -252,6 +288,8 @@ function mostrarPainelGravando() {
 function mostrarPainelIniciar() {
     document.getElementById('formIniciar')?.classList.remove('hidden');
     document.getElementById('painelGravando')?.classList.add('hidden');
+    document.getElementById('capturaInstrucoes')?.classList.add('hidden');
+    tokenAtual = null;
     setBtnIniciar('⏺ Iniciar gravação', false);
     const n = document.getElementById('nomeCaso');
     const m = document.getElementById('moduloCaso');
@@ -266,7 +304,7 @@ function atualizarStatusBar(ativo) {
     const badge = document.getElementById('badgeStatus');
     if (ativo) {
         if (bar)   bar.className = 'status-bar gravando-ativo';
-        if (texto) { texto.textContent = 'Gravando — interaja com o Chrome aberto'; texto.style.color = '#DC2626'; }
+        if (texto) { texto.textContent = 'Gravando — use o bookmarklet/snippet na aba aberta'; texto.style.color = '#DC2626'; }
         if (badge) { badge.textContent = '⏺ Gravando'; badge.className = 'badge badge-danger'; }
     } else {
         if (bar)   bar.className = 'status-bar inativo';
@@ -318,6 +356,10 @@ async function inicializar() {
             atualizarContador();
             atualizarGherkin();
             mostrarPainelGravando();
+            if (status.token) {
+                tokenAtual = status.token;
+                renderizarInstrucoesCaptura(tokenAtual);
+            }
             iniciarPolling();
             conectarWsGravacao();
         }

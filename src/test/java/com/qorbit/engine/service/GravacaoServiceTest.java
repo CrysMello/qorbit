@@ -273,25 +273,21 @@ class GravacaoServiceTest {
         assertThat(status2.get("totalSteps")).isEqualTo(2);
     }
 
-    // ── Testes do script JS gerado (via GravacaoController por reflexao) ───────
+    // ── Testes do script JS de captura client-side (via CapturaPublicaController) ──
 
     private String obterScript() throws Exception {
-        com.qorbit.engine.controller.GravacaoController ctrl =
-            new com.qorbit.engine.controller.GravacaoController();
-        // Injeta dependencias minimas
-        org.springframework.test.util.ReflectionTestUtils.setField(ctrl, "gravacaoService", gravacaoService);
-        var metodo = com.qorbit.engine.controller.GravacaoController.class
-            .getDeclaredMethod("gerarScript");
-        metodo.setAccessible(true);
-        return (String) metodo.invoke(ctrl);
+        var campo = com.qorbit.engine.controller.CapturaPublicaController.class
+            .getDeclaredField("TEMPLATE");
+        campo.setAccessible(true);
+        return (String) campo.get(null);
     }
 
     @Test
-    @DisplayName("gerarScript — deve conter fila de eventos __scannerEventos")
+    @DisplayName("gerarScript — deve enviar eventos direto para o backend via fetch")
     void script_deveConterFilaDeEventos() throws Exception {
         String script = obterScript();
-        assertThat(script).contains("__scannerEventos");
-        assertThat(script).contains("__scannerDrainEventos");
+        assertThat(script).contains("EVENTO_URL");
+        assertThat(script).contains("fetch(EVENTO_URL");
     }
 
     @Test

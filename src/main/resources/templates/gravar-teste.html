@@ -143,12 +143,45 @@
                             <input type="url" id="urlGravacao" class="input"
                                    placeholder="https://app.suaempresa.com.br/pagina"/>
                             <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
-                                O Chrome abrirá nessa URL automaticamente
+                                Abriremos essa URL numa nova aba do seu navegador
                             </span>
                         </div>
                         <button class="record-btn start" onclick="iniciarGravacao()">
                             ⏺ Iniciar gravação
                         </button>
+                    </div>
+
+                    <!-- Instruções de captura (bookmarklet / snippet console) -->
+                    <div class="card hidden" id="capturaInstrucoes" style="margin-top:12px">
+                        <div class="card-title" style="margin-bottom:10px">
+                            Ative a captura na aba aberta
+                        </div>
+                        <div class="dica-box" style="margin-bottom:10px">
+                            Uma nova aba foi aberta com a URL informada. Nessa aba, escolha uma opção
+                            para começar a capturar seus cliques e preenchimentos:
+                        </div>
+                        <div class="form-group">
+                            <label>Opção 1 — Bookmarklet</label>
+                            <a id="linkBookmarklet" href="javascript:void(0)"
+                               class="btn btn-sm" style="display:inline-block"
+                               onclick="toast('Arraste este botão para a barra de favoritos, depois clique nele na aba aberta.'); return false;">
+                                ⏺ Gravar com Qorbit
+                            </a>
+                            <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
+                                Arraste este botão para a barra de favoritos uma vez. Depois, clique nele
+                                sempre que estiver na aba que quer gravar.
+                            </span>
+                        </div>
+                        <div class="form-group">
+                            <label>Opção 2 — Console do navegador</label>
+                            <pre id="snippetConsole" style="font-family:monospace;font-size:11px;
+                                 color:var(--text-2);background:var(--bg-input);border:1px solid var(--border);
+                                 padding:10px;border-radius:4px;overflow-x:auto;white-space:pre-wrap"></pre>
+                            <button class="btn btn-sm" style="margin-top:6px" onclick="copiarSnippetCaptura()">Copiar snippet</button>
+                            <span style="font-size:10px;color:var(--text-3);margin-top:3px;display:block">
+                                Na aba aberta, pressione F12 → aba "Console", cole o snippet e pressione Enter.
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Painel durante a gravação -->
@@ -184,10 +217,11 @@
                     <div class="dica-box">
                         <strong>Como usar:</strong><br>
                         1. Informe a URL e clique em "Iniciar gravação"<br>
-                        2. O Chrome abrirá automaticamente na URL informada<br>
-                        3. Navegue e interaja com a aplicação normalmente<br>
-                        4. Cada clique, preenchimento e navegação é gravado<br>
-                        5. Clique em "Parar e salvar" para criar o caso de teste<br><br>
+                        2. Uma nova aba abrirá na URL informada<br>
+                        3. Nessa aba, use o bookmarklet ou o snippet do console para ativar a captura<br>
+                        4. Navegue e interaja com a aplicação normalmente<br>
+                        5. Cada clique, preenchimento e navegação é gravado<br>
+                        6. Clique em "Parar e salvar" para criar o caso de teste<br><br>
                         <strong>O que é gravado:</strong>
                         Cliques em botões e links, preenchimento de campos,
                         seleção em dropdowns, navegação entre páginas.<br><br>
@@ -206,7 +240,7 @@
 
                         <div id="listaSteps">
                             <div style="text-align:center;padding:40px;color:var(--text-3);font-size:12px">
-                                Os steps aparecerão aqui conforme você interage<br>com a aplicação no browser aberto.
+                                Os steps aparecerão aqui conforme você interage<br>com a aplicação na aba aberta.
                             </div>
                         </div>
                     </div>

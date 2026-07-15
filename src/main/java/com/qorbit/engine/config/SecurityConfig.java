@@ -51,7 +51,8 @@ public class SecurityConfig {
                     "/auth/verify-email",
                     "/css/**", "/js/**", "/images/**", "/favicon.ico",
                     "/qorbit-manual-usuario.html",
-                    "/api/diagnostico/**", "/error"
+                    "/api/diagnostico/**", "/error",
+                    "/captura-publica/**"
                 ).permitAll()
                 .requestMatchers("/auth/mfa", "/auth/mfa/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")

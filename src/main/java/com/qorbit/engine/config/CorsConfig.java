@@ -24,6 +24,15 @@ public class CorsConfig {
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
                     .allowCredentials(true);
+
+                // Captura client-side da gravação: roda na aba do site sob teste (origem
+                // arbitrária, definida pelo usuário), por isso precisa aceitar qualquer origem.
+                // Sem cookies/credenciais — a autorização é feita via token de sessão no corpo/query.
+                registry.addMapping("/captura-publica/**")
+                    .allowedOriginPatterns("*")
+                    .allowedMethods("GET", "POST", "OPTIONS")
+                    .allowedHeaders("*")
+                    .allowCredentials(false);
             }
         };
     }
