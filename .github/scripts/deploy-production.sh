@@ -9,6 +9,9 @@ APP_SERVICE="${5:-qorbit}"
 SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}"
 APP_URL="${APP_URL:-https://qorbit.duckdns.org}"
 SESSION_COOKIE_SECURE="${SESSION_COOKIE_SECURE:-true}"
+SCANNER_HEADLESS="${SCANNER_HEADLESS:-false}"
+SCANNER_CHROMEDRIVER_LOG="${SCANNER_CHROMEDRIVER_LOG:-/var/log/chromedriver.log}"
+SCANNER_CHROME_BIN="${SCANNER_CHROME_BIN:-/opt/google/chrome/chrome}"
 
 if [[ -z "$RELEASE_DIR" ]]; then
   echo "Usage: $0 <release_dir> [deploy_root] [app_name] [app_port] [service_name]" >&2
@@ -48,6 +51,9 @@ else
     SPRING_PROFILES_ACTIVE="$SPRING_PROFILES_ACTIVE" \
     APP_URL="$APP_URL" \
     SESSION_COOKIE_SECURE="$SESSION_COOKIE_SECURE" \
+    SCANNER_HEADLESS="$SCANNER_HEADLESS" \
+    SCANNER_CHROMEDRIVER_LOG="$SCANNER_CHROMEDRIVER_LOG" \
+    SCANNER_CHROME_BIN="$SCANNER_CHROME_BIN" \
     java -jar "$TARGET_JAR" --server.port="$APP_PORT" > "$DEPLOY_ROOT/logs/${APP_NAME}.log" 2>&1 &
 fi
 
