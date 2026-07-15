@@ -43,6 +43,14 @@ async function iniciarGravacao() {
     const url = document.getElementById('urlGravacao')?.value.trim();
     if (!url) { toast('Informe a URL da aplicação alvo', 'danger'); return; }
 
+    // Abre a aba já aqui, de forma síncrona: se esperarmos a resposta do backend
+    // (await) antes de chamar window.open, o navegador não reconhece mais isso
+    // como originado de um clique direto do usuário e bloqueia o pop-up em silêncio.
+    // Não usamos 'noopener' aqui porque precisamos manter a referência (abaAlvo)
+    // para navegar essa aba assim que soubermos a URL validada pelo backend.
+    const abaAlvo = window.open('about:blank', '_blank');
+    if (abaAlvo) { try { abaAlvo.opener = null; } catch (e) {} }
+
     // Atualiza UI imediatamente
     gravando = true;
     stepsLocais = [];
@@ -55,20 +63,36 @@ async function iniciarGravacao() {
             gravando = false;
             mostrarPainelIniciar();
             toast(res.erro, 'danger');
+            abaAlvo?.close();
             return;
         }
         tokenAtual = res.token;
         renderizarInstrucoesCaptura(tokenAtual);
-        window.open(url, '_blank', 'noopener');
-        iniciarPolling();
-        conectarWsGravacao();
-        carregarModulos();
-        toast('Nova aba aberta — use o bookmarklet ou cole o snippet no Console para começar a capturar.');
+
+        if (abaAlvo) {
+            abaAlvo.location.href = url;
+            iniciarPolling();
+            conectarWsGravacao();
+            carregarModulos();
+            toast('Nova aba aberta — use o bookmarklet ou cole o snippet no Console para começar a capturar.');
+        } else {
+            iniciarPolling();
+            conectarWsGravacao();
+            carregarModulos();
+            toast('O navegador bloqueou a nova aba. Clique no link "Abrir aba manualmente" abaixo.', 'danger');
+        }
+        exibirLinkAbrirManual(url);
     } catch (e) {
         gravando = false;
         mostrarPainelIniciar();
+        abaAlvo?.close();
         toast('Erro ao iniciar: ' + e.message, 'danger');
     }
+}
+
+function exibirLinkAbrirManual(url) {
+    const link = document.getElementById('linkAbrirManual');
+    if (link) { link.href = url; link.classList.remove('hidden'); }
 }
 
 async function pararGravacao() {
@@ -289,6 +313,7 @@ function mostrarPainelIniciar() {
     document.getElementById('formIniciar')?.classList.remove('hidden');
     document.getElementById('painelGravando')?.classList.add('hidden');
     document.getElementById('capturaInstrucoes')?.classList.add('hidden');
+    document.getElementById('linkAbrirManual')?.classList.add('hidden');
     tokenAtual = null;
     setBtnIniciar('⏺ Iniciar gravação', false);
     const n = document.getElementById('nomeCaso');
