@@ -26,6 +26,24 @@ Thumbs.db
 .env.*
 application-local.properties
 secrets.properties
+# Reports
+report/
 reports/
-evidencias/
-target/
+coverage/
+
+# Allure
+allure-results/
+allure-report/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.bak
+*.tmp
+*.temp
+
+# Backups
+backup/
+.security-backup/
