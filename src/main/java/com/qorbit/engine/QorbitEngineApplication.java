@@ -20,7 +20,7 @@ public class QorbitEngineApplication {
         SpringApplication.run(QorbitEngineApplication.class, args);
         System.out.println("====================================");
         System.out.println("  Qorbit iniciado!");
-        System.out.println("  Acesse: http://localhost:8080");
+        System.out.println("  Acesse: http://localhost:18080");
         System.out.println("====================================");
     }
 

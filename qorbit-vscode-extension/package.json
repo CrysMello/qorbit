@@ -2,7 +2,7 @@
   "name": "qorbit-recorder",
   "displayName": "Qorbit Recorder",
   "description": "Grava e controla testes web do Qorbit Engine direto do VSCode, sem sair do editor.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "qorbit",
   "private": true,
   "engines": {
@@ -32,13 +32,8 @@
       "properties": {
         "qorbit.baseUrl": {
           "type": "string",
-          "default": "http://localhost:8080",
+          "default": "http://localhost:18080",
           "description": "URL do backend Qorbit Engine (local ou no Dev Container)."
-        },
-        "qorbit.novncUrl": {
-          "type": "string",
-          "default": "http://localhost:6080/vnc_lite.html?autoconnect=true&resize=scale",
-          "description": "URL do visualizador noVNC usado para ver o Chrome da gravação ao vivo."
         },
         "qorbit.email": {
           "type": "string",

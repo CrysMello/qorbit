@@ -28,15 +28,9 @@ public class GravacaoController {
     @PostMapping("/iniciar")
     public ResponseEntity<?> iniciar(@RequestBody Map<String, String> body) {
         String url = body.get("url");
-        if (url == null || url.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("erro", "URL é obrigatória"));
-        }
-        String erroUrl = validarUrlSegura(url);
-        if (erroUrl != null) {
-            return ResponseEntity.badRequest().body(Map.of("erro", erroUrl));
-        }
-        if (gravacaoService.isGravando()) {
-            return ResponseEntity.badRequest().body(Map.of("erro", "Já existe uma gravação em andamento. Pare primeiro."));
+        ResponseEntity<?> erro = validarPreCondicoes(url);
+        if (erro != null) {
+            return erro;
         }
 
         try {
@@ -74,6 +68,22 @@ public class GravacaoController {
             pararBrowser();
             return ResponseEntity.internalServerError().body(Map.of("erro", "Falha ao abrir browser: " + e.getMessage()));
         }
+    }
+
+    /**
+     * Inicia uma gravação sem Selenium: a captura roda no navegador real do
+     * usuário via a extensão de navegador (browser-extension/), que reporta
+     * os eventos a /captura-publica/evento. Usado pela extensão do VSCode —
+     * o fluxo web ("Gravar Teste") continua em /iniciar, com Selenium+noVNC.
+     */
+    @PostMapping("/iniciar-extensao")
+    public ResponseEntity<?> iniciarExtensao(@RequestBody Map<String, String> body) {
+        String url = body.get("url");
+        ResponseEntity<?> erro = validarPreCondicoes(url);
+        if (erro != null) {
+            return erro;
+        }
+        return ResponseEntity.ok(gravacaoService.iniciarGravacao(url));
     }
 
     @PostMapping("/parar")
@@ -172,6 +182,21 @@ public class GravacaoController {
             try { driverGravacao.quit(); } catch (Exception ignored) {}
             driverGravacao = null;
         }
+    }
+
+    /** Checagens comuns a /iniciar e /iniciar-extensao. Retorna null se ok, ou a resposta de erro. */
+    private ResponseEntity<?> validarPreCondicoes(String url) {
+        if (url == null || url.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("erro", "URL é obrigatória"));
+        }
+        String erroUrl = validarUrlSegura(url);
+        if (erroUrl != null) {
+            return ResponseEntity.badRequest().body(Map.of("erro", erroUrl));
+        }
+        if (gravacaoService.isGravando()) {
+            return ResponseEntity.badRequest().body(Map.of("erro", "Já existe uma gravação em andamento. Pare primeiro."));
+        }
+        return null;
     }
 
     /** Valida URL para prevenir SSRF: permite apenas http/https para hosts públicos. */

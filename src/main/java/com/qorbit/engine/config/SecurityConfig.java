@@ -51,7 +51,8 @@ public class SecurityConfig {
                     "/auth/verify-email",
                     "/css/**", "/js/**", "/images/**", "/favicon.ico",
                     "/qorbit-manual-usuario.html",
-                    "/api/diagnostico/**", "/error"
+                    "/api/diagnostico/**", "/error",
+                    "/captura-publica/**"
                 ).permitAll()
                 .requestMatchers("/auth/mfa", "/auth/mfa/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("SUPER_ADMIN")
@@ -67,7 +68,7 @@ public class SecurityConfig {
             // /auth/logout é ignorado: quando a sessão expira o token CSRF some,
             // causando 403 no clique de logout. Forçar logout via CSRF é risco baixo.
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**", "/auth/logout")
+                .ignoringRequestMatchers("/api/**", "/auth/logout", "/captura-publica/**")
             )
 
             // ── Form login ────────────────────────────────────────────────────

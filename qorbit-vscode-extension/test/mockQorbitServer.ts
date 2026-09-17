@@ -109,6 +109,23 @@ export function createMockQorbitServer(): http.Server {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/api/gravacao/iniciar-extensao") {
+      const body = JSON.parse((await readBody(req)) || "{}");
+      if (estado.gravando) {
+        sendJson(res, 400, { erro: "Já existe uma gravação em andamento. Pare primeiro." });
+        return;
+      }
+      if (!body.url) {
+        sendJson(res, 400, { erro: "URL é obrigatória" });
+        return;
+      }
+      estado.gravando = true;
+      estado.url = body.url;
+      estado.steps = [];
+      sendJson(res, 200, { mensagem: "Gravação iniciada", url: body.url, token: "mock-sessao-token" });
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/gravacao/status") {
       sendJson(res, 200, {
         gravando: estado.gravando,

@@ -61,11 +61,24 @@ a ponta.
 3. Primeira vez demora alguns minutos (baixa a imagem, instala Java, Maven,
    Chrome, Xvfb, noVNC); da segunda vez em diante abre em segundos
 
+## Extensão de navegador (obrigatória para gravar)
+
+A captura roda no seu navegador de verdade, não num Chrome controlado pelo
+servidor — por isso, além desta extensão de VSCode, é preciso instalar a
+extensão de navegador do Qorbit (`browser-extension/` na raiz do repo) como
+extensão "unpacked":
+
+- **Chrome/Edge**: `chrome://extensions` → ative "Modo do desenvolvedor" →
+  "Carregar sem compactação" → selecione a pasta `browser-extension/`.
+
+Sem ela instalada, `Qorbit: Gravar novo teste` ainda abre o navegador na
+página-ponte do Qorbit, mas nenhum clique/preenchimento é capturado.
+
 ## Comandos
 
 | Comando | O que faz |
 |---|---|
-| `Qorbit: Gravar novo teste` | Loga (se preciso), pede a URL, chama `/api/gravacao/iniciar` e abre um painel com o noVNC ao lado do editor |
+| `Qorbit: Gravar novo teste` | Loga (se preciso), pede a URL, chama `/api/gravacao/iniciar-extensao` e abre seu navegador padrão na página-ponte do Qorbit, que repassa a sessão para a extensão de navegador e navega até a URL alvo |
 | `Qorbit: Parar e salvar` | Pede nome do caso/módulo, chama `/api/gravacao/parar` |
 | `Qorbit: Descartar gravação` | Chama `/api/gravacao/descartar` |
 
@@ -73,8 +86,7 @@ Também aparecem na barra de status (canto inferior esquerdo).
 
 ## Configuração (`Ctrl+,` → busque "qorbit")
 
-- `qorbit.baseUrl` — URL do backend (padrão `http://localhost:8080`)
-- `qorbit.novncUrl` — URL do visualizador noVNC (padrão aponta para a porta 6080 do Dev Container)
+- `qorbit.baseUrl` — URL do backend (padrão `http://localhost:18080`)
 - `qorbit.email` — padrão `user@qorbit.local`
 - `qorbit.password` — padrão `Qorbit@2025` para uso local/controlado; não use essa configuração em produção
 

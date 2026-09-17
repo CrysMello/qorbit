@@ -14,7 +14,7 @@ public class DiagnosticoController {
 
     /**
      * Testa se o Chrome + ChromeDriver funcionam corretamente.
-     * Acesse: GET http://localhost:8080/api/diagnostico/chrome
+     * Acesse: GET http://localhost:18080/api/diagnostico/chrome
      */
     @GetMapping("/chrome")
     public Map<String, Object> testarChrome() {

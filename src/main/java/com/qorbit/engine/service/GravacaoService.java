@@ -30,6 +30,7 @@ public class GravacaoService {
 
     private final AtomicBoolean gravando = new AtomicBoolean(false);
     private String urlBase = "";
+    private volatile String tokenSessao;
     private final List<StepTeste> stepsGravados = Collections.synchronizedList(new ArrayList<>());
     private final List<Elemento> elementosGravados = Collections.synchronizedList(new ArrayList<>());
     private final AtomicInteger contadorStep = new AtomicInteger(0);
@@ -65,17 +66,29 @@ public class GravacaoService {
         }
         gravando.set(true);
         urlBase = url;
+        tokenSessao = UUID.randomUUID().toString();
         stepsGravados.clear();
         elementosGravados.clear();
         seletoresVistos.clear();
         assinaturasRecentes.clear();
         ultimoValorPorCampo.clear();
         contadorStep.set(0);
-        return Map.of("mensagem", "Gravação iniciada", "url", url);
+        return Map.of("mensagem", "Gravação iniciada", "url", url, "token", tokenSessao);
+    }
+
+    /** Valida o token da sessão de gravação atual (usado pela captura client-side via extensão de navegador). */
+    public boolean tokenValido(String token) {
+        return gravando.get() && tokenSessao != null && tokenSessao.equals(token);
+    }
+
+    /** Retorna a URL alvo da gravação atual se o token bater, senão null — usado pela página de bridge. */
+    public String getUrlSeTokenValido(String token) {
+        return tokenValido(token) ? urlBase : null;
     }
 
     public Map<String, Object> pararGravacao(String nomeCaso, String modulo) {
         gravando.set(false);
+        tokenSessao = null;
 
         if ("_descartar_".equals(nomeCaso)) {
             stepsGravados.clear();
@@ -344,6 +357,7 @@ public class GravacaoService {
         return Map.of(
                 "gravando", gravando.get(),
                 "url", urlBase,
+                "token", tokenSessao != null ? tokenSessao : "",
                 "totalSteps", stepsGravados.size(),
                 "steps", stepsGravados.stream().map(s -> Map.of(
                         "numero", s.getNumeroStep(),

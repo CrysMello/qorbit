@@ -69,6 +69,11 @@ export class QorbitClient {
     return this.authenticated;
   }
 
+  /** Origem do backend (sem path), usada para montar a URL da página-ponte /captura-publica/bridge. */
+  getBaseUrl(): string {
+    return this.baseUrl.origin;
+  }
+
   /** Faz o login tradicional do Spring Security: pega o token CSRF na página, depois envia o form. */
   async login(email: string, senha: string): Promise<{ ok: boolean; erro?: string }> {
     const loginPage = await this.request({ method: "GET", path: "/auth/login" });
@@ -95,6 +100,16 @@ export class QorbitClient {
 
   async iniciarGravacao(url: string): Promise<ApiPayload> {
     return this.postJson("/api/gravacao/iniciar", { url });
+  }
+
+  /**
+   * Inicia a gravação sem Selenium: o backend só valida a URL e devolve um
+   * token de sessão — a captura em si roda no navegador real do usuário via
+   * a extensão de navegador (browser-extension/), que reporta os eventos a
+   * /captura-publica/evento. Ver CapturaPublicaController.
+   */
+  async iniciarGravacaoExtensao(url: string): Promise<ApiPayload> {
+    return this.postJson("/api/gravacao/iniciar-extensao", { url });
   }
 
   async registrarStep(evento: ApiPayload): Promise<ApiPayload> {

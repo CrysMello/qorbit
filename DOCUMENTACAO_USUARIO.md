@@ -49,7 +49,7 @@ O **Qorbit Engine** é uma plataforma de automação de testes de aplicações w
 Após iniciar o servidor, abra o navegador e acesse:
 
 ```
-http://localhost:8080
+http://localhost:18080
 ```
 
 Você será direcionado ao **Dashboard**, a página principal do Qorbit.

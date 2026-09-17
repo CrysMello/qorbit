@@ -24,6 +24,15 @@ public class CorsConfig {
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
                     .allowCredentials(true);
+
+                // Captura client-side da gravação (extensão de navegador, fluxo do VSCode):
+                // roda na aba do site sob teste (origem arbitrária), por isso precisa aceitar
+                // qualquer origem. Sem cookies/credenciais — autorização via token no corpo.
+                registry.addMapping("/captura-publica/**")
+                    .allowedOriginPatterns("*")
+                    .allowedMethods("GET", "POST", "OPTIONS")
+                    .allowedHeaders("*")
+                    .allowCredentials(false);
             }
         };
     }

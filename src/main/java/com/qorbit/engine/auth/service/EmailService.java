@@ -31,7 +31,7 @@ public class EmailService {
     @Value("${spring.mail.username:}")
     private String smtpUsername;
 
-    @Value("${qorbit.app.base-url:http://localhost:8080}")
+    @Value("${qorbit.app.base-url:http://localhost:18080}")
     private String baseUrl;
 
     public EmailService(JavaMailSender mailSender) {

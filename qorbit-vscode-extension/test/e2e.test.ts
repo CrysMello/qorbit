@@ -98,3 +98,15 @@ test("descartar limpa o estado da gravação", async () => {
     assert.equal(status.totalSteps, 0);
   });
 });
+
+test("iniciar via extensão de navegador retorna token de sessão", async () => {
+  await withServer(async (baseUrl) => {
+    const client = new QorbitClient({ baseUrl });
+    await client.login(CREDENCIAL_VALIDA.email, CREDENCIAL_VALIDA.senha);
+
+    const iniciar = await client.iniciarGravacaoExtensao("https://staging.empresa.com/login");
+    assert.equal(iniciar.mensagem, "Gravação iniciada");
+    assert.equal(typeof iniciar.token, "string");
+    assert.ok((iniciar.token as string).length > 0);
+  });
+});
