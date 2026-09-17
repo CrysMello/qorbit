@@ -1,0 +1,28 @@
+{
+  "name": "Qorbit Engine (dev)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "forwardPorts": [8080, 6080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Qorbit backend",
+      "onAutoForward": "notify"
+    },
+    "6080": {
+      "label": "noVNC (Chrome da gravação, ao vivo)",
+      "onAutoForward": "silent"
+    }
+  },
+  // Primeira vez que o container é criado: baixa as dependências do pom.xml.
+  "postCreateCommand": "mvn -DskipTests package",
+  // Toda vez que o container inicia: sobe Xvfb + x11vnc + noVNC + o backend.
+  "postStartCommand": "bash .devcontainer/start.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack"
+      ]
+    }
+  }
+}

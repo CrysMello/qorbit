@@ -1,0 +1,68 @@
+{
+  "name": "qorbit-recorder",
+  "displayName": "Qorbit Recorder",
+  "description": "Grava e controla testes web do Qorbit Engine direto do VSCode, sem sair do editor.",
+  "version": "0.1.1",
+  "publisher": "qorbit",
+  "private": true,
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Testing", "Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "qorbit.iniciarGravacao",
+        "title": "Qorbit: Gravar novo teste",
+        "icon": "$(record)"
+      },
+      {
+        "command": "qorbit.pararGravacao",
+        "title": "Qorbit: Parar e salvar"
+      },
+      {
+        "command": "qorbit.descartarGravacao",
+        "title": "Qorbit: Descartar gravação"
+      }
+    ],
+    "configuration": {
+      "title": "Qorbit",
+      "properties": {
+        "qorbit.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "URL do backend Qorbit Engine (local ou no Dev Container)."
+        },
+        "qorbit.novncUrl": {
+          "type": "string",
+          "default": "http://localhost:6080/vnc_lite.html?autoconnect=true&resize=scale",
+          "description": "URL do visualizador noVNC usado para ver o Chrome da gravação ao vivo."
+        },
+        "qorbit.email": {
+          "type": "string",
+          "default": "user@qorbit.local",
+          "description": "E-mail da conta local usada automaticamente pela extensão."
+        },
+        "qorbit.password": {
+          "type": "string",
+          "default": "Qorbit@2025",
+          "description": "Senha da conta local usada automaticamente pela extensão. Não use esta configuração em produção."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "package": "npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}
