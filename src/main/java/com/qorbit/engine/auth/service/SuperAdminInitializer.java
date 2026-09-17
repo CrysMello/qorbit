@@ -52,6 +52,15 @@ public class SuperAdminInitializer implements ApplicationRunner {
     @Value("${qorbit.super-admin.password:Qorbit@Admin#2025!}")
     private String adminPassword;
 
+    @Value("${qorbit.local-user.email:user@qorbit.local}")
+    private String localUserEmail;
+
+    @Value("${qorbit.local-user.name:Qorbit User}")
+    private String localUserName;
+
+    @Value("${qorbit.local-user.password:Qorbit@2025}")
+    private String localUserPassword;
+
     public SuperAdminInitializer(QorbitUserRepository userRepo, PasswordEncoder encoder) {
         this.userRepo = userRepo;
         this.encoder  = encoder;
@@ -78,29 +87,52 @@ public class SuperAdminInitializer implements ApplicationRunner {
             .map(u -> u.getRole() == UserRole.SUPER_ADMIN || u.getRole() == UserRole.OWNER)
             .orElse(false);
 
-        if (alreadyExists) {
+        if (!alreadyExists) {
+            QorbitUser admin = userRepo.findByEmailIgnoreCase(targetEmail)
+                .orElse(new QorbitUser());
+
+            admin.setEmail(targetEmail);
+            admin.setFullName(adminName);
+            admin.setPasswordHash(encoder.encode(adminPassword));
+            admin.setRole(UserRole.SUPER_ADMIN);
+            admin.setEmailVerified(true);
+            admin.setPasswordMustChange(false);  // credenciais já são as definitivas
+            admin.setFirstLogin(false);
+            admin.setActive(true);
+            admin.setPasswordChangedAt(LocalDateTime.now());
+            admin.setPasswordExpiresAt(
+                LocalDateTime.now().plusDays(UserRole.SUPER_ADMIN.passwordExpiryDays()));
+
+            userRepo.save(admin);
+
+            log.warn("=========================================================");
+            log.warn("  SUPER_ADMIN provisionado: {}", targetEmail);
+            log.warn("=========================================================");
+        }
+
+        provisionLocalUser();
+    }
+
+    private void provisionLocalUser() {
+        String targetEmail = localUserEmail.toLowerCase().trim();
+        if (targetEmail.isBlank() || localUserPassword == null || localUserPassword.isBlank()
+                || userRepo.findByEmailIgnoreCase(targetEmail).isPresent()) {
             return;
         }
 
-        QorbitUser admin = userRepo.findByEmailIgnoreCase(targetEmail)
-            .orElse(new QorbitUser());
+        QorbitUser user = new QorbitUser();
+        user.setEmail(targetEmail);
+        user.setFullName(localUserName);
+        user.setPasswordHash(encoder.encode(localUserPassword));
+        user.setRole(UserRole.USER);
+        user.setEmailVerified(true);
+        user.setMfaEnabled(false);
+        user.setPasswordMustChange(false);
+        user.setFirstLogin(false);
+        user.setActive(true);
+        user.setPasswordChangedAt(LocalDateTime.now());
+        userRepo.save(user);
 
-        admin.setEmail(targetEmail);
-        admin.setFullName(adminName);
-        admin.setPasswordHash(encoder.encode(adminPassword));
-        admin.setRole(UserRole.SUPER_ADMIN);
-        admin.setEmailVerified(true);
-        admin.setPasswordMustChange(false);  // credenciais já são as definitivas
-        admin.setFirstLogin(false);
-        admin.setActive(true);
-        admin.setPasswordChangedAt(LocalDateTime.now());
-        admin.setPasswordExpiresAt(
-            LocalDateTime.now().plusDays(UserRole.SUPER_ADMIN.passwordExpiryDays()));
-
-        userRepo.save(admin);
-
-        log.warn("=========================================================");
-        log.warn("  SUPER_ADMIN provisionado: {}", targetEmail);
-        log.warn("=========================================================");
+        log.warn("Usuário local provisionado: {}", targetEmail);
     }
 }
